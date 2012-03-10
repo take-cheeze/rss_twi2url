@@ -122,7 +122,7 @@ function fetch_page(oauth, url, name, info) {
             data, function(k, tweet) {
               $.each(
                 tweet.entities.urls, function(k, v) {
-                  (function(t) {
+                  (function(t, v) {
                      var expander = new (require('url-expander').SingleUrlExpander)(v.url);
                      expander.on('expanded', function (original_url, expanded_url) {
                                    twi2url_db.queued_urls.push(
@@ -133,7 +133,7 @@ function fetch_page(oauth, url, name, info) {
                                      });
                                  });
                      expander.expand();
-                   })(tweet);
+                   })(tweet, v);
                 });
             });
           if(info.new_since_id === null && data.length > 0) {
@@ -185,6 +185,7 @@ function fetch(oauth) {
     });
 };
 
+var get_description = require('./twi2url.description').get_description;
 function generate_items() {
   function match_exclude_filter(str) {
     for(k in config.exclude_filter) {
@@ -200,11 +201,10 @@ function generate_items() {
                           })(twi2url_db.last_urls, v.url)))
     { return; }
 
-    require('./twi2url.description').get_description(
+    get_description(
       v.url, function(url, title, description) {
         console.log(description);
-        assert.ok(typeof description == 'string' ||
-                 description === null);
+        assert.ok(typeof description === 'string' && description.length > 0);
 
         twi2url_db[url] = {
           'title': title,

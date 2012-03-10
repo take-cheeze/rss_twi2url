@@ -5,12 +5,12 @@ consumer = require('./consumer'),
 jsdom = require('jsdom'),
 XMLHttpRequest = require("xmlhttprequest").XMLHttpRequest;
 
-var JQUERY_URL = 'http://code.jquery.com/jquery-latest.js';
-
 $.support.cors = true;
 $.ajaxSettings.xhr = function () {
   return new XMLHttpRequest;
 };
+
+var document = jsdom.jsdom(), window = document.createWindow();
 
 module.exports.get_description = function(url, callback) {
   function unescapeHTML(str) {
@@ -21,7 +21,7 @@ module.exports.get_description = function(url, callback) {
   }
   function image_tag(v) {
     assert.ok(v);
-    return '<img src="' + v + '">';
+    return $('body').empty().append($('<img />').attr('src', v)).html();
   }
 
   function oembed_default_callback(data) {
@@ -51,16 +51,17 @@ module.exports.get_description = function(url, callback) {
   }
   function run_jquery(cb) {
     jsdom.env(
-      url, [JQUERY_URL], function(errors, window) {
-        if(errors) { throw JSON.stringify(errors); }
-        cb(window.$, window);
+      url, ['http://code.jquery.com/jquery-latest.js'],
+      function(errors, window) {
+        if(errors) { console.error(JSON.stringify(errors)); }
+        cb(window.jQuery, window);
       });
   }
 
   var GALLERY_FILTER = {
     '^http://photozou.jp/photo/\\w+/(\\d+)/(\\d+)$': function() {
       var id = url.match(/^http:\/\/photozou.jp\/photo\/\w+\/(\d+)\/(\d+)/)[2];
-      run_jquery( function($) {
+      run_jquery(function($) {
                     callback(
                       url.replace('show', 'photo_only'),
                       $('#media_description').text(),
@@ -324,12 +325,12 @@ module.exports.get_description = function(url, callback) {
     }
     if(is_docs(url)) {
       callback(
-        url, url, $('<iframe />').attr(
+        url, url, $('body').empty().append($('<iframe />').attr(
           { 'title': 'Google Docs Viewer',
             'class': 'google-docs-viewer',
             'type': 'text/html',
             'src': 'https://docs.google.com/viewer?' + $.param({'url': url, 'embedded': true}),
-            'width': '100%', 'height': '600'}).html());
+            'width': '100%', 'height': '600'})).html());
       return;
     }
     if(is_open_graph(url)) {
@@ -350,15 +351,12 @@ module.exports.get_description = function(url, callback) {
     }
   }
 
-  oembed('http://embeddit.appspot.com/fetch/?' + $.param({'url': url}), function(data) {
-           if('url' in data) { oembed_default_callback(data); }
-           else {
-             function normal_url() {
-               run_jquery(function($) {
-                            errors? normal_url() : callback(url, $('title').text(), e);
-                          });
-             }
-             normal_url();
-           }
-         });
+  oembed(
+    'http://embeddit.appspot.com/fetch/?' + $.param({'url': url}), function(data) {
+      if('url' in data) { oembed_default_callback(data); }
+      else {
+        run_jquery(function($) {
+                     $ && callback(url, $('title').text(), e);
+                   }); }
+    });
 };
