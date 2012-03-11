@@ -7,5 +7,8 @@ module.exports = {
   author: "Takeshi Watanabe",
   feed_item_max: 1000,
   fetch_frequency: 5 * 60 * 1000,
-  exclude_filter: [],
+  exclude_filter: [
+    'ustream.tv',
+    'http://shindanmaker.com/',
+  ],
 };
