@@ -45,7 +45,10 @@ function signin(callback) {
       request.get(
         { 'url': url, oauth: opt, encoding: 'utf8' },
         function(err, res, data) {
-          switch(res.statusCode) {
+          if(err) {
+            console.error("Error fetching json from twitter: " + err);
+            console.error('URL: ' + url);
+          } else if(res) switch(res.statusCode) {
           case 500: case 502: case 503: case 504:
             setTimeout(function() { oa.get_json(url, callback); }, 1000);
             break;
@@ -153,7 +156,7 @@ function fetch_page(oauth, url, name, info) {
                 if(v.expanded_url.length > LONG_URL_LENGTH) {
                   twi2url_db.queued_urls.push(
                     { 'url': v.expanded_url,
-                      author: tweet.user.name + ' (@' + tweet.user.screen_name + ')',
+                      author: name,
                       date: tweet.created_at });
                   return;
                 }
@@ -249,49 +252,52 @@ function in_last_urls(url) {
   return false;
 }
 
-var desc = require('./twi2url.description');
-function generate_items() {
+var get_description = require('./twi2url.description').get_description;
+function generate_item() {
   function match_exclude_filter(str) {
     for(k in config.exclude_filter) {
       if((new RegExp(config.exclude_filter[k])).test(str)) { return true; } }
     return false;
   }
 
-  while(twi2url_db.queued_urls.length > 0) {
-    var v = twi2url_db.queued_urls.pop();
-    if(match_exclude_filter(v.url) ||
-       (v.url in twi2url_db.cache && in_last_urls(v.url)))
-    { continue; }
+  if(twi2url_db.queued_urls.length == 0) { return; }
 
-    desc.get_description(
-      v.url, function(url, title, description) {
-        if(!description || !title || !url) {
-          console.error('Invalid data (description): ' + description);
-          console.error('Invalid data (url): ' + url);
-          console.error('Invalid data (title): ' + title);
-        }
+  var v = twi2url_db.queued_urls.pop();
+  if(match_exclude_filter(v.url) ||
+     (v.url in twi2url_db.cache && in_last_urls(v.url)))
+  { generate_item(); }
 
-        var cleaned = $(description);
-        $.each(
-          [ 'link', 'script', 'dl' ],
-          function(k,v) {
-            cleaned.find(v).empty();
-          });
-        $.each(
-          [ 'data-hatena-bookmark-layout',
-            'data-hatena-bookmark-title', 'data-lang', 'data-count',
-            'data-url', 'data-text', 'data-via' ],
-          function(k,v) {
-            cleaned.find('[' + v + ']').removeAttr(v);
-          });
+  get_description(
+    v.url, function(url, title, description) {
+      if(!description || !title || !url) {
+        console.error('Invalid data (description): ' + description);
+        console.error('Invalid data (url): ' + url);
+        console.error('Invalid data (title): ' + title);
+        if(description === null) { console.trace(); }
+      }
 
-        twi2url_db.cache[url] = {
-          title: title, description: cleaned.html(),
-          'url': url, author: v.author, date: v.date
-        };
-        if(!in_last_urls(url)) { twi2url_db.last_urls.push(url); }
-      });
-  }
+      var cleaned = $(description);
+      $.each(
+        [ 'link', 'script', 'dl' ],
+        function(k,v) {
+          cleaned.find(v).empty();
+        });
+      $.each(
+        [ 'data-hatena-bookmark-layout',
+          'data-hatena-bookmark-title', 'data-lang', 'data-count',
+          'data-url', 'data-text', 'data-via' ],
+        function(k,v) {
+          cleaned.find('[' + v + ']').removeAttr(v);
+        });
+
+      twi2url_db.cache[url] = {
+        title: title, description: $('<div />').append(cleaned.clone()).html(),
+        'url': url, author: v.author, date: v.date
+      };
+      if(!in_last_urls(url)) { twi2url_db.last_urls.push(url); }
+
+      generate_item();
+    });
 }
 
 function create_feed() {
@@ -315,11 +321,12 @@ signin(
   function(oa) {
     require('http').createServer(
       function(req, res) {
-        res.writeHead(200, {'Content-Type': 'application/rss+xml'});
-        var xml = create_feed().xml();
         console.log('queued_urls.length: ' + twi2url_db.queued_urls.length);
         console.log('last_urls.length: ' + twi2url_db.last_urls.length);
-        res.end(xml);
+
+        res.writeHead(200, {'Content-Type': 'application/rss+xml'});
+        res.write(create_feed().xml(), 'utf8');
+        res.end();
       }).listen(config.port);
 
     console.log('twi2url started: http://' + config.hostname + ':' + config.port + '/' + config.pathname);
@@ -328,12 +335,10 @@ signin(
     twitter_api_left = true;
     backup();
 
-    desc.set_oauth(oa);
-
-    generate_items();
+    generate_item();
     fetch(oa);
 
     setInterval(function() { fetch(oa); }, config.fetch_frequency);
-    setInterval(generate_items, 1000 * 30);
+    setInterval(generate_item, 1000 * 1);
     setInterval(backup, 1000 * 60);
   });

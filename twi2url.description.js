@@ -2,6 +2,7 @@ var
 $ = require('jquery'),
 consumer = require('./consumer'),
 jsdom = require('jsdom'),
+request = require('request'),
 XMLHttpRequest = require("xmlhttprequest").XMLHttpRequest;
 
 $.support.cors = true;
@@ -12,11 +13,15 @@ $.ajaxSettings.xhr = function () {
 var document = jsdom.jsdom(), window = document.createWindow();
 var DEFAULT_ENCODING = 'utf8';
 
-var oauth;
-
-module.exports.set_oauth = function(oa) { oauth = oa; }
+var iconv_cache = { 'utf8': true, 'utf-8': true };
 
 module.exports.get_description = function(url, callback) {
+  $.fn.outerHTML = function(t) {
+    return (t)
+      ? this.before(t).remove()
+      : $("<div />").append(this.eq(0).clone()).html();
+  };
+
   function unescapeHTML(str) {
     return $('<div />').html(str).text();
   }
@@ -24,9 +29,12 @@ module.exports.get_description = function(url, callback) {
     return $('<div />').text(str).html();
   }
   function image_tag(v) {
-    if(!v) { console.error('empty url in image tag: ' + url); }
+    if(!v) {
+      console.error('empty url in image tag: ' + url);
+      console.trace();
+    }
     return v
-      ? $('body').empty().append($('<img />').attr('src', v)).html()
+      ? $('<img />').attr('src', v).outerHTML()
       : 'empty url in image tag';
   }
 
@@ -36,18 +44,20 @@ module.exports.get_description = function(url, callback) {
       console.error('Error not found: ' + url);
       return;
     }
+    console.error("Error in: " + url);
     console.error(JSON.stringify([jqXHR, textStatus, errorThrown]));
-    console.error(" at " + url);
   }
 
   function oembed_default_callback(data) {
-    callback(url, data.title,
+    callback(url, data.title || url,
              ('description' in data? data.description + '<br/>' : '') +
-             ('html' in data? data.html + '<br/>' : '') +
-             ('image' in data? image_tag(data.image) + '<br/>' : '') +
-             ((!('image' in data) && 'thumbnail_url' in data)?
-              image_tag(data.thumbnail_url) + '<br/>' : '') +
-             (data.type === 'photo')? image_tag(data.url) + '<br/>' : '');
+             ('image' in data? image_tag(data.image) + '<br/>' :
+              'thumbnail' in data? image_tag(data.thumbnail) + '<br/>':
+              'thumbnail_url' in data? image_tag(data.thumbnail_url) + '<br/>':
+              '') +
+             (data.type === 'rich'? data.html + '<br/>' :
+              data.type === 'photo'? image_tag(data.url) + '<br/>' :
+              ''));
   }
   function oembed(req_url, oembed_callback) {
     $.ajax(
@@ -62,8 +72,8 @@ module.exports.get_description = function(url, callback) {
 
   function run_jquery(cb, u) {
     var target_url = u === undefined? url : u;
-    require('request').get(
-      { uri: target_url, encoding: null },
+    request.get(
+      { uri: target_url, encoding: null, followAllRedirects: true, pool: false },
       function(err, res, data) {
         if(err || res.statusCode !== 200) {
           if(res) switch(res.statusCode) {
@@ -77,7 +87,8 @@ module.exports.get_description = function(url, callback) {
           return;
         }
 
-        if(!require('buffer').Buffer.isBuffer(data)) { throw 'not Buffer: ' + typeof data; }
+        if(!require('buffer').Buffer.isBuffer(data))
+        { throw 'not Buffer: ' + typeof data; }
 
         var cont_type = res.headers['content-type'];
 
@@ -88,14 +99,28 @@ module.exports.get_description = function(url, callback) {
 
         var charset_regex = /charset="?'?([\w_\-]+)"?'?/i;
         var enc = charset_regex.test(cont_type)
-          ? cont_type.match(charset_regex)[1] : DEFAULT_ENCODING;
-        var i = new (require('iconv').Iconv)(enc, DEFAULT_ENCODING + '//TRANSLIT//IGNORE');
+          ? cont_type.match(charset_regex)[1].toLowerCase() : DEFAULT_ENCODING;
+        if(enc in iconv_cache) {
+          if(iconv_cache[enc] === 'unsupported') {
+            callback(target_url, target_url, 'unsupported charset');
+            return;
+          }
+        } else {
+          try {
+            iconv_cache[enc] = new (require('iconv').Iconv)(enc, DEFAULT_ENCODING + '//TRANSLIT//IGNORE');
+          } catch(e) {
+            callback(target_url, target_url, 'unsupported charset');
+            iconv_cache[enc] = 'unsupported';
+            callback(target_url, target_url, 'unsupported charset');
+            return;
+          }
+        }
 
-        var html = /utf-?8/i.test(enc)? data.toString() : i.convert(data).toString(DEFAULT_ENCODING);
-        // console.log(html);
+        var html = /utf-?8/i.test(enc)? data.toString() :
+            iconv_cache[enc].convert(data).toString(DEFAULT_ENCODING);
 
         jsdom.env(
-          html, ['http://code.jquery.com/jquery-latest.js'],
+          html, ['http://code.jquery.com/jquery-latest.min.js'],
           function(e, window) {
             if(e) {
               console.error("URL: " + target_url);
@@ -103,11 +128,18 @@ module.exports.get_description = function(url, callback) {
             }
             else if(window !== undefined) {
               var $ = window.jQuery;
+              $('script').empty();
               $('a').each(
                 function(idx,elm) {
                   $(elm).attr('href', require('url').resolve($(elm).attr('href'), target_url));
                 });
-              cb(window.jQuery, window);
+              $.fn.outerHTML = function(t) {
+                return (t)
+                  ? this.before(t).remove()
+                  : $("<div />").append(this.eq(0).clone()).html();
+              };
+
+              cb($, window);
             }
           });
       });
@@ -128,10 +160,8 @@ module.exports.get_description = function(url, callback) {
       var id = url.match(/^http:\/\/twitpic.com\/(\w+)(\/full)?\/?/)[1];
       $.ajax(
         {
-          'url': 'http://api.twitpic.com/2/media/show.json?' +
-            $.param({id: id}),
-          dataType: 'json',
-          success: function(data) {
+          'url': 'http://api.twitpic.com/2/media/show.json?' + $.param({id: id}),
+          dataType: 'json', success: function(data) {
             callback(
               'http://twitpic.com/' + id + '/full', data.message || 'Twitpic Content',
               image_tag('http://twitpic.com/show/full/' + id)
@@ -170,7 +200,10 @@ module.exports.get_description = function(url, callback) {
                    var main = '';
                    $('.main').each(function(k,v) { main += $(v).html(); });
                    $('.mainmore').each(function(k,v) { main += $(v).html(); });
-                   callback(url, $('.title').text(), main + $('#main').html()); }); },
+                   callback(url, $('meta[property="og:title"]').text(), main + $('#main').html() || ''); }); },
+    '^https?://\\w+.exblog.jp/\\d+$': function() {
+      run_jquery(function($) {
+                   callback(url, $('title').text(), $('.POST_BODY').html()); }); },
 
     '^https?://.+.tumblr.com/post/.+': function() {
       run_jquery(
@@ -178,6 +211,7 @@ module.exports.get_description = function(url, callback) {
           var text = '';
           $('.post').each(function(k,v) { text += $(v).html(); });
           $('article').each(function(k,v) { text += $(v).html(); });
+          text += $('#content').html();
           callback(url, $('meta[property="og:title"]').attr('content'), text);
         }); },
 
@@ -212,7 +246,7 @@ module.exports.get_description = function(url, callback) {
         }); },
 
     '^https?://ideone.com/\\w+/?$': function() {
-      run_jquery(function($) { callback(url, '', $('#source')); }); },
+      run_jquery(function($) { callback(url, url, $('#source').html()); }); },
 
     '^https?://tmbox.net/pl/\\d+/?$': function() {
       run_jquery(function($) {
@@ -242,10 +276,9 @@ module.exports.get_description = function(url, callback) {
              $.param({ 'url': url, format: 'json'})); },
 
     '^https?://twitter.com/.+/status/\\d+[/$]': function() {
-      console.log('Twitter resource: ' + url.match(/\/status\/(\d+)[\/$]/)[1]);
-      oauth.get_json('https://dev.twitter.com/docs/api/1/get/statuses/oembed.json?' +
+      oembed('https://api.twitter.com/1/statuses/oembed.json?' +
              $.param({ 'id': url.match(/\/status\/(\d+)[\/$]/)[1],
-                       omit_script: true, align: 'left' }), oembed_default_callback); },
+                       omit_script: true, align: 'left' })); },
 
     '^https?://.+\\.deviantart.com/art/.+$': function() {
       oembed('http://backend.deviantart.com/oembed?' + $.param({ 'url': url })); },
@@ -262,11 +295,11 @@ module.exports.get_description = function(url, callback) {
                  }); },
     '^https?://movapic.com/pic/\\w+$': function() {
       callback(
-        url, '', image_tag(
+        url, url, image_tag(
           url.replace(
               /http:\/\/movapic.com\/pic\/(\w+)/,
             'http://image.movapic.com/pic/m_$1.jpeg'))); },
-    '^https?://gyazo.com/\\w+$': function() { callback(url, '', image_tag(url + '.png')); },
+    '^https?://gyazo.com/\\w+$': function() { callback(url, url, image_tag(url + '.png')); },
     '^https?://\\w+.tuna.be/\\d+.html$': function() {
       run_jquery(function($) {
                    callback(url, $('entry-title').text(),
@@ -281,19 +314,11 @@ module.exports.get_description = function(url, callback) {
     },
 
     '^https?://www.nicovideo.jp/watch/\\w+': function() {
-      var id = url.match(/^http:\/\/www.nicovideo.jp\/watch\/(\w+)/)[1];
       run_jquery(function($) {
                    callback(url, $('title').text(), $('body').html());
-                 }, 'http://ext.nicovideo.jp/thumb/' + id);
-      /*
-       document = jsdom.jsdom(),
-       window = document.createWindow(),
-       navigator = { userAgent: "node-js" };
-       $.get('http://ext.nicovideo.jp/thumb_watch/' + id, function(data) {
-       eval(data);
-       callback(url, url, document.innerHTML);
-       }, 'text');
-       */
+                 },
+                 'http://ext.nicovideo.jp/thumb/'
+                 + url.match(/^http:\/\/www.nicovideo.jp\/watch\/(\w+)/)[1]);
     },
 
     '^https?://lockerz.com/s/\\d+$': function() {
@@ -316,7 +341,7 @@ module.exports.get_description = function(url, callback) {
 
     '^https?://twitcasting.tv/\\w+/?$': function() {
       var id = url.match(/^http:\/\/twitcasting.tv\/(\w+)\/?$/)[1];
-      callback(url, '',
+      callback(url, url,
                '<video src="https?://twitcasting.tv/' + id + '/metastream.m3u8/?video=1"' +
                ' autoplay="true" controls="true"' +
                ' poster="https?://twitcasting.tv/' + id + '/thumbstream/liveshot" />');
@@ -324,7 +349,7 @@ module.exports.get_description = function(url, callback) {
 
     '^https?://www.twitvid.com/\\w+/?$': function() {
       var id = url.match(/^http:\/\/www.twitvid.com\/(\w+)\/?$/)[1];
-      callback(url, '',
+      callback(url, url,
                '<iframe title="Twitvid video player" class="twitvid-player" type="text/html" ' +
                'src="https?://www.twitvid.com/embed.php?' +
                $.param({guid: id, autoplay: 1}) + '" ' +
@@ -338,7 +363,7 @@ module.exports.get_description = function(url, callback) {
           'url': 'http://api.ustream.tv/json/video/' + id + '/getCustomEmbedTag?' +
             $.param({key: consumer.USTREAM_KEY, params: 'autoplay:true'}),
           dataType: 'json', success: function(data) {
-            callback(url, '', data.results);
+            callback(url, url, data.results);
           }, error: error_callback
         });
     },
@@ -349,7 +374,7 @@ module.exports.get_description = function(url, callback) {
           'url': 'http://api.ustream.tv/json/channel/' + id + '/getCustomEmbedTag?' +
             $.param({key: consumer.USTREAM_KEY, params: 'autoplay:true'}),
           dataType: 'json', success: function(data) {
-            callback(url, '', data.results);
+            callback(url, url, data.results);
           }, error: error_callback
         });
     },
@@ -367,9 +392,7 @@ module.exports.get_description = function(url, callback) {
       $.ajax(
         {
           'url': url, dataType: 'html', success: function(data) {
-            callback(
-              url, '',
-              data.match(/var embed_code = '(.+)';/)[1]);
+            callback(url, url, data.match(/var embed_code = '(.+)';/)[1]);
           }, error: error_callback
         });
     }
@@ -393,13 +416,13 @@ module.exports.get_description = function(url, callback) {
        return false;
      })()) {
     callback(
-      url, url.match(/\/([^\/]+)$/)[1], $('body').empty().append(
+      url, url.match(/\/([^\/]+)$/)[1],
         $('<iframe />').attr(
           { title: 'Google Docs Viewer',
             'class': 'google-docs-viewer',
             type: 'text/html',
             src: 'https://docs.google.com/viewer?' + $.param({'url': url, embedded: true}),
-            width: '100%', height: '600'})).html()); }
+            width: '100%', height: '600'}).outerHTML()); }
 
   else if(
     (function() {
@@ -420,17 +443,15 @@ module.exports.get_description = function(url, callback) {
   else {
     (function() {
        for(k in GALLERY_FILTER) {
-         if((new RegExp(k)).test(url)) {
+         if((new RegExp(k, 'i')).test(url)) {
            GALLERY_FILTER[k]();
            return true;
          }
        }
        return false;
      })() ||
-    run_jquery(
-      function($) {
-        // open graph
-        if($('meta[property="og:title"]').length > 0) {
+      run_jquery(
+        function($) {
           var html = '';
           $.each(
             ['image', 'video', 'audio'], function(k, tag) {
@@ -448,8 +469,7 @@ module.exports.get_description = function(url, callback) {
                       break;
                     }
                   }
-                  html += $('body').empty().append(
-                    $('<' + (tag === 'image'? 'img' : tag) + ' />').attr(opt)).html() + '<br />';
+                  html += $('<' + (tag === 'image'? 'img' : tag) + ' />').attr(opt).outerHTML() + '<br />';
                 });
             });
           html
@@ -460,7 +480,6 @@ module.exports.get_description = function(url, callback) {
           callback(
             $('meta[property="og:url"]').attr('content') || $('title').text() || url,
             $('meta[property="og:title"]').attr('content') || $('title').text(), html);
-        }
-      });
+        });
   }
 };
