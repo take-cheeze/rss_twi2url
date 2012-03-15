@@ -5,8 +5,13 @@ module.exports = {
   port: 8090,
   pathname: "",
   author: "Takeshi Watanabe",
+
   feed_item_max: 1000,
+
   fetch_frequency: 10 * 60 * 1000,
+  item_generation_frequency: 1000 * 3,
+  backup_frequency: 1000 * 10,
+
   exclude_filter: [
     'ustream.tv',
     'http://shindanmaker.com/',
