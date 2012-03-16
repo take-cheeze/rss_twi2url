@@ -14,7 +14,7 @@ $.ajaxSettings.xhr = function () {
 
 var document = jsdom.jsdom(), window = document.createWindow();
 DEFAULT_FEATURE = {
-  FetchExternalResources: ['css', 'frame', 'link'],
+  FetchExternalResources: false,
   ProcessExternalResources: false,
   MutationEvents: false,
   QuerySelector: false,
@@ -99,38 +99,38 @@ module.exports.get_description = function(url, callback) {
           console.error('URL: ' + target_url);
           res && console.error('Status Code: ' + res.statusCode);
           console.error(JSON.stringify(err));
+          callback(target_url, '', 'error fetching');
           return;
         }
 
-        if(!require('buffer').Buffer.isBuffer(data))
-        { throw 'not Buffer: ' + typeof data; }
+        if(!data) { callback(target_url, '', 'invalid data'); }
 
         var cont_type = res.headers['content-type'];
 
         if(!/html/i.test(cont_type)) {
-          callback(target_url, target_url, 'unknown content type');
+          callback(target_url, '', 'unknown content type');
           return;
         }
 
         var charset_regex = /charset="?'?([\w_\-]+)"?'?/i;
         var meta_cont_type = $(data).find('meta[http-equiv="Content-Type"]').attr('content');
         var enc =
-          charset_regex.test(cont_type)? cont_type.match(charset_regex)[1] :
           charset_regex.test(meta_cont_type)? cont_type.match(charset_regex)[1]:
+          charset_regex.test(cont_type)? cont_type.match(charset_regex)[1] :
           DEFAULT_ENCODING;
         enc = enc.toLowerCase();
         if(enc in iconv_cache) {
           if(iconv_cache[enc] === 'unsupported') {
-            callback(target_url, target_url, 'unsupported charset');
+            callback(target_url, '', 'unsupported charset: ' + enc);
             return;
           }
         } else {
           try {
-            iconv_cache[enc] = new (require('iconv').Iconv)(enc, DEFAULT_ENCODING + '//TRANSLIT//IGNORE');
+            iconv_cache[enc] = new (require('iconv').Iconv)(DEFAULT_ENCODING, enc + '//TRANSLIT//IGNORE');
           } catch(e) {
             console.error('iconv open error: ', e, enc);
             iconv_cache[enc] = 'unsupported';
-            callback(target_url, target_url, 'unsupported charset');
+            callback(target_url, '', 'unsupported charset: ' + enc);
             return;
           }
         }
@@ -141,7 +141,7 @@ module.exports.get_description = function(url, callback) {
             iconv_cache[enc].convert(data).toString(DEFAULT_ENCODING);
         } catch(e) {
           console.error('iconv error: ', e, enc);
-          callback(target_url, target_url, 'unsupported charset');
+          callback(target_url, '', 'unsupported charset: ' + enc);
           return;
         }
 
@@ -150,9 +150,17 @@ module.exports.get_description = function(url, callback) {
           function(err, window) {
             if(err) {
               console.error(err);
+              return;
             }
+
             var document = window.document;
-            eval(jquery_src);
+
+            try { eval(jquery_src); }
+            catch(e) {
+              callback(target_url, '', 'jQuery error:' + e);
+              return;
+            }
+
             var $ = window.jQuery;
 
             $('script').empty();
@@ -205,9 +213,8 @@ module.exports.get_description = function(url, callback) {
         function($) {
           var id = url.match(/^http:\/\/p.twipple.jp\/(\w+)\/?$/)[1];
           callback(
-            $('meta[property="og:url"]').attr('content'),
-            $('meta[property="og:title"]').attr('content'),
-            image_tag('http://p.twpl.jp/show/orig/' + id) +
+            url, $('meta[property="og:title"]').attr('content'),
+            image_tag('http://p.twpl.jp/show/orig/' + id) + '<br />' +
               unescapeHTML($('meta[property="og:description"]').attr('content')));
         });
     },
@@ -230,7 +237,8 @@ module.exports.get_description = function(url, callback) {
                    var main = '';
                    $('.main').each(function(k,v) { main += $(v).html(); });
                    $('.mainmore').each(function(k,v) { main += $(v).html(); });
-                   callback(url, $('meta[property="og:title"]').text(), main + $('#main').html() || ''); }); },
+                   callback(url, $('meta[property="og:title"]').text() || $('title').text(),
+                            main + $('#main').html() || ''); }); },
     '^https?://\\w+.exblog.jp/\\d+$': function() {
       run_jquery(function($) {
                    callback(url, $('title').text(), $('.POST_BODY').html()); }); },
@@ -241,13 +249,13 @@ module.exports.get_description = function(url, callback) {
           var text = '';
           $('.post').each(function(k,v) { text += $(v).html(); });
           $('.post_content').each(function(k,v) { text += $(v).html(); });
-          $('article').each(function(k,v) { text += $(v).html(); });
+          if(!text) { $('article').each(function(k,v) { text += $(v).html(); }); }
           text += $('#content').html();
           callback(url, $('meta[property="og:title"]').attr('content'), text);
         }); },
 
     '^https?://www.twitlonger.com/show/\\w+/?$': function() {
-      run_jquery(function($) { callback(url, $('title').text(), $('p')[1].html()); }); },
+      run_jquery(function($) { callback(url, $('title').text(), $($('p').get(1)).html()); }); },
 
     '^https?://www.tweetdeck.com/twitter/\\w+/~\\w+': function() {
       run_jquery(function($) { callback(url, $('title').text(), $('#tweet').html()); }); },
@@ -277,7 +285,7 @@ module.exports.get_description = function(url, callback) {
         }); },
 
     '^https?://ideone.com/\\w+/?$': function() {
-      run_jquery(function($) { callback(url, url, $('#source').html()); }); },
+      run_jquery(function($) { callback(url, '', $('#source').html()); }); },
 
     '^https?://tmbox.net/pl/\\d+/?$': function() {
       run_jquery(function($) {
@@ -306,9 +314,9 @@ module.exports.get_description = function(url, callback) {
       oembed('http://www.slideshare.net/api/oembed/2?' +
              $.param({ 'url': url, format: 'json'})); },
 
-    '^https?://twitter.com/.+/status/\\d+[/$]': function() {
+    '^https?://twitter.com/.+/status/\\d+': function() {
       oembed('https://api.twitter.com/1/statuses/oembed.json?' +
-             $.param({ 'id': url.match(/\/status\/(\d+)[\/$]/)[1],
+             $.param({ 'id': url.match(/\/status\/(\d+)/)[1],
                        hide_media: false, hide_thread: false,
                        omit_script: false, align: 'left' })); },
 
@@ -327,11 +335,11 @@ module.exports.get_description = function(url, callback) {
                  }); },
     '^https?://movapic.com/pic/\\w+$': function() {
       callback(
-        url, url, image_tag(
+        url, '', image_tag(
           url.replace(
               /http:\/\/movapic.com\/pic\/(\w+)/,
             'http://image.movapic.com/pic/m_$1.jpeg'))); },
-    '^https?://gyazo.com/\\w+$': function() { callback(url, url, image_tag(url + '.png')); },
+    '^https?://gyazo.com/\\w+$': function() { callback(url, '', image_tag(url + '.png')); },
     '^https?://\\w+.tuna.be/\\d+.html$': function() {
       run_jquery(function($) {
                    callback(url, $('title').text(),
@@ -355,7 +363,7 @@ module.exports.get_description = function(url, callback) {
 
     '^https?://lockerz.com/s/\\d+$': function() {
       run_jquery(function($) {
-                   callback(url, $('p')[1].text(), image_tag($('#photo').attr('src')));
+                   callback(url, $($('p').get(1)).text(), image_tag($('#photo').attr('src')));
                  });
     },
 
@@ -373,7 +381,7 @@ module.exports.get_description = function(url, callback) {
 
     '^https?://twitcasting.tv/\\w+/?$': function() {
       var id = url.match(/^http:\/\/twitcasting.tv\/(\w+)\/?$/)[1];
-      callback(url, url,
+      callback(url, '',
                '<video src="https?://twitcasting.tv/' + id + '/metastream.m3u8/?video=1"' +
                ' autoplay="true" controls="true"' +
                ' poster="https?://twitcasting.tv/' + id + '/thumbstream/liveshot" />');
@@ -381,7 +389,7 @@ module.exports.get_description = function(url, callback) {
 
     '^https?://www.twitvid.com/\\w+/?$': function() {
       var id = url.match(/^http:\/\/www.twitvid.com\/(\w+)\/?$/)[1];
-      callback(url, url,
+      callback(url, '',
                '<iframe title="Twitvid video player" class="twitvid-player" type="text/html" ' +
                'src="https?://www.twitvid.com/embed.php?' +
                $.param({guid: id, autoplay: 1}) + '" ' +
@@ -395,7 +403,7 @@ module.exports.get_description = function(url, callback) {
           'url': 'http://api.ustream.tv/json/video/' + id + '/getCustomEmbedTag?' +
             $.param({key: consumer.USTREAM_KEY, params: 'autoplay:true'}),
           dataType: 'json', success: function(data) {
-            callback(url, url, data.results);
+            callback(url, '', data.results);
           }, error: error_callback
         });
     },
@@ -406,7 +414,7 @@ module.exports.get_description = function(url, callback) {
           'url': 'http://api.ustream.tv/json/channel/' + id + '/getCustomEmbedTag?' +
             $.param({key: consumer.USTREAM_KEY, params: 'autoplay:true'}),
           dataType: 'json', success: function(data) {
-            callback(url, url, data.results);
+            callback(url, '', data.results);
           }, error: error_callback
         });
     },
@@ -424,7 +432,7 @@ module.exports.get_description = function(url, callback) {
       $.ajax(
         {
           'url': url, dataType: 'html', success: function(data) {
-            callback(url, url, data.match(/var embed_code = '(.+)';/)[1]);
+            callback(url, '', data.match(/var embed_code = '(.+)';/)[1]);
           }, error: error_callback
         });
     }
@@ -493,7 +501,7 @@ module.exports.get_description = function(url, callback) {
                   for(var i = $(elm).next();
                       (new RegExp('og:' + tag + ':')).test(i.attr('property')); i = i.next())
                   {
-                    var struct_prop = i.attr('property').match((new RegExp('og:' + tag + ':(\w+)')));
+                    var struct_prop = i.attr('property').match(new RegExp('og:' + tag + ':(\\w+)'))[1];
                     switch(struct_prop) {
                     case 'width':
                     case 'height':
@@ -507,11 +515,12 @@ module.exports.get_description = function(url, callback) {
           html += unescapeHTML(
             $('meta[property="og:description"]').attr('content')
               || $('meta[name="description"]').attr('content')
-              || 'unkown page type');
-          $('article').each(function(idx,elm) { html += $(elm).html(); });
+              || '');
+          if(!html) { $('article').each(function(idx,elm) { html += $(elm).html(); }); }
+          if(!html) { $('.entry_body').each(function(k,v) { main += $(v).html(); }); }
 
           callback(
-            $('meta[property="og:url"]').attr('content') || url, $('title').text() || url,
+            $('meta[property="og:url"]').attr('content') || url,
             $('meta[property="og:title"]').attr('content') || $('title').text(), html);
         });
   }

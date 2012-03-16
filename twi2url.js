@@ -258,14 +258,13 @@ db.open(
     if(err) throw err;
 
     var get_description = require('./twi2url.description').get_description;
+    var getting_count = 0;
     function generate_item() {
       function match_exclude_filter(str) {
         for(k in config.exclude_filter) {
           if((new RegExp(config.exclude_filter[k])).test(str)) { return true; } }
         return false;
       }
-
-      if(rss_twi2url.queued_urls.length == 0) { return; }
 
       var v = rss_twi2url.queued_urls.shift();
       if(match_exclude_filter(v.url)) {
@@ -283,12 +282,18 @@ db.open(
 
           get_description(
             v.url, function(url, title, description) {
-              if(!description || !title || !url) {
-                if(!description) {
-                  console.error('Invalid data (description): ' + description); }
-                console.error('Invalid data (url): ' + url);
-                console.error('Invalid data (title): ' + title);
+              getting_count--;
+
+              if(!title) {
+                console.error('Invalid title:', title);
+                console.error('URL:', url);
+                title = url;
+              }
+              if(!description) {
                 if(description === null) { console.trace(); }
+                console.error('Invalid description:', description);
+                console.error('URL:', url);
+                description = 'empty description';
               }
 
               // console.log('completed:', v.url);
