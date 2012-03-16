@@ -17,8 +17,9 @@ DEFAULT_FEATURE = {
   FetchExternalResources: false,
   ProcessExternalResources: false,
   MutationEvents: false,
-  QuerySelector: false,
+  QuerySelector: false
 };
+jsdom.defaultDocumentFeatures = DEFAULT_FEATURE;
 var DEFAULT_ENCODING = 'utf8';
 
 var iconv_cache = { 'utf8': true, 'utf-8': true };
@@ -126,7 +127,8 @@ module.exports.get_description = function(url, callback) {
           }
         } else {
           try {
-            iconv_cache[enc] = new (require('iconv').Iconv)(DEFAULT_ENCODING, enc + '//TRANSLIT//IGNORE');
+            iconv_cache[enc] = new (require('iconv').Iconv)(
+              enc, DEFAULT_ENCODING + '//TRANSLIT//IGNORE');
           } catch(e) {
             console.error('iconv open error: ', e, enc);
             iconv_cache[enc] = 'unsupported';
@@ -155,8 +157,10 @@ module.exports.get_description = function(url, callback) {
 
             var document = window.document;
 
-            try { eval(jquery_src); }
-            catch(e) {
+            try {
+              eval(jquery_src);
+              if(!window.jQuery) { throw 'jQuery not installed'; }
+            } catch(e) {
               callback(target_url, '', 'jQuery error:' + e);
               return;
             }
@@ -190,7 +194,7 @@ module.exports.get_description = function(url, callback) {
                    callback(
                      url.replace('show', 'photo_only'),
                      $('#media_description').text(),
-                     image_tag($('#indivi_media').html()));
+                     $('#indivi_media > img').outerHTML());
                  });
     },
 
@@ -262,7 +266,8 @@ module.exports.get_description = function(url, callback) {
 
     '^https?://theinterviews.jp/[\\w\\-]+/\\d+': function() {
       run_jquery(function($) {
-                   callback(url, $('meta[property="og:title"]').text(), $('.note').html()); }); },
+                   callback(url, $('meta[property="og:title"]').attr('content'),
+                            $('.note').html()); }); },
 
     '^https?://gist.github.com/\\w+/?': function() {
       var id = url.match(/^https?:\/\/gist.github.com\/(\w+)\/?/)[1];
@@ -310,7 +315,7 @@ module.exports.get_description = function(url, callback) {
     '^https?://\\w+.wordpress.com/.+$': function() {
       oembed('http://public-api.wordpress.com/oembed/1.0/?' +
              $.param({for: 'twi2url', format: 'json', 'url': url})); },
-    '^https?://www.slideshare.net/[^/]+/[^/]+$': function() {
+    '^https?://www.slideshare.net/[^/]+/[^/]+': function() {
       oembed('http://www.slideshare.net/api/oembed/2?' +
              $.param({ 'url': url, format: 'json'})); },
 
@@ -512,12 +517,12 @@ module.exports.get_description = function(url, callback) {
                   html += $('<' + (tag === 'image'? 'img' : tag) + ' />').attr(opt).outerHTML() + '<br />';
                 });
             });
+          if(!html) { $('article').each(function(idx,elm) { html += $(elm).html(); }); }
+          if(!html) { $('.entry_body').each(function(k,v) { html += $(v).html(); }); }
           html += unescapeHTML(
             $('meta[property="og:description"]').attr('content')
               || $('meta[name="description"]').attr('content')
               || '');
-          if(!html) { $('article').each(function(idx,elm) { html += $(elm).html(); }); }
-          if(!html) { $('.entry_body').each(function(k,v) { main += $(v).html(); }); }
 
           callback(
             $('meta[property="og:url"]').attr('content') || url,
