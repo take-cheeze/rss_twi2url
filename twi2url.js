@@ -257,7 +257,7 @@ db.open(
   DB_FILE, { create_if_missing: true }, function(err) {
     if(err) throw err;
 
-    var get_description = require('./twi2url.description').get_description;
+    var get_description = require('./description').get_description;
     var getting_count = 0;
     function generate_item() {
       function match_exclude_filter(str) {
