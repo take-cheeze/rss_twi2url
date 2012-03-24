@@ -44,8 +44,11 @@ function generate_feed(items) {
 
 var db = null;
 
-var description = require('child_process')
-  .fork(__dirname + '/description.js', [], { env: process.env });
+function create_child() {
+  return require('child_process')
+    .fork(__dirname + '/description.js', [], { env: process.env });
+}
+var description = create_child();
 
 function generate_item(v) {
   if((function(str) {
@@ -59,10 +62,9 @@ function generate_item(v) {
 
 description.on(
   'exit', function(code, signal) {
-    if(code) {
-      if(signal) { console.error('with signal:', signal); }
-      process.exit(code, signal);
-    }
+    if(code && signal) { console.error('signal from description.js:', signal); }
+
+    description = create_child();
   });
 
 description.on(
