@@ -78,14 +78,11 @@ description.on(
       var v = msg.data[0];
       (function(url, title, description) {
          if(!title) {
-           console.error('Invalid title:', title);
-           console.error('URL:', url);
+           console.error('Invalid title:', url);
            title = url;
          }
          if(!description) {
-           if(description === null) { console.trace(); }
-           console.error('Invalid description:', description);
-           console.error('URL:', url);
+           console.error('Invalid description:', url);
            description = 'empty description';
          }
 

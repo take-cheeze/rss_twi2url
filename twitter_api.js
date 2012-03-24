@@ -143,7 +143,8 @@ function fetch(setting) {
         function(data) {
           $.each(
             data, function(k, v) {
-              fetch_page(
+              setTimeout(
+                fetch_page, config.item_generation_frequency * k,
                 'https://api.twitter.com/1/lists/statuses.json?' +
                   $.param(
                     {
@@ -162,9 +163,13 @@ var opt = {
 };
 function get_json(url, callback) {
   request.get(
-    { 'url': url, 'oauth': opt, encoding: 'utf8' },
+    { 'url': url, 'oauth': opt, encoding: 'utf8', timeout: config.timeout },
     function(err, res, data) {
       if(err) {
+        if(/timed?out/i.test(err.code)) {
+          get_json(url, callback);
+          return;
+        }
         console.error("Error fetching json from twitter:", err);
         console.error('URL: ' + url);
       } else if(res) switch(res.statusCode) {
