@@ -3,6 +3,7 @@
 var fs = require('fs');
 var $ = require('jquery');
 var fork = require('child_process').fork;
+var URL = require('url');
 
 var config = require(__dirname + '/config.js');
 
@@ -112,6 +113,15 @@ twitter_api.on(
   'message', function(msg) {
     switch(msg.type) {
     case 'fetched_url':
+      var url_obj = URL.parse(msg.data.url, true);
+      var removing_param = [];
+      $.each(url_obj.query, function(k, v) {
+               /utm_/i.test(k) && removing_param.push(k);
+             });
+      $.each(removing_param, function(idx, param) {
+               delete url_obj.query[param];
+             });
+      msg.data.url = URL.format(url_obj);
       if(!is_queued(msg.data.url)) {
         rss_twi2url.queued_urls.push(msg.data); }
       break;
