@@ -19,10 +19,8 @@ var twitter_api_left = true;
 
 var LONG_URL_LENGTH = 40, TWEET_MAX = 200;
 
-var oauth = null;
-
 function timeout_when_api_reset(callback) {
-  oauth.get_json(
+  get_json(
     'https://api.twitter.com/1/account/rate_limit_status.json',
     function(data) {
       console.log('api left: ' + data.remaining_hits);
@@ -47,7 +45,7 @@ function fetch_page(url, name, info) {
 
   timeout_when_api_reset(
     function() {
-      oauth.get_json(
+      get_json(
         url + '&' + $.param({page: info.page}), function(data) {
           for(idx in data) {
             var tweet = data[idx];
@@ -104,18 +102,19 @@ function fetch_page(url, name, info) {
               });
           }
 
-          if(!info.new_since_id && data.length > 0) {
-            info.new_since_id = data[0].id_str;
-          }
-          if(data.length !== 0 && info.since_id !== null) {
-            info.page++;
-            fetch_page(url, name, info);
-          } else if(info.new_since_id) {
-            process.send(
-              {
-                type: 'set_since_id',
-                data: { 'name': name, since_id: info.new_since_id }
-              });
+          if(data.length > 0) {
+            if(info.page === 1) {
+              process.send(
+                {
+                  type: 'set_since_id',
+                  data: { 'name': name, since_id: data[0].id_str }
+                });
+            }
+
+            if(info.since_id) {
+              info.page++;
+              fetch_page(url, name, info);
+            }
           }
         });
     });
@@ -130,19 +129,15 @@ function fetch(setting) {
         'https://api.twitter.com/1/statuses/home_timeline.json?' +
           $.param(
             {
-              count: TWEET_MAX,
-              exclude_replies: 'false',
-              include_entities: 'true',
-              include_rts: 'true'
-            }), 'home_timeline', {
-              page: 1, new_since_id: null,
-              since_id: setting.since.home_timeline
-            });
+              count: TWEET_MAX, exclude_replies: false,
+              include_entities: true, include_rts: true
+            }), 'home_timeline',
+        { page: 1, since_id: setting.since.home_timeline });
     });
 
   timeout_when_api_reset(
     function() {
-      oauth.get_json(
+      get_json(
         'https://api.twitter.com/1/lists/all.json?' +
           $.param({user_id: setting.user_id}),
         function(data) {
@@ -152,14 +147,10 @@ function fetch(setting) {
                 'https://api.twitter.com/1/lists/statuses.json?' +
                   $.param(
                     {
-                      include_entities: 'true',
-                      include_rts: 'true',
-                      list_id: v.id_str,
-                      per_page: TWEET_MAX
-                    }), v.full_name, {
-                      page: 1, new_since_id: null,
-                      since_id: setting.since[v.full_name]
-                    });
+                      include_entities: true, include_rts: true,
+                      list_id: v.id_str, per_page: TWEET_MAX
+                    }), v.full_name,
+                { page: 1, since_id: setting.since[v.full_name] });
             });
         });
     });
@@ -169,36 +160,33 @@ var opt = {
   consumer_key: consumer.CONSUMER_KEY,
   consumer_secret: consumer.CONSUMER_SECRET
 };
+function get_json(url, callback) {
+  request.get(
+    { 'url': url, 'oauth': opt, encoding: 'utf8' },
+    function(err, res, data) {
+      if(err) {
+        console.error("Error fetching json from twitter:", err);
+        console.error('URL: ' + url);
+      } else if(res) switch(res.statusCode) {
+      case 500: case 502: case 503: case 504:
+        setTimeout(get_json, 1000, url, callback);
+        break;
+      case 200:
+        try {
+          callback(JSON.parse(data));
+        } catch(e) {
+          console.error(e);
+        }
+        break;
+      default:
+        console.error("Error fetching json from twitter:", res.statusCode);
+        console.error('URL: ' + url);
+        break;
+      }
+    });
+}
 
 function signin(setting) {
-  oauth = {
-    get_json: function(url, callback) {
-      request.get(
-        { 'url': url, 'oauth': opt, encoding: 'utf8' },
-        function(err, res, data) {
-          if(err) {
-            console.error("Error fetching json from twitter:", err);
-            console.error('URL: ' + url);
-          } else if(res) switch(res.statusCode) {
-          case 500: case 502: case 503: case 504:
-            setTimeout(oauth.get_json, 1000, url, callback);
-            break;
-          case 200:
-            try {
-              callback(JSON.parse(data));
-            } catch(e) {
-              console.error(e);
-            }
-            break;
-          default:
-            console.error("Error fetching json from twitter:", res.statusCode);
-            console.error('URL: ' + url);
-            break;
-          }
-        });
-    }, opt: opt
-  };
-
   if(setting) {
     opt.token = setting.oauth_token;
     opt.token_secret = setting.oauth_token_secret;
@@ -225,7 +213,7 @@ process.on(
 
     switch(msg.type) {
     case 'signin':
-      if(oauth) { throw 'already singed in'; }
+      if('oauth_token_secret' in opt) { throw 'already singed in'; }
       signin(msg.data);
       break;
 

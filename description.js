@@ -1,11 +1,12 @@
-var
-$ = require('jquery'),
-consumer = require('./consumer'),
-fs = require('fs'),
-jsdom = require('jsdom'),
-request = require('request'),
-URL = require('url'),
-XMLHttpRequest = require("xmlhttprequest").XMLHttpRequest;
+if(!process.send) { throw 'is not forked'; }
+
+var $ = require('jquery');
+var consumer = require('./consumer');
+var fs = require('fs');
+var jsdom = require('jsdom');
+var request = require('request');
+var URL = require('url');
+var XMLHttpRequest = require("xmlhttprequest").XMLHttpRequest;
 
 $.support.cors = true;
 $.ajaxSettings.xhr = function () {
@@ -14,7 +15,7 @@ $.ajaxSettings.xhr = function () {
 
 var document = jsdom.jsdom(), window = document.createWindow();
 DEFAULT_FEATURE = {
-  FetchExternalResources: false,
+  FetchExternalResources: ['frame', 'css'],
   ProcessExternalResources: false,
   MutationEvents: false,
   QuerySelector: false
@@ -31,19 +32,20 @@ request.get({uri: 'http://code.jquery.com/jquery-latest.min.js'},
               jquery_src = body;
             });
 
-module.exports.get_description = function(url, callback) {
-  $.fn.outerHTML = function(t) {
-    return (t)
-      ? this.before(t).remove()
-      : $("<div />").append(this.eq(0).clone()).html();
-  };
+$.fn.outerHTML = function(t) {
+  return (t)
+    ? this.before(t).remove()
+    : $("<div />").append(this.eq(0).clone()).html();
+};
 
-  function unescapeHTML(str) {
-    return $('<div />').html(str).text();
-  }
-  function escapeHTML(str) {
-    return $('<div />').text(str).html();
-  }
+function unescapeHTML(str) {
+  return $('<div />').html(str).text();
+}
+function escapeHTML(str) {
+  return $('<div />').text(str).html();
+}
+
+function get_description(url, callback) {
   function image_tag(v) {
     if(!v) {
       console.error('empty url in image tag: ' + url);
@@ -113,11 +115,10 @@ module.exports.get_description = function(url, callback) {
           return;
         }
 
-        var charset_regex = /charset="?'?([\w_\-]+)"?'?/i;
-        var meta_cont_type = $(data).find('meta[http-equiv="Content-Type"]').attr('content');
+        var charset_regex = /charset="?'?([\w_\-]+)"?'?/i, ascii = data.toString('ascii');
         var enc =
-          charset_regex.test(meta_cont_type)? cont_type.match(charset_regex)[1]:
-          charset_regex.test(cont_type)? cont_type.match(charset_regex)[1] :
+          charset_regex.test(ascii)? ascii.match(charset_regex)[1]:
+          charset_regex.test(cont_type)? cont_type.match(charset_regex)[1]:
           DEFAULT_ENCODING;
         enc = enc.toLowerCase();
         if(enc in iconv_cache) {
@@ -194,7 +195,7 @@ module.exports.get_description = function(url, callback) {
                    callback(
                      url.replace('show', 'photo_only'),
                      $('#media_description').text(),
-                     $('#indivi_media > img').outerHTML());
+                     $('#indivi_media').html());
                  });
     },
 
@@ -233,9 +234,6 @@ module.exports.get_description = function(url, callback) {
     '^https?://blog.goo.ne.jp/[\\w_-]+/e/\\w+$': function() {
       run_jquery(function($) {
                    callback(url, $('title').text(), $('.entry-body').html()); }); },
-    '^https?://[\\w\\-_]+.hatenablog.com/.+': function() {
-      run_jquery(function($) {
-                   callback(url, $('.bookmark').text(), $('.entry-content').html()); }); },
     '^https?://blog.livedoor.jp/[\\w\\-]+/archives/\\d+.html': function() {
       run_jquery(function($) {
                    var main = '';
@@ -497,6 +495,12 @@ module.exports.get_description = function(url, callback) {
      })() ||
       run_jquery(
         function($) {
+          var oembed_url = $('link[rel="alternate"][type="text/json+oembed"]').attr('href');
+          if(oembed_url) {
+            oembed(oembed_url);
+            return;
+          }
+
           var html = '';
           $.each(
             ['image', 'video', 'audio'], function(k, tag) {
@@ -519,6 +523,8 @@ module.exports.get_description = function(url, callback) {
             });
           if(!html) { $('article').each(function(idx,elm) { html += $(elm).html(); }); }
           if(!html) { $('.entry_body').each(function(k,v) { html += $(v).html(); }); }
+          if(!html) { $('.entry-content').each(function(k,v) { html += $(v).html(); }); }
+          if(!html) { $('.entry').each(function(k,v) { html += $(v).html(); }); }
           html += unescapeHTML(
             $('meta[property="og:description"]').attr('content')
               || $('meta[name="description"]').attr('content')
@@ -529,4 +535,21 @@ module.exports.get_description = function(url, callback) {
             $('meta[property="og:title"]').attr('content') || $('title').text(), html);
         });
   }
-};
+}
+
+process.on(
+  'message', function(msg) {
+    if(msg.data === undefined) { throw 'empty data in message: ' + msg.type; }
+
+    switch(msg.type) {
+    case 'get_description':
+      get_description(
+        msg.data.url, function(url, title, description) {
+          process.send({type: 'got_description', data: [msg.data, url, title, description]});
+        });
+      break;
+
+    default:
+      throw 'unknown message type: ' + msg.type;
+    }
+  });

@@ -44,7 +44,9 @@ function generate_feed(items) {
 
 var db = null;
 
-var get_description = require('./description').get_description;
+var description = require('child_process')
+  .fork(__dirname + '/description.js', [], { env: process.env });
+
 function generate_item(v) {
   if((function(str) {
         for(k in config.exclude_filter) {
@@ -52,48 +54,66 @@ function generate_item(v) {
         return false;
       })(v.url)) { return; }
 
-  // console.log('fetching:', v.url);
-
-  get_description(
-    v.url, function(url, title, description) {
-      // console.log('fetched :', v.url);
-
-      if(!title) {
-        console.error('Invalid title:', title);
-        console.error('URL:', url);
-        title = url;
-      }
-      if(!description) {
-        if(description === null) { console.trace(); }
-        console.error('Invalid description:', description);
-        console.error('URL:', url);
-        description = 'empty description';
-      }
-
-      var cleaned = $('<div />').html(description);
-
-      $.each(
-        [ 'link', 'script', 'dl' ],
-        function(k,v) { cleaned.find(v).empty(); });
-
-      $.each(
-        [ 'data-hatena-bookmark-layout',
-          'data-hatena-bookmark-title', 'data-lang', 'data-count',
-          'data-url', 'data-text', 'data-via' ],
-        function(k,v) {
-          cleaned.find('[' + v + ']').removeAttr(v);
-        });
-
-      db.put(
-        url, JSON.stringify(
-          {
-            title: title, description: $('<div />').append(cleaned.clone()).html(),
-            'url': url, author: v.author, date: v.date
-          }), {}, function(err) { if(err) { throw err; } });
-
-      process.send({ type: 'item_generated', data: url });
-    });
+  description.send({ type: 'get_description', data: v });
 }
+
+description.on(
+  'exit', function(code, signal) {
+    if(code) {
+      if(signal) { console.error('with signal:', signal); }
+      process.exit(code, signal);
+    }
+  });
+
+description.on(
+  'message', function(msg) {
+    if(msg.data === undefined) { throw 'empty data in message: ' + msg.type; }
+
+    switch(msg.type) {
+    case 'got_description':
+      var v = msg.data[0];
+      (function(url, title, description) {
+         if(!title) {
+           console.error('Invalid title:', title);
+           console.error('URL:', url);
+           title = url;
+         }
+         if(!description) {
+           if(description === null) { console.trace(); }
+           console.error('Invalid description:', description);
+           console.error('URL:', url);
+           description = 'empty description';
+         }
+
+         var cleaned = $('<div />').html(description);
+
+         $.each(
+           [ 'link', 'script', 'dl' ],
+           function(k,v) { cleaned.find(v).empty(); });
+
+         $.each(
+           [ 'data-hatena-bookmark-layout',
+             'data-hatena-bookmark-title', 'data-lang', 'data-count',
+             'data-url', 'data-text', 'data-via' ],
+           function(k,v) {
+             cleaned.find('[' + v + ']').removeAttr(v);
+           });
+
+         db.put(
+           url, JSON.stringify(
+             {
+               title: title, description: $('<div />').append(cleaned.clone()).html(),
+               'url': url, author: v.author, date: v.date
+             }), {}, function(err) { if(err) { throw err; } });
+
+         process.send({ type: 'item_generated', data: url });
+       })(msg.data[1], msg.data[2], msg.data[3]);
+      break;
+
+    default:
+      throw 'unknown message type: ' + msg.type;
+    }
+  });
 
 process.on(
   'message', function(msg) {
