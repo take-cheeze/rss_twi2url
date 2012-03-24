@@ -45,8 +45,10 @@ function generate_feed(items) {
 var db = null;
 
 function create_child() {
-  return require('child_process')
+  var ret = require('child_process')
     .fork(__dirname + '/description.js', [], { env: process.env });
+  ret.send({ type: 'config', data: config });
+  return ret;
 }
 var description = create_child();
 
@@ -137,6 +139,7 @@ process.on(
         config.DB_FILE, { create_if_missing: true }, function(err) {
           if(err) throw err;
         });
+      description.send({ type: 'config', data: config });
       break;
 
     default:

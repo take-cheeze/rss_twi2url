@@ -8,6 +8,9 @@ var request = require('request');
 var URL = require('url');
 var XMLHttpRequest = require("xmlhttprequest").XMLHttpRequest;
 
+var config = null;
+var timeout_milli_second = 10;
+
 $.support.cors = true;
 $.ajaxSettings.xhr = function () {
   return new XMLHttpRequest;
@@ -80,7 +83,7 @@ function get_description(url, callback) {
   function oembed(req_url, oembed_callback) {
     $.ajax(
       {
-        'url': req_url, dataType: 'json',
+        'url': req_url, dataType: 'json', timeout: timeout_milli_second,
         success: function(data) {
           if(oembed_callback === undefined) { oembed_default_callback(data); }
           else { oembed_callback(data); }
@@ -91,7 +94,8 @@ function get_description(url, callback) {
   function run_jquery(cb, u) {
     var target_url = u || url;
     request.get(
-      { uri: target_url, encoding: null, followAllRedirects: true, pool: false },
+      { uri: target_url, encoding: null, followAllRedirects: true, pool: false,
+        timeout: timeout_milli_second },
       function(err, res, data) {
         if(err || res.statusCode !== 200) {
           if(res) switch(res.statusCode) {
@@ -115,7 +119,8 @@ function get_description(url, callback) {
           return;
         }
 
-        var charset_regex = /charset="?'?([\w_\-]+)"?'?/i, ascii = data.toString('ascii');
+        var charset_regex = /charset="?'?([\w_\-]+)"?'?/i;
+        var ascii = data.toString('ascii');
         var enc =
           charset_regex.test(ascii)? ascii.match(charset_regex)[1]:
           charset_regex.test(cont_type)? cont_type.match(charset_regex)[1]:
@@ -209,7 +214,7 @@ function get_description(url, callback) {
               'http://twitpic.com/' + id + '/full', data.message || 'Twitpic Content',
               image_tag('http://twitpic.com/show/full/' + id)
             );
-          }, error: error_callback
+          }, error: error_callback, timeout: timeout_milli_second
         });
     },
 
@@ -272,6 +277,7 @@ function get_description(url, callback) {
       $.ajax(
         {
           'url': 'https://gist.github.com/' + id + '.js', dataType: 'text',
+          timeout: timeout_milli_second,
           success: function(data) {
             var html = '';
             $.each(data.match(/document\.write\('(.+)'\)/g), function(k, v) {
@@ -281,6 +287,7 @@ function get_description(url, callback) {
             $.ajax(
               {
                 'url': 'https://api.github.com/gists/' + id, dataType: 'json',
+                timeout: timeout_milli_second,
                 success: function(data) {
                   callback(url, 'Gist: ' + data.id + ': ' + data.description || '', html);
                 }, error: error_callback });
@@ -405,6 +412,7 @@ function get_description(url, callback) {
         {
           'url': 'http://api.ustream.tv/json/video/' + id + '/getCustomEmbedTag?' +
             $.param({key: consumer.USTREAM_KEY, params: 'autoplay:true'}),
+          timeout: timeout_milli_second,
           dataType: 'json', success: function(data) {
             callback(url, '', data.results);
           }, error: error_callback
@@ -416,6 +424,7 @@ function get_description(url, callback) {
         {
           'url': 'http://api.ustream.tv/json/channel/' + id + '/getCustomEmbedTag?' +
             $.param({key: consumer.USTREAM_KEY, params: 'autoplay:true'}),
+          timeout: timeout_milli_second,
           dataType: 'json', success: function(data) {
             callback(url, '', data.results);
           }, error: error_callback
@@ -434,6 +443,7 @@ function get_description(url, callback) {
     '^https?://www.drawlr.com/d/\\w+/view/?$': function() {
       $.ajax(
         {
+          timeout: timeout_milli_second,
           'url': url, dataType: 'html', success: function(data) {
             callback(url, '', data.match(/var embed_code = '(.+)';/)[1]);
           }, error: error_callback
@@ -547,6 +557,11 @@ process.on(
         msg.data.url, function(url, title, description) {
           process.send({type: 'got_description', data: [msg.data, url, title, description]});
         });
+      break;
+
+    case 'config':
+      config = msg.data;
+      timeout_milli_second = config.item_generation_frequency * 2;
       break;
 
     default:
