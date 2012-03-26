@@ -75,6 +75,7 @@ function start() {
       while(rss_twi2url.queued_urls.length > 0) {
         var d = rss_twi2url.queued_urls.shift();
         if(in_last_urls(d.url) || is_queued(d.url)) { continue; }
+
         database.send({ type: 'generate_item', data: d });
         break;
       }

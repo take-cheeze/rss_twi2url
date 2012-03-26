@@ -74,6 +74,13 @@ description.on(
     if(msg.data === undefined) { throw 'empty data in message: ' + msg.type; }
 
     switch(msg.type) {
+    case 'log':
+      console.log(msg.data);
+      break;
+    case 'error':
+      console.error(msg.data);
+      break;
+
     case 'got_description':
       var v = msg.data[0];
       (function(url, title, description) {

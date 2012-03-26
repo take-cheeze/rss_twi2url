@@ -1,20 +1,20 @@
 if(!process.send) { throw 'is not forked'; }
 
-var $ = require('jquery');
+console.log = function() {
+  process.send({ type: 'log', data: Array.prototype.slice.call(arguments).join(' ') });
+};
+console.error = function() {
+  process.send({ type: 'error', data: Array.prototype.slice.call(arguments).join(' ') });
+};
+
 var consumer = require('./consumer');
 var fs = require('fs');
-var jsdom = require('jsdom');
 var request = require('request');
 var URL = require('url');
 var XMLHttpRequest = require("xmlhttprequest").XMLHttpRequest;
+var Iconv = require('iconv').Iconv;
 
-var config = null;
-
-$.support.cors = true;
-$.ajaxSettings.xhr = function () {
-  return new XMLHttpRequest;
-};
-
+var jsdom = require('jsdom');
 var document = jsdom.jsdom(), window = document.createWindow();
 DEFAULT_FEATURE = {
   FetchExternalResources: ['frame', 'css'],
@@ -24,9 +24,11 @@ DEFAULT_FEATURE = {
 };
 jsdom.defaultDocumentFeatures = DEFAULT_FEATURE;
 var DEFAULT_ENCODING = 'utf8';
-
-var iconv_cache = { 'utf8': true, 'utf-8': true };
-
+var $ = require('jquery');
+$.support.cors = true;
+$.ajaxSettings.xhr = function () {
+  return new XMLHttpRequest;
+};
 var jquery_src = '';
 request.get({uri: 'http://code.jquery.com/jquery-latest.min.js'},
             function(e, r, body) {
@@ -34,11 +36,12 @@ request.get({uri: 'http://code.jquery.com/jquery-latest.min.js'},
               jquery_src = body;
             });
 
-$.fn.outerHTML = function(t) {
-  return (t)
-    ? this.before(t).remove()
-    : $("<div />").append(this.eq(0).clone()).html();
-};
+var config = null;
+
+var iconv_cache = {
+  'utf8': true, 'utf-8': true,
+  'x-sjis': new Iconv('shift_jis', DEFAULT_ENCODING + '//TRANSLIT//IGNORE'),
+  'x-euc-jp': new Iconv('euc-jp', DEFAULT_ENCODING + '//TRANSLIT//IGNORE') };
 
 function unescapeHTML(str) {
   return $('<div />').html(str).text();
@@ -50,22 +53,23 @@ function escapeHTML(str) {
 function get_description(url, callback) {
   function image_tag(v, width, height) {
     if(!v) {
-      console.error('empty url in image tag: ' + url);
+      console.error('empty url in image tag:', url);
       console.trace();
       return 'empty url in image tag';
     }
     var ret = $('<img />').attr('src', v);
     width && height && ret.attr({ 'width': width, 'height': height });
-    return ret.outerHTML();
+    return $('<div />').append(ret).html();
   }
 
   function retry() { get_description(url, callback); }
-
-  function error_callback(jqXHR, textStatus, errorThrown) {
+  function error_callback(err) { callback(url, '', err); }
+  function jquery_error_callback(jqXHR, textStatus, errorThrown) {
     if(/timed?out/i.test(textStatus)) { retry(); }
     else {
       console.error("Error in: " + url);
       console.error(JSON.stringify([jqXHR, textStatus, errorThrown]));
+      error_callback(textStatus);
     }
   }
 
@@ -81,35 +85,38 @@ function get_description(url, callback) {
               ''));
   }
   function oembed(req_url, oembed_callback) {
-    $.ajax(
-      {
-        'url': req_url, dataType: 'json', timeout: config.timeout,
-        success: function(data) {
+    $.ajax({ 'url': req_url, dataType: 'json', timeout: config.timeout })
+      .fail(jquery_error_callback).done(
+        function(data) {
           if(oembed_callback === undefined) { oembed_default_callback(data); }
           else { oembed_callback(data); }
-        }, error: error_callback
-      });
+        });
   }
 
   function open_graph_body($) {
     var body = '';
     $.each(
       ['image', 'video', 'audio'], function(k, tag) {
-        $('meta[property="og:' + tag + '"]').each(
-          function(idx, elm) {
-            var opt = { src: $(elm).attr('content') };
-            for(var i = $(elm).next();
-                (new RegExp('og:' + tag + ':')).test(i.attr('property')); i = i.next())
-            {
-              var struct_prop = i.attr('property').match(new RegExp('og:' + tag + ':(\\w+)'))[1];
-              switch(struct_prop) {
-              case 'width':
-              case 'height':
-                opt[struct_prop] = i.attr('content');
-                break;
-              }
-            }
-            body += $('<' + (tag === 'image'? 'img' : tag) + ' />').attr(opt).outerHTML() + '<br />';
+        $.each(
+          ['meta[property="og:' + tag + '"]', 'meta[name="og:' + tag + '"]'], function(k, selector) {
+            $(selector).each(
+              function(idx, elm) {
+                var opt = { src: $(elm).attr('content') };
+                for(var i = $(elm).next();
+                    (new RegExp('og:' + tag + ':')).test(i.attr('property')); i = i.next())
+                {
+                  var struct_prop = i.attr('property').match(new RegExp('og:' + tag + ':(\\w+)'))[1];
+                  switch(struct_prop) {
+                  case 'width':
+                  case 'height':
+                    opt[struct_prop] = i.attr('content');
+                    break;
+                  }
+                }
+                body += $('<div />').append(
+                  $('<' + (tag === 'image'? 'img' : tag) + ' />')
+                    .attr(opt)).html() + '<br />';
+              });
           });
       });
     return body;
@@ -134,7 +141,7 @@ function get_description(url, callback) {
           console.error('URL:', target_url);
           res && console.error('Status Code:', res.statusCode);
           console.error('Error:', JSON.stringify(err));
-          callback(target_url, '', 'error fetching');
+          error_callback('error fetching');
           return;
         }
 
@@ -143,7 +150,7 @@ function get_description(url, callback) {
         var cont_type = res.headers['content-type'];
 
         if(!/html/i.test(cont_type)) {
-          callback(url, '', 'unknown content type');
+          error_callback('unknown content type');
           return;
         }
 
@@ -156,17 +163,17 @@ function get_description(url, callback) {
         enc = enc.toLowerCase();
         if(enc in iconv_cache) {
           if(iconv_cache[enc] === 'unsupported') {
-            callback(url, '', 'unsupported charset: ' + enc);
+            error_callback('unsupported charset: ' + enc);
             return;
           }
         } else {
           try {
-            iconv_cache[enc] = new (require('iconv').Iconv)(
+            iconv_cache[enc] = new Iconv(
               enc, DEFAULT_ENCODING + '//TRANSLIT//IGNORE');
           } catch(e) {
-            console.error('iconv open error: ', e, enc);
+            console.error('iconv open error:', e, enc);
             iconv_cache[enc] = 'unsupported';
-            callback(url, '', 'unsupported charset: ' + enc);
+            error_callback('unsupported charset: ' + enc);
             return;
           }
         }
@@ -176,8 +183,8 @@ function get_description(url, callback) {
           html = /utf-?8/i.test(enc)? data.toString() :
             iconv_cache[enc].convert(data).toString(DEFAULT_ENCODING);
         } catch(e) {
-          console.error('iconv error: ', e, enc);
-          callback(url, '', 'unsupported charset: ' + enc);
+          console.error('iconv error:', e, enc);
+          error_callback('unsupported charset: ' + enc);
           return;
         }
 
@@ -185,23 +192,20 @@ function get_description(url, callback) {
           html, { features: DEFAULT_FEATURE },
           function(err, window) {
             if(err) {
-              console.error(err);
+              error_callback(err);
               return;
             }
 
             var document = window.document;
 
-            try {
-              eval(jquery_src);
-            } catch(e) {
-              console.error('jQuery error:', e);
-            }
+            try { eval(jquery_src); }
+            catch(e) { console.error('jQuery error:', e); }
 
-            var $ = window.jQuery;
-            if(! $) {
-              callback(url, '', 'Cannot load jQuery');
+            if(!window.jQuery) {
+              error_callback('Cannot load jQuery');
               return;
             }
+            var $ = window.jQuery;
 
             $('script').empty();
             $('a').each(
@@ -212,12 +216,6 @@ function get_description(url, callback) {
               function(idx,elm) {
                 $(elm).attr('src', URL.resolve(target_url, $(elm).attr('src')));
               });
-            $.fn.outerHTML = function(t) {
-              return (t)
-                ? this.before(t).remove()
-                : $("<div />").append(this.eq(0).clone()).html();
-            };
-
             cb($, window);
           });
       });
@@ -237,15 +235,15 @@ function get_description(url, callback) {
     '^https?://twitpic\\.com/(\\w+)(/full)?/?': function() {
       var id = url.match(/^http:\/\/twitpic.com\/(\w+)(\/full)?\/?/)[1];
       $.ajax(
-        {
-          'url': 'http://api.twitpic.com/2/media/show.json?' + $.param({id: id}),
-          dataType: 'json', success: function(data) {
+        { 'url': 'http://api.twitpic.com/2/media/show.json?' + $.param({id: id}),
+          dataType: 'json', timeout: config.timeout })
+        .fail(jquery_error_callback).done(
+          function(data) {
             callback(
               'http://twitpic.com/' + id + '/full', data.message || 'Twitpic Content',
               image_tag('http://twitpic.com/show/full/' + id, data.width, data.height)
             );
-          }, error: error_callback, timeout: config.timeout
-        });
+          });
     },
 
     '^https?://p.twipple.jp/\\w+/?$': function() {
@@ -305,24 +303,24 @@ function get_description(url, callback) {
     '^https?://gist.github.com/\\w+/?': function() {
       var id = url.match(/^https?:\/\/gist.github.com\/(\w+)\/?/)[1];
       $.ajax(
-        {
-          'url': 'https://gist.github.com/' + id + '.js', dataType: 'text',
-          timeout: config.timeout,
-          success: function(data) {
+        { 'url': 'https://gist.github.com/' + id + '.js',
+          dataType: 'text', timeout: config.timeout })
+        .fail(jquery_error_callback).done(
+          function(data) {
             var html = '';
             $.each(data.match(/document\.write\('(.+)'\)/g), function(k, v) {
                      html += v.match(/document\.write\('(.+)'\)/)[1];
                    });
             eval("html = '" + html + "'");
             $.ajax(
-              {
-                'url': 'https://api.github.com/gists/' + id, dataType: 'json',
-                timeout: config.timeout,
-                success: function(data) {
+              { 'url': 'https://api.github.com/gists/' + id,
+                dataType: 'json', timeout: config.timeout })
+              .fail(jquery_error_callback).done(
+                function(data) {
                   callback(url, 'Gist: ' + data.id + ': ' + data.description || '', html);
-                }, error: error_callback });
-          }, error: error_callback
-        }); },
+                });
+          });
+    },
 
     '^https?://ideone.com/\\w+/?$': function() {
       run_jquery(function($) { callback(url, '', $('#source').html()); }); },
@@ -434,26 +432,24 @@ function get_description(url, callback) {
     '^https?://www.ustream.tv/recorded/\\d+': function() {
       var id = url.match(/^http:\/\/www.ustream.tv\/recorded\/(\d+)/)[1];
       $.ajax(
-        {
-          'url': 'http://api.ustream.tv/json/video/' + id + '/getCustomEmbedTag?' +
-            $.param({key: consumer.USTREAM_KEY, params: 'autoplay:true'}),
-          timeout: config.timeout,
-          dataType: 'json', success: function(data) {
+        { 'url': 'http://api.ustream.tv/json/video/' + id + '/getCustomEmbedTag?' +
+          $.param({key: consumer.USTREAM_KEY, params: 'autoplay:true'}),
+          timeout: config.timeout, dataType: 'json' })
+        .fail(jquery_error_callback).done(
+          function(data) {
             callback(url, '', data.results);
-          }, error: error_callback
-        });
+          });
     },
     '^https?://www.ustream.tv/channel/.+#?': function() {
       var id = url.match(/^http:\/\/www.ustream.tv\/channel\/(.+)#?/)[1];
       $.ajax(
-        {
-          'url': 'http://api.ustream.tv/json/channel/' + id + '/getCustomEmbedTag?' +
-            $.param({key: consumer.USTREAM_KEY, params: 'autoplay:true'}),
-          timeout: config.timeout,
-          dataType: 'json', success: function(data) {
+        { 'url': 'http://api.ustream.tv/json/channel/' + id + '/getCustomEmbedTag?' +
+          $.param({key: consumer.USTREAM_KEY, params: 'autoplay:true'}),
+          timeout: config.timeout, dataType: 'json' })
+        .fail(jquery_error_callback).done(
+          function(data) {
             callback(url, '', data.results);
-          }, error: error_callback
-        });
+          });
     },
 
     '^https?://layercloud.net/items/detail_top/\\d+/?$': function() {
@@ -467,12 +463,11 @@ function get_description(url, callback) {
 
     '^https?://www.drawlr.com/d/\\w+/view/?$': function() {
       $.ajax(
-        {
-          timeout: config.timeout,
-          'url': url, dataType: 'html', success: function(data) {
+        { timeout: config.timeout, 'url': url, dataType: 'html' })
+        .fail(jquery_error_callback).done(
+          function(data) {
             callback(url, '', data.match(/var embed_code = '(.+)';/)[1]);
-          }, error: error_callback
-        });
+          });
     }
   };
 
@@ -495,12 +490,12 @@ function get_description(url, callback) {
      })()) {
     callback(
       url, url.match(/\/([^\/]+)$/)[1],
-        $('<iframe />').attr(
+        $('<div />').append($('<iframe />').attr(
           { title: 'Google Docs Viewer',
             'class': 'google-docs-viewer',
             type: 'text/html',
             src: 'https://docs.google.com/viewer?' + $.param({'url': url, embedded: true}),
-            width: '100%', height: '800'}).outerHTML()); }
+            width: '100%', height: '800'})).html()); }
 
   else if(
     (function() {
@@ -537,10 +532,11 @@ function get_description(url, callback) {
           }
 
           var body = open_graph_body($);
-          if(!body) $('article').each(function(idx,elm) { body += $(elm).html(); });
-          if(!body) $('.entry_body').each(function(k,v) { body += $(v).html(); });
-          if(!body) $('.entry-content').each(function(k,v) { body += $(v).html(); });
-          if(!body) $('.entry').each(function(k,v) { body += $(v).html(); });
+          $.each(
+            ['article', '.entry_body', '.entry_text', '.entry-content', '.entry'],
+            function(k, selector) {
+              if(!body) { $(selector).each(function(idx, elm) { body += $(elm).html(); }); }
+            });
           body += unescapeHTML(
             $('meta[property="og:description"]').attr('content')
               || $('meta[name="description"]').attr('content')
