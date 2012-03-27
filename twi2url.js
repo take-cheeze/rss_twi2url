@@ -19,22 +19,28 @@ function backup() {
 }
 process.on('exit', function() { backup(); });
 
+var twitter_api = fork(__dirname + '/twitter_api.js', [], { env: process.env });
+var database = fork(__dirname + '/database.js', [], { env: process.env });
+
 function is_signed_in() {
   var check = ['oauth_token', 'oauth_token_secret', 'user_id', 'screen_name'];
-  for(i in check) {
-    if(!(check[i] in rss_twi2url)) return false;
-  }
-  return true;
+  var result = true;
+  $.each(check, function(k, v) {
+           if(! rss_twi2url[v]) { result = false; }
+         });
+  return result;
 }
 
 function in_last_urls(url) {
-  for(i in rss_twi2url.last_urls) {
-    if(rss_twi2url.last_urls[i] === url) { return true; } }
-  return false;
+  var result = false;
+  $.each(rss_twi2url.last_urls, function(k, v) {
+           if(v === url) { result = true; } });
+  return result;
 }
 function is_queued(url) {
-  for(i in rss_twi2url.queued_urls) {
-    if(rss_twi2url.queued_urls[i].url === url) { return true; } }
+  var result = false;
+  $.each(rss_twi2url.queued_urls, function(k, v) {
+           if(v.url === url) { return true; } });
   return false;
 }
 
@@ -72,20 +78,18 @@ function start() {
   setInterval(backup, config.backup_frequency);
   setInterval(
     function() {
-      while(rss_twi2url.queued_urls.length > 0) {
+      while(true) {
         var d = rss_twi2url.queued_urls.shift();
-        if(in_last_urls(d.url) || is_queued(d.url)) { continue; }
-
-        database.send({ type: 'generate_item', data: d });
-        break;
+        if(d && ! in_last_urls(d.url) && ! is_queued(d.url)) {
+          database.send({ type: 'generate_item', data: d });
+          return;
+        }
       }
     }, config.item_generation_frequency);
   setInterval(twitter_api.send, config.fetch_frequency,
               { type: 'fetch', data: rss_twi2url });
 }
 
-
-var database = fork(__dirname + '/database.js', [], { env: process.env });
 database.on(
   'message', function(msg) {
     switch(msg.type) {
@@ -109,7 +113,6 @@ database.on(
     }
   });
 
-var twitter_api = fork(__dirname + '/twitter_api.js', [], { env: process.env });
 twitter_api.on(
   'message', function(msg) {
     switch(msg.type) {
@@ -117,7 +120,7 @@ twitter_api.on(
       var url_obj = URL.parse(msg.data.url, true);
       var removing_param = [];
       $.each(url_obj.query, function(k, v) {
-               /utm_/i.test(k) && removing_param.push(k);
+               if(/utm_/i.test(k)) { removing_param.push(k); }
              });
       $.each(removing_param, function(idx, param) {
                delete url_obj.query[param];

@@ -6,7 +6,7 @@ module.exports = {
   pathname: "",
   author: "Takeshi Watanabe",
 
-  feed_item_max: 500,
+  feed_item_max: 300,
 
   fetch_frequency: 10 * 60 * 1000,
   item_generation_frequency: 1000 * 2,

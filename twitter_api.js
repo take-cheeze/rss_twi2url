@@ -17,6 +17,42 @@ var consumer = require('./consumer');
 
 var twitter_api_left = true;
 
+var opt = {
+  consumer_key: consumer.CONSUMER_KEY,
+  consumer_secret: consumer.CONSUMER_SECRET
+};
+function get_json(url, callback) {
+  request.get(
+    { 'url': url, 'oauth': opt, encoding: 'utf8', timeout: config.timeout },
+    function(err, res, data) {
+      if(err) {
+        if(/timed?out/i.test(err.code)) {
+          get_json(url, callback);
+          return;
+        }
+        console.error("Error fetching json from twitter:", err);
+        console.error('URL: ' + url);
+      } else if(res) {
+        switch(res.statusCode) {
+        case 500: case 502: case 503: case 504:
+          setTimeout(get_json, 1000, url, callback);
+          break;
+        case 200:
+          try {
+            callback(JSON.parse(data));
+          } catch(e) {
+            console.error(e);
+          }
+          break;
+        default:
+          console.error("Error fetching json from twitter:", res.statusCode);
+          console.error('URL: ' + url);
+          break;
+        }
+      }
+    });
+}
+
 var LONG_URL_LENGTH = 40, TWEET_MAX = 200;
 
 function timeout_when_api_reset(callback) {
@@ -47,60 +83,60 @@ function fetch_page(url, name, info) {
     function() {
       get_json(
         url + '&' + $.param({page: info.page}), function(data) {
-          for(idx in data) {
-            var tweet = data[idx];
-            $.each(
-              tweet.entities.urls, function(k, v) {
-                if(!v.expanded_url) { v.expanded_url = v.url; }
+          $.each(
+            data, function(idx, tweet) {
+              $.each(
+                tweet.entities.urls, function(k, v) {
+                  if(!v.expanded_url) { v.expanded_url = v.url; }
 
-                if(v.expanded_url.length > LONG_URL_LENGTH) {
-                  process.send(
-                    { type: 'fetched_url',
-                      data:{ 'url': v.expanded_url,
-                             author: name,
-                             date: tweet.created_at } });
-                  return;
-                }
-
-                function longurl(e, res, data) {
-                  if(res !== undefined) {
-                    if(e) {
-                      console.error('Error at LongURL: ' + e);
-                      console.error('URL: ' + v.expanded_url);
-                    } else switch(res.statusCode) {
-                    default:
-                      console.error('Error at LongURL: ' + res.statusCode);
-                      console.error('URL: ' + v.expanded_url);
-                      return;
-                    case 400:
-                      process.send(
-                        { type: 'fetched_url',
-                          data: { 'url': v.expanded_url,
-                                  author: name,
-                                  date: tweet.created_at } });
-                      return;
-                    case 500: case 502: case 503: case 504: break;
-                    case 200:
-                      var result = JSON.parse(data);
-                      process.send(
-                        { type: 'fetched_url',
-                          data: { 'url': result['long-url'] || v.expanded_url,
-                                  author: name,
-                                  date: tweet.created_at } });
-                      return;
-                    }
+                  if(v.expanded_url.length > LONG_URL_LENGTH) {
+                    process.send(
+                      { type: 'fetched_url',
+                        data:{ 'url': v.expanded_url,
+                               author: name,
+                               date: tweet.created_at } });
+                    return;
                   }
 
-                  request.get(
-                    { 'url': 'http://api.longurl.org/v2/expand?' +
-                      $.param({ 'url': v.expanded_url, 'all-redirects': 1,
-                                format: 'json' }),
-                      encoding: 'utf8' },
-                    longurl);
-                }
-                longurl();
-              });
-          }
+                  function longurl(e, res, data) {
+                    if(res !== undefined) {
+                      if(e) {
+                        console.error('Error at LongURL: ' + e);
+                        console.error('URL: ' + v.expanded_url);
+                      } else switch(res.statusCode) {
+                      case 400:
+                        process.send(
+                          { type: 'fetched_url',
+                            data: { 'url': v.expanded_url,
+                                    author: name,
+                                    date: tweet.created_at } });
+                        return;
+                      case 500: case 502: case 503: case 504: break;
+                      case 200:
+                        var result = JSON.parse(data);
+                        process.send(
+                          { type: 'fetched_url',
+                            data: { 'url': result['long-url'] || v.expanded_url,
+                                    author: name,
+                                    date: tweet.created_at } });
+                        return;
+                      default:
+                        console.error('Error at LongURL: ' + res.statusCode);
+                        console.error('URL: ' + v.expanded_url);
+                        return;
+                      }
+                    }
+
+                    request.get(
+                      { 'url': 'http://api.longurl.org/v2/expand?' +
+                        $.param({ 'url': v.expanded_url, 'all-redirects': 1,
+                                  format: 'json' }),
+                        encoding: 'utf8' },
+                      longurl);
+                  }
+                  longurl();
+                });
+            });
 
           if(data.length > 0) {
             if(info.page === 1) {
@@ -157,40 +193,6 @@ function fetch(setting) {
     });
 }
 
-var opt = {
-  consumer_key: consumer.CONSUMER_KEY,
-  consumer_secret: consumer.CONSUMER_SECRET
-};
-function get_json(url, callback) {
-  request.get(
-    { 'url': url, 'oauth': opt, encoding: 'utf8', timeout: config.timeout },
-    function(err, res, data) {
-      if(err) {
-        if(/timed?out/i.test(err.code)) {
-          get_json(url, callback);
-          return;
-        }
-        console.error("Error fetching json from twitter:", err);
-        console.error('URL: ' + url);
-      } else if(res) switch(res.statusCode) {
-      case 500: case 502: case 503: case 504:
-        setTimeout(get_json, 1000, url, callback);
-        break;
-      case 200:
-        try {
-          callback(JSON.parse(data));
-        } catch(e) {
-          console.error(e);
-        }
-        break;
-      default:
-        console.error("Error fetching json from twitter:", res.statusCode);
-        console.error('URL: ' + url);
-        break;
-      }
-    });
-}
-
 function signin(setting) {
   if(setting) {
     opt.token = setting.oauth_token;
@@ -218,7 +220,7 @@ process.on(
 
     switch(msg.type) {
     case 'signin':
-      if('oauth_token_secret' in opt) { throw 'already singed in'; }
+      if(opt.oauth_token_secret) { throw 'already singed in'; }
       signin(msg.data);
       break;
 

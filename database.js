@@ -12,6 +12,7 @@ var jsdom = require('jsdom');
 
 var document = jsdom.jsdom(), window = document.createWindow();
 var config = {};
+var db = null;
 
 function generate_feed(items) {
   var len = items.length, count = 0;
@@ -24,7 +25,7 @@ function generate_feed(items) {
       site_url: 'http://' + config.hostname + ':' + config.port + '/' + config.pathname,
       author: config.author });
 
-  if(len == 0) {
+  if(len === 0) {
     process.send({ type: 'feed', data: feed.xml() });
     return;
   }
@@ -42,8 +43,6 @@ function generate_feed(items) {
     });
 }
 
-var db = null;
-
 function create_child() {
   var ret = require('child_process')
     .fork(__dirname + '/description.js', [], { env: process.env });
@@ -54,10 +53,11 @@ var description = create_child();
 
 function generate_item(v) {
   if((function(str) {
-        for(k in config.exclude_filter) {
-          if((new RegExp(config.exclude_filter[k])).test(str)) { return true; } }
-        return false;
-      })(v.url)) { return; }
+        var result = false;
+        $.each(config.exclude_filter, function(k, v) {
+          if((new RegExp(v)).test(str)) { result = true; } });
+        return result;
+      }(v.url))) { return; }
 
   description.send({ type: 'get_description', data: v });
 }
@@ -115,7 +115,7 @@ description.on(
              }), {}, function(err) { if(err) { throw err; } });
 
          process.send({ type: 'item_generated', data: url });
-       })(msg.data[1], msg.data[2], msg.data[3]);
+       }(msg.data[1], msg.data[2], msg.data[3]));
       break;
 
     default:
@@ -138,10 +138,10 @@ process.on(
 
     case 'config':
       config = msg.data;
-      db = new (require('leveldb').DB);
+      db = new (require('leveldb').DB)();
       db.open(
         config.DB_FILE, { create_if_missing: true }, function(err) {
-          if(err) throw err;
+          if(err) { throw err; }
         });
       description.send({ type: 'config', data: config });
       break;
