@@ -40,8 +40,8 @@ function in_last_urls(url) {
 function is_queued(url) {
   var result = false;
   $.each(rss_twi2url.queued_urls, function(k, v) {
-           if(v.url === url) { return true; } });
-  return false;
+           if(v.url === url) { result = true; } });
+  return result;
 }
 
 function start() {
