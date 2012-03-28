@@ -475,20 +475,20 @@ function get_description(url, callback) {
   };
 
   if((function() {
-        var result = false;
-        $.each(['png', 'jpg', 'jpeg', 'gif'], function(k, v) {
-                 if((new RegExp('^.+\\.' + v + '$', 'i')).test(url)) { result = true; }
-               });
-        return result;
-      }())) { callback(url, url.match(/\/([^\/]+)$/)[1], image_tag(url)); }
+       var result = false;
+       $.each(['png', 'jpg', 'jpeg', 'gif'], function(k, v) {
+                if((new RegExp('^.+\\.' + v + '$', 'i')).test(url)) { result = true; }
+              });
+       return result;
+     }())) { callback(url, url.match(/\/([^\/]+)$/)[1], image_tag(url)); }
 
   else if((function() {
-             var result = false;
-             $.each([ 'docx?', 'xlsx?', 'pptx?', 'pages', 'ttf', 'psd', 'ai', 'tiff', 'dxf', 'svg', 'xps', 'pdf'],
-                    function(k, v) {
-                      if((new RegExp('^.+\\.' + v + '$', 'i')).test(url)) { result = true; } });
-             return result;
-           }()))
+            var result = false;
+            $.each([ 'docx?', 'xlsx?', 'pptx?', 'pages', 'ttf', 'psd', 'ai', 'tiff', 'dxf', 'svg', 'xps', 'pdf'],
+                   function(k, v) {
+                     if((new RegExp('^.+\\.' + v + '$', 'i')).test(url)) { result = true; } });
+            return result;
+          }()))
   {
     callback(
       url, url.match(/\/([^\/]+)$/)[1],
@@ -500,14 +500,14 @@ function get_description(url, callback) {
                               width: '100%', height: '800'})).html()); }
 
   else if((function() {
-             var result = false;
-             $.each([
-                        /^https?:\/\/d.hatena.ne.jp\/[\w\-_]+\/[\w\-_]+/,
-                        /^https?:\/\/[\w\-_]+.g.hatena.ne.jp\/[\w\-_]+\/[\w\-_]+/,
-                        /^https?:\/\/anond.hatelabo.jp\/\d+/
-                    ], function(k, v) { if(v.test(url)) { result = true; } });
-             return result;
-           }()))
+            var result = false;
+            $.each([
+                       /^https?:\/\/d.hatena.ne.jp\/[\w\-_]+\/[\w\-_]+/,
+                       /^https?:\/\/[\w\-_]+.g.hatena.ne.jp\/[\w\-_]+\/[\w\-_]+/,
+                       /^https?:\/\/anond.hatelabo.jp\/\d+/
+                   ], function(k, v) { if(v.test(url)) { result = true; } });
+            return result;
+          }()))
   {
     run_jquery(function($) {
                  var section = '';
@@ -516,17 +516,17 @@ function get_description(url, callback) {
 
   else {
     if((function() {
-          var result = true;
-          $.each(GALLERY_FILTER, function(k, v) {
-                   if((new RegExp(k, 'i')).test(url)) {
-                     v();
-                     result = false;
-                     return false; // break
-                   }
-                   return true; // continue
-                 });
-          return result;
-        }()))
+         var result = true;
+         $.each(GALLERY_FILTER, function(k, v) {
+                  if((new RegExp(k, 'i')).test(url)) {
+                    v();
+                    result = false;
+                    return false; // break
+                  }
+                  return true; // continue
+                });
+         return result;
+       }()))
     {
       run_jquery(
         function($) {
