@@ -85,6 +85,7 @@ function fetch_page(url, name, info) {
         url + '&' + $.param({page: info.page}), function(data) {
           $.each(
             data, function(idx, tweet) {
+              var author_str = tweet.user.name + '( @' + tweet.user.screen_name + ' ) / ' + name;
               $.each(
                 tweet.entities.urls, function(k, v) {
                   if(!v.expanded_url) { v.expanded_url = v.url; }
@@ -93,7 +94,7 @@ function fetch_page(url, name, info) {
                     process.send(
                       { type: 'fetched_url',
                         data:{ 'url': v.expanded_url,
-                               author: name,
+                               author: author_str,
                                date: tweet.created_at } });
                     return;
                   }
@@ -108,7 +109,7 @@ function fetch_page(url, name, info) {
                         process.send(
                           { type: 'fetched_url',
                             data: { 'url': v.expanded_url,
-                                    author: name,
+                                    author: author_str,
                                     date: tweet.created_at } });
                         return;
                       case 500: case 502: case 503: case 504: break;
@@ -117,7 +118,7 @@ function fetch_page(url, name, info) {
                         process.send(
                           { type: 'fetched_url',
                             data: { 'url': result['long-url'] || v.expanded_url,
-                                    author: name,
+                                    author: author_str,
                                     date: tweet.created_at } });
                         return;
                       default:
