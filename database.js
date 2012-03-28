@@ -20,7 +20,7 @@ function generate_feed(items) {
   var feed = new (require('rss'))(
     {
       title: config.title,
-      description: config.description,
+      'description': config.description,
       feed_url: 'http://' + config.hostname + ':' + config.port + '/',
       site_url: 'http://' + config.hostname + ':' + config.port + '/' + config.pathname,
       author: config.author });
@@ -43,13 +43,76 @@ function generate_feed(items) {
     });
 }
 
+var description = null;
 function create_child() {
   var ret = require('child_process')
     .fork(__dirname + '/description.js', [], { env: process.env });
   ret.send({ type: 'config', data: config });
+
+  ret.on(
+    'exit', function(code, signal) {
+      if(code && signal) { console.error('signal from description.js:', signal); }
+
+      description = create_child();
+    });
+
+  ret.on(
+    'message', function(msg) {
+      if(msg.data === undefined) { throw 'empty data in message: ' + msg.type; }
+
+      switch(msg.type) {
+      case 'log':
+        console.log(msg.data);
+        break;
+      case 'error':
+        console.error(msg.data);
+        break;
+
+      case 'got_description':
+        var v = msg.data[0];
+        (function(url, title, desc) {
+           if(!title) {
+             console.error('Invalid title:', url);
+             title = url;
+           }
+           if(!desc) {
+             console.error('Invalid description:', url);
+             desc = 'empty description';
+           }
+
+           var cleaned = $('<div />').html(desc);
+
+           $.each(
+             [ 'link', 'script', 'dl' ],
+             function(k,v) { cleaned.find(v).empty(); });
+
+           $.each(
+             [ 'data-hatena-bookmark-layout',
+               'data-hatena-bookmark-title', 'data-lang', 'data-count',
+               'data-url', 'data-text', 'data-via' ],
+             function(k,v) {
+               cleaned.find('[' + v + ']').removeAttr(v);
+             });
+
+           db.put(
+             url, JSON.stringify(
+               {
+                 title: title, description: $('<div />').append(cleaned.clone()).html(),
+                 'url': url, author: v.author, date: v.date
+               }), {}, function(err) { if(err) { throw err; } });
+
+           process.send({ type: 'item_generated', data: url });
+         }(msg.data[1], msg.data[2], msg.data[3]));
+        break;
+
+      default:
+        throw 'unknown message type: ' + msg.type;
+      }
+    });
+
   return ret;
 }
-var description = create_child();
+description = create_child();
 
 function generate_item(v) {
   if((function(str) {
@@ -61,67 +124,6 @@ function generate_item(v) {
 
   description.send({ type: 'get_description', data: v });
 }
-
-description.on(
-  'exit', function(code, signal) {
-    if(code && signal) { console.error('signal from description.js:', signal); }
-
-    description = create_child();
-  });
-
-description.on(
-  'message', function(msg) {
-    if(msg.data === undefined) { throw 'empty data in message: ' + msg.type; }
-
-    switch(msg.type) {
-    case 'log':
-      console.log(msg.data);
-      break;
-    case 'error':
-      console.error(msg.data);
-      break;
-
-    case 'got_description':
-      var v = msg.data[0];
-      (function(url, title, description) {
-         if(!title) {
-           console.error('Invalid title:', url);
-           title = url;
-         }
-         if(!description) {
-           console.error('Invalid description:', url);
-           description = 'empty description';
-         }
-
-         var cleaned = $('<div />').html(description);
-
-         $.each(
-           [ 'link', 'script', 'dl' ],
-           function(k,v) { cleaned.find(v).empty(); });
-
-         $.each(
-           [ 'data-hatena-bookmark-layout',
-             'data-hatena-bookmark-title', 'data-lang', 'data-count',
-             'data-url', 'data-text', 'data-via' ],
-           function(k,v) {
-             cleaned.find('[' + v + ']').removeAttr(v);
-           });
-
-         db.put(
-           url, JSON.stringify(
-             {
-               title: title, description: $('<div />').append(cleaned.clone()).html(),
-               'url': url, author: v.author, date: v.date
-             }), {}, function(err) { if(err) { throw err; } });
-
-         process.send({ type: 'item_generated', data: url });
-       }(msg.data[1], msg.data[2], msg.data[3]));
-      break;
-
-    default:
-      throw 'unknown message type: ' + msg.type;
-    }
-  });
 
 process.on(
   'message', function(msg) {
