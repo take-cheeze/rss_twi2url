@@ -59,7 +59,7 @@ function timeout_when_api_reset(callback) {
   get_json(
     'https://api.twitter.com/1/account/rate_limit_status.json',
     function(data) {
-      console.log('api left: ' + data.remaining_hits);
+      console.log('api left:', data.remaining_hits);
 
       twitter_api_left = data.remaining_hits;
       if(data.remaining_hits > 0) {
@@ -85,7 +85,7 @@ function fetch_page(url, name, info) {
         url + '&' + $.param({page: info.page}), function(data) {
           $.each(
             data, function(idx, tweet) {
-              var author_str = tweet.user.name + '( @' + tweet.user.screen_name + ' ) / ' + name;
+              var author_str = tweet.user.name + ' ( @' + tweet.user.screen_name + ' ) / ' + name;
               $.each(
                 tweet.entities.urls, function(k, v) {
                   if(!v.expanded_url) { v.expanded_url = v.url; }
@@ -165,8 +165,7 @@ function fetch(setting) {
       fetch_page(
         'https://api.twitter.com/1/statuses/home_timeline.json?' +
           $.param(
-            {
-              count: TWEET_MAX, exclude_replies: false,
+            { count: TWEET_MAX, exclude_replies: false,
               include_entities: true, include_rts: true
             }), 'home_timeline',
         { page: 1, since_id: setting.since.home_timeline });
