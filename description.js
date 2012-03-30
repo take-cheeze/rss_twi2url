@@ -58,7 +58,8 @@ function get_description(url, callback) {
       return 'empty url in image tag';
     }
     var ret = $('<img />').attr('src', v);
-    if(width && height) { ret.attr({ 'width': width, 'height': height }); }
+    if(width) { ret.attr('width', width); }
+    if(height) { ret.attr('height', height); }
     return $('<div />').append(ret).html();
   }
 
@@ -96,9 +97,9 @@ function get_description(url, callback) {
   function open_graph_body($) {
     var body = '';
     $.each(
-      ['image', 'video', 'audio'], function(k, tag) {
+      ['image', 'video', 'audio'], function(tag_idx, tag) {
         $.each(
-          ['property', 'name'], function(k, attr) {
+          ['property', 'name'], function(attr_idx, attr) {
             $('meta[' + attr + '="og:' + tag + '"]').each(
               function(idx, elm) {
                 var opt = { src: $(elm).attr('content') }, i = $(elm).next();
@@ -112,8 +113,8 @@ function get_description(url, callback) {
                   }
                 }
                 body += $('<div />').append(
-                  $('<' + (tag === 'image'? 'img' : tag) + ' />')
-                    .attr(opt)).html() + '<br />';
+                  $('<' + (tag === 'image'? 'img' : tag) + ' />').attr(opt)
+                ).html() + '<br />';
               });
           });
       });
@@ -285,7 +286,7 @@ function get_description(url, callback) {
                    $('.mainmore').each(function(k,v) { main += $(v).html(); });
                    callback(url, $('meta[property="og:title"]').text() || $('title').text(),
                             main + $('#main').html() || ''); }); },
-    '^https?://\\w+.exblog.jp/\\d+$': function() {
+    '^https?://\\w+.exblog.jp/\\d+/?$': function() {
       run_jquery(function($) {
                    callback(url, $('title').text(), $('.POST_BODY').html()); }); },
 
@@ -537,8 +538,7 @@ function get_description(url, callback) {
           }
 
           var body = open_graph_body($);
-          if(body) {
-            body = run_selectors($, ['article', '.entry_body', '.entry_text', '.entry-content', '.entry']); }
+          body += run_selectors($, ['article', '.entry_body', '.entry_text', '.entry-content', '.entry']);
           body += unescapeHTML(
             $('meta[property="og:description"]').attr('content')
               || $('meta[name="description"]').attr('content')
