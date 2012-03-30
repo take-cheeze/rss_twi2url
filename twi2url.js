@@ -78,9 +78,9 @@ function start() {
   setInterval(backup, config.backup_frequency);
   setInterval(
     function() {
-      while(true) {
+      while(rss_twi2url.queued_urls.length > 0) {
         var d = rss_twi2url.queued_urls.shift();
-        if(d && ! in_last_urls(d.url) && ! is_queued(d.url)) {
+        if(! in_last_urls(d.url) && ! is_queued(d.url)) {
           database.send({ type: 'generate_item', data: d });
           return;
         }
