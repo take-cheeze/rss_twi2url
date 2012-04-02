@@ -1,1 +1,1 @@
-web: node twi2url.js
+web: node ./twi2url.js
