@@ -219,10 +219,10 @@ function signin(setting) {
             opt.verifier = qs.parse(req.url).oauth_verifier;
             request.post(
               {url:'https://api.twitter.com/oauth/access_token', 'oauth': opt},
-              function (e, r, body) {
+              function (e, r, result) {
                 if(e) { throw JSON.stringify(error); }
 
-                var result = qs.parse(body);
+                result = qs.parse(result);
                 opt.token = result.oauth_token;
                 opt.token_secret = result.oauth_token_secret;
                 delete opt.verifier;
