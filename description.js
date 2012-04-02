@@ -8,6 +8,7 @@ console.error = function() {
 };
 
 var consumer = require('./consumer');
+consumer.USTREAM_KEY = process.env.USTREAM_KEY;
 var fs = require('fs');
 var request = require('request');
 var URL = require('url');
