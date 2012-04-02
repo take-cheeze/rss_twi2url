@@ -228,7 +228,6 @@ function signin(setting) {
                 delete opt.verifier;
 
                 server.close();
-                res.redirect('about:blank');
                 process.send({ type: 'signed_in', data: result });
               });
           })
