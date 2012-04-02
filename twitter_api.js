@@ -216,8 +216,7 @@ function signin(setting) {
 
         var server = require('http').createServer(
           function(req, res) {
-            server.close();
-            opt.verifier = req.query.oauth_verifier;
+            opt.verifier = qs.parse(req.url).oauth_verifier;
             request.post(
               {url:'https://api.twitter.com/oauth/access_token', 'oauth': opt},
               function (e, r, body) {
@@ -228,6 +227,8 @@ function signin(setting) {
                 opt.token_secret = result.oauth_token_secret;
                 delete opt.verifier;
 
+                server.close();
+                res.redirect('about:blank');
                 process.send({ type: 'signed_in', data: result });
               });
           })
