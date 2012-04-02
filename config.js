@@ -1,7 +1,7 @@
 module.exports = {
   title: "twi2url",
   description: "twitter 2 url",
-  hostname: "fierce-stone-6919.herokuapp.com",
+  hostname: "electric-frost-6620.herokuapp.com",
   port: 80,
   pathname: "",
   author: "Takeshi Watanabe",
