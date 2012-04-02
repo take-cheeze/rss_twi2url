@@ -14,7 +14,6 @@ var request = require('request');
 
 var config = {}, consumer = {};
 try { consumer = require('./consumer'); } catch(e) {}
-
 consumer.CONSUMER_KEY = process.env.TWITTER_CONSUMER_KEY || consumer.CONSUMER_KEY;
 consumer.CONSUMER_SECRET = process.env.TWITTER_CONSUMER_SECRET || consumer.CONSUMER_SECRET;
 
@@ -202,6 +201,7 @@ function signin(setting) {
     opt.token_secret = setting.oauth_token_secret;
     process.send({ type: 'signed_in', data: setting });
   } else {
+    opt.callback = 'http://' + config.hostname + ':' + config.port + '/' + config.pathname + '/callback';
     request.post(
       {url:'https://api.twitter.com/oauth/request_token', oauth: opt},
       function (e, r, body) {
@@ -210,9 +210,29 @@ function signin(setting) {
         var tok = qs.parse(body);
         opt.token = tok.oauth_token;
         opt.token_secret = tok.oauth_token_secret;
+        delete opt.callback;
 
         console.log('Visit: https://twitter.com/oauth/authorize?oauth_token=' + opt.token);
-        process.send({ type: 'request_pin' });
+
+        var server = require('http').createServer(
+          function(req, res) {
+            server.close();
+            opt.verifier = req.query.oauth_verifier;
+            request.post(
+              {url:'https://api.twitter.com/oauth/access_token', 'oauth': opt},
+              function (e, r, body) {
+                if(e) { throw JSON.stringify(error); }
+
+                var result = qs.parse(body);
+                opt.token = result.oauth_token;
+                opt.token_secret = result.oauth_token_secret;
+                delete opt.verifier;
+
+                process.send({ type: 'signed_in', data: result });
+              });
+          })
+          .listen(config.port)
+          .on('clientError', function(e) { console.error(e); });
       });
   }
 }
@@ -229,22 +249,6 @@ process.on(
 
     case 'fetch': fetch(msg.data); break;
     case 'config': config = msg.data; break;
-
-    case 'return_pin':
-      opt.verifier = msg.data;
-      request.post(
-        {url:'https://api.twitter.com/oauth/access_token', 'oauth': opt},
-        function (e, r, body) {
-          if(e) { throw JSON.stringify(error); }
-
-          var result = qs.parse(body);
-          opt.token = result.oauth_token;
-          opt.token_secret = result.oauth_token_secret;
-          delete opt.verifier;
-
-          process.send({ type: 'signed_in', data: result });
-        });
-      break;
 
     default:
       throw 'unknown message type: ' + msg.type;

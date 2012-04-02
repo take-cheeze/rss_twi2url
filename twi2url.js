@@ -6,7 +6,7 @@ var fork = require('child_process').fork;
 var URL = require('url');
 
 var config = require(__dirname + '/config.js');
-
+config.port = process.env.PORT || config.port;
 config.DB_FILE = process.cwd() + '/rss_twi2url.db';
 var JSON_FILE = process.cwd() + '/rss_twi2url.json';
 
@@ -43,8 +43,6 @@ function is_queued(url) {
            if(v.url === url) { result = true; } });
   return result;
 }
-
-config.port = process.env.PORT || config.port;
 
 function start() {
   require('http').createServer(
@@ -137,15 +135,6 @@ twitter_api.on(
       break;
     case 'error':
       console.error(msg.data);
-      break;
-
-    case 'request_pin':
-      var i = require('readline').createInterface(process.stdin, process.stdout, null);
-      i.question(
-        'Enter pin number: ', function(pin) {
-          i.close();
-          twitter_api.send({ type: 'return_pin', data: pin });
-        });
       break;
 
     case 'set_since_id':
