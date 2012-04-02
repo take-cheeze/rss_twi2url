@@ -7,7 +7,7 @@ var URL = require('url');
 
 var config = require(__dirname + '/config.js');
 config.port = process.env.PORT || config.port;
-console.log(JSON.stringify(process.env));
+config.hostname = process.env.HOST || config.hostname;
 config.DB_FILE = process.cwd() + '/rss_twi2url.db';
 var JSON_FILE = process.cwd() + '/rss_twi2url.json';
 
