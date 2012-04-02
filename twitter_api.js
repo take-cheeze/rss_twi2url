@@ -13,7 +13,7 @@ var qs = require('querystring');
 var request = require('request');
 
 var config = {}, consumer = {};
-try { consumer = require('./consumer'); } catch() {}
+try { consumer = require('./consumer'); } catch(e) {}
 
 consumer.CONSUMER_KEY = process.env.TWITTER_CONSUMER_KEY || consumer.CONSUMER_KEY;
 consumer.CONSUMER_SECRET = process.env.TWITTER_CONSUMER_SECRET || consumer.CONSUMER_SECRET;

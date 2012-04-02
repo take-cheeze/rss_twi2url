@@ -8,7 +8,7 @@ console.error = function() {
 };
 
 var consumer = {};
-try { consumer = require('./consumer'); } catch() {}
+try { consumer = require('./consumer'); } catch(e) {}
 consumer.USTREAM_KEY = process.env.USTREAM_KEY;
 var fs = require('fs');
 var request = require('request');
