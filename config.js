@@ -1,15 +1,15 @@
 module.exports = {
   title: "twi2url",
   description: "twitter 2 url",
-  hostname: "takecheeze.orz.hm",
-  port: 8090,
+  hostname: "fierce-stone-6919.herokuapp.com",
+  port: 80,
   pathname: "",
   author: "Takeshi Watanabe",
 
   feed_item_max: 300,
 
   fetch_frequency: 10 * 60 * 1000,
-  item_generation_frequency: 1000 * 2,
+  item_generation_frequency: 1000 * 3,
   backup_frequency: 1000 * 30,
   timeout: 1000 * 4,
 
