@@ -7,7 +7,8 @@ console.error = function() {
   process.send({ type: 'error', data: Array.prototype.slice.call(arguments).join(' ') });
 };
 
-var consumer = require('./consumer');
+var consumer = {};
+try { consumer = require('./consumer'); } catch() {}
 consumer.USTREAM_KEY = process.env.USTREAM_KEY;
 var fs = require('fs');
 var request = require('request');
