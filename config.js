@@ -9,7 +9,7 @@ module.exports = {
   feed_item_max: 300,
 
   fetch_frequency: 10 * 60 * 1000,
-  item_generation_frequency: 1000 * 3,
+  item_generation_frequency: 1000 * 2,
   backup_frequency: 1000 * 30,
   timeout: 1000 * 4,
 

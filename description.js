@@ -19,7 +19,7 @@ var Iconv = require('iconv').Iconv;
 var jsdom = require('jsdom');
 var document = jsdom.jsdom(), window = document.createWindow();
 DEFAULT_FEATURE = {
-  FetchExternalResources: ['frame', 'css'],
+  FetchExternalResources: false, // ['frame', 'css'],
   ProcessExternalResources: false,
   MutationEvents: false,
   QuerySelector: false
