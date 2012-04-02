@@ -44,6 +44,8 @@ function is_queued(url) {
   return result;
 }
 
+config.port = process.env.PORT || config.port;
+
 function start() {
   require('http').createServer(
     function(req, res) {
