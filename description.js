@@ -39,6 +39,7 @@ request.get({uri: 'http://code.jquery.com/jquery-latest.min.js'},
             });
 
 var config = null;
+var retry_count = {};
 
 var iconv_cache = {
   'utf8': true, 'utf-8': true,
@@ -65,7 +66,13 @@ function get_description(url, callback) {
     return $('<div />').append(ret).html();
   }
 
-  function retry() { get_description(url, callback); }
+  function retry() {
+    retry_count[url] = retry_count[url]? retry_count[url] + 1 : 1;
+    if(retry_count[url] > config.retry_max) {
+      console.log('retry count exceeded:', url);
+      callback(url, '', 'retry count exceeded');
+    } else { get_description(url, callback); }
+  }
   function error_callback(err) { callback(url, '', err); }
   function jquery_error_callback(jqXHR, textStatus, errorThrown) {
     if(/timed?out/i.test(textStatus)) { retry(); }
@@ -435,6 +442,7 @@ function get_description(url, callback) {
                'width="480" height="360" frameborder="0" />');
     },
 
+    /*
     '^https?://www.ustream.tv/recorded/\\d+': function() {
       var id = url.match(/^http:\/\/www.ustream.tv\/recorded\/(\d+)/)[1];
       $.ajax(
@@ -457,6 +465,7 @@ function get_description(url, callback) {
             callback(url, '', data.results);
           });
     },
+     */
 
     '^https?://layercloud.net/items/detail_top/\\d+/?$': function() {
       var id = url.match(/^http:\/\/layercloud.net\/items\/detail_top\/(\d+)\/?$/)[1];
@@ -520,7 +529,7 @@ function get_description(url, callback) {
   else {
     if((function() {
          var result = true;
-         $.each(GALLERY_FILTER, function(k, v) {
+          $.each(GALLERY_FILTER, function(k, v) {
                   if((new RegExp(k, 'i')).test(url)) {
                     v();
                     result = false;
@@ -560,6 +569,7 @@ process.on(
 
     switch(msg.type) {
     case 'get_description':
+      retry_count[msg.data.url] = 0;
       get_description(
         msg.data.url, function(url, title, description) {
           process.send({type: 'got_description', data: [msg.data, url, title, description]});

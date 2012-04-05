@@ -5,6 +5,8 @@ var $ = require('jquery');
 var fork = require('child_process').fork;
 var URL = require('url');
 
+var last_item_generation = Date.now();
+
 var config = require(__dirname + '/config.js');
 config.port = process.env.PORT || config.port;
 config.hostname = process.env.HOST || config.hostname;
@@ -18,7 +20,14 @@ var rss_twi2url = require('path').existsSync(JSON_FILE)
 function backup() {
   fs.writeFileSync(JSON_FILE, JSON.stringify(rss_twi2url));
 }
-process.on('exit', function() { backup(); });
+process.on(
+  'exit', function() {
+    // reduce feed size
+    while(rss_twi2url.last_urls.length > config.feed_item_max) {
+      rss_twi2url.last_urls.shift(); }
+
+    backup();
+  });
 
 var twitter_api = fork(__dirname + '/twitter_api.js', [], { env: process.env });
 var database = fork(__dirname + '/database.js', [], { env: process.env });
@@ -45,20 +54,43 @@ function is_queued(url) {
   return result;
 }
 
+function generate_item() {
+  function match_exclude_filter(str) {
+    var result = false;
+    $.each(config.exclude_filter, function(k, v) {
+             if((new RegExp(v)).test(str)) { result = true; } });
+    return result;
+  }
+  while(rss_twi2url.queued_urls.length > 0) {
+    var d = rss_twi2url.queued_urls.shift();
+    if(! match_exclude_filter(d.url) &&
+       ! in_last_urls(d.url) &&
+       ! is_queued(d.url))
+    {
+      console.log('start:', d.url);
+      setTimeout(database.send, config.item_generation_frequency,
+                 { type: 'generate_item', data: d });
+      last_item_generation = Date.now();
+      return;
+    }
+  }
+}
+
 function start() {
   require('http').createServer(
     function(req, res) {
       res.writeHead(200, {'Content-Type': 'application/rss+xml'});
 
-      // reduce feed size
-      while(rss_twi2url.last_urls.length > config.feed_item_max) {
-        rss_twi2url.last_urls.shift(); }
+      var ary = rss_twi2url.last_urls.length > config.feed_item_max
+        ? rss_twi2url.last_urls.slice(rss_twi2url.last_urls.length - config.feed_item_max)
+        : rss_twi2url.last_urls
+      ;
 
       console.log('RSS requested:',
                   'queued_urls.length:', rss_twi2url.queued_urls.length,
                   'last_urls.length:', rss_twi2url.last_urls.length);
 
-      database.send({ type: 'get_feed', data: rss_twi2url.last_urls });
+      database.send({ type: 'get_feed', data: ary });
       function feed_handle(msg) {
         var d = JSON.stringify(msg);
         if(msg.type === 'feed') { res.end(msg.data); }
@@ -73,22 +105,17 @@ function start() {
   console.log('As user: ' + rss_twi2url.screen_name + ' (' + rss_twi2url.user_id + ')');
 
   backup();
+  for(var i = 0; i < config.executer; i++) { generate_item(); }
 
   twitter_api.send({ type: 'fetch', data: rss_twi2url });
 
   setInterval(backup, config.backup_frequency);
-  setInterval(
-    function() {
-      while(rss_twi2url.queued_urls.length > 0) {
-        var d = rss_twi2url.queued_urls.shift();
-        if(! in_last_urls(d.url) && ! is_queued(d.url)) {
-          database.send({ type: 'generate_item', data: d });
-          return;
-        }
-      }
-    }, config.item_generation_frequency);
   setInterval(twitter_api.send, config.fetch_frequency,
               { type: 'fetch', data: rss_twi2url });
+  setInterval(function() {
+                if(Date.now() - last_item_generation > config.check_frequency) {
+                  generate_item(); }
+              }, config.check_frequency);
 }
 
 database.on(
@@ -104,6 +131,9 @@ database.on(
     case 'item_generated':
       if(!in_last_urls(msg.data))
       { rss_twi2url.last_urls.push(msg.data); }
+      console.log('end  :', msg.data);
+
+      generate_item();
       break;
 
     case 'feed': // ignore this message

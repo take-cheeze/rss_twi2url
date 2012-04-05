@@ -214,7 +214,8 @@ function signin(setting) {
 
         console.log('Visit: https://twitter.com/oauth/authorize?oauth_token=' + opt.token);
 
-        var server = require('http').createServer(
+        var server = null;
+        server = require('http').createServer(
           function(req, res) {
             opt.verifier = qs.parse(req.url).oauth_verifier;
             request.post(

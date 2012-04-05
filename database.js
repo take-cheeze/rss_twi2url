@@ -43,7 +43,6 @@ function generate_feed(items) {
     });
 }
 
-var description = null;
 function create_child() {
   var ret = require('child_process')
     .fork(__dirname + '/description.js', [], { env: process.env });
@@ -51,9 +50,7 @@ function create_child() {
 
   ret.on(
     'exit', function(code, signal) {
-      if(code && signal) { console.error('signal from description.js:', signal); }
-
-      description = create_child();
+      process.exit(code, signal);
     });
 
   ret.on(
@@ -112,17 +109,12 @@ function create_child() {
 
   return ret;
 }
-description = create_child();
+
+var executer = [], next_executer = 0;
 
 function generate_item(v) {
-  if((function(str) {
-        var result = false;
-        $.each(config.exclude_filter, function(k, v) {
-          if((new RegExp(v)).test(str)) { result = true; } });
-        return result;
-      }(v.url))) { return; }
-
-  description.send({ type: 'get_description', data: v });
+  executer[next_executer++].send({ type: 'get_description', data: v });
+  if(next_executer >= config.executer) { next_executer = 0; }
 }
 
 process.on(
@@ -145,7 +137,12 @@ process.on(
         config.DB_FILE, { create_if_missing: true }, function(err) {
           if(err) { throw err; }
         });
-      description.send({ type: 'config', data: config });
+      executer[config.executer - 1] = undefined;
+      $.each(executer, function(k, v) {
+               executer[k] = create_child();
+             });
+      $.each(executer, function(k, v) {
+               v.send({ type: 'config', data: config }); });
       break;
 
     default:
