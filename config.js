@@ -11,7 +11,7 @@ module.exports = {
   executer: 4,
 
   fetch_frequency: 10 * 60 * 1000,
-  item_generation_frequency: 1000 * 0.5,
+  item_generation_frequency: 1000 * 2,
   backup_frequency: 1000 * 30,
   timeout: 1000 * 5,
   check_frequency: 1000 * 30,
@@ -23,6 +23,7 @@ module.exports = {
   ].join(),
 
   exclude_filter: [
+    '://t.co/',
     'http://shindanmaker.com/',
     'news',
     'foursquare.com/',
@@ -33,6 +34,7 @@ module.exports = {
      */
     'paper.li/',
     'wikipedia.org',
+    'http://homepage1.nifty.com/herumi/diary/',
     '/stream.ogg',
   ],
 };

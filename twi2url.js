@@ -16,16 +16,15 @@ var JSON_FILE = process.cwd() + '/rss_twi2url.json';
 var rss_twi2url = require('path').existsSync(JSON_FILE)
   ? JSON.parse(fs.readFileSync(JSON_FILE))
   : { last_urls: [], queued_urls: [], since: {} };
+// reduce feed size
+while(rss_twi2url.last_urls.length > config.feed_item_max) {
+  rss_twi2url.last_urls.shift(); }
 
 function backup() {
   fs.writeFileSync(JSON_FILE, JSON.stringify(rss_twi2url));
 }
 process.on(
   'exit', function() {
-    // reduce feed size
-    while(rss_twi2url.last_urls.length > config.feed_item_max) {
-      rss_twi2url.last_urls.shift(); }
-
     backup();
   });
 
@@ -67,7 +66,7 @@ function generate_item() {
        ! in_last_urls(d.url) &&
        ! is_queued(d.url))
     {
-      console.log('start:', d.url);
+      // console.log('start:', d.url);
       setTimeout(database.send, config.item_generation_frequency,
                  { type: 'generate_item', data: d });
       last_item_generation = Date.now();
@@ -105,7 +104,8 @@ function start() {
   console.log('As user: ' + rss_twi2url.screen_name + ' (' + rss_twi2url.user_id + ')');
 
   backup();
-  for(var i = 0; i < config.executer; i++) { generate_item(); }
+  var i = 0;
+  for(; i < config.executer; i++) { generate_item(); }
 
   twitter_api.send({ type: 'fetch', data: rss_twi2url });
 
@@ -114,7 +114,8 @@ function start() {
               { type: 'fetch', data: rss_twi2url });
   setInterval(function() {
                 if(Date.now() - last_item_generation > config.check_frequency) {
-                  generate_item(); }
+                  generate_item();
+                }
               }, config.check_frequency);
 }
 
@@ -131,7 +132,7 @@ database.on(
     case 'item_generated':
       if(!in_last_urls(msg.data))
       { rss_twi2url.last_urls.push(msg.data); }
-      console.log('end  :', msg.data);
+      // console.log('end  :', msg.data);
 
       generate_item();
       break;

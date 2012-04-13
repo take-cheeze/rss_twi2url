@@ -91,7 +91,8 @@ function get_description(url, callback) {
               data.thumbnail_url? image_tag(data.thumbnail_url, data.thumbnail_width, data.thumbnail_height) + '<br/>':
               '') +
              (data.type === 'rich'? data.html + '<br/>' :
-              data.type === 'photo'? image_tag(data.url, data.width, data.height) + '<br/>' :
+              data.type === 'photo' && data.url
+              ? image_tag(data.url, data.width, data.height) + '<br/>' :
               ''));
   }
   function oembed(req_url, oembed_callback) {
@@ -215,6 +216,10 @@ function get_description(url, callback) {
 
             var document = window.document;
 
+            Array.prototype.forEach.call(
+              document.getElementsByTagName('script'),
+              function(elm) { elm.parentNode.removeChild(elm); });
+
             try { eval(jquery_src); }
             catch(e) { console.error('jQuery error:', e); }
 
@@ -224,7 +229,6 @@ function get_description(url, callback) {
             }
             var $ = window.jQuery;
 
-            $('script').empty();
             $('a').each(
               function(idx,elm) {
                 $(elm).attr('href', URL.resolve(target_url, $(elm).attr('href')));
@@ -336,7 +340,7 @@ function get_description(url, callback) {
     },
 
     '^https?://ideone.com/\\w+/?$': function() {
-      run_jquery(function($) { callback(url, '', $('#source').html()); }); },
+      run_jquery(function($) { callback(url, 'ideone.com', $('#source').html()); }); },
 
     '^https?://tmbox.net/pl/\\d+/?$': function() {
       run_jquery(function($) {
@@ -366,6 +370,16 @@ function get_description(url, callback) {
              $.param({ 'id': url.match(/\/status\/(\d+)/)[1],
                        hide_media: false, hide_thread: false,
                        omit_script: false, align: 'left' })); },
+    '^https?://twitter.com/.+/status/\\d+/photo': function() {
+      run_jquery(function($) {
+                   callback(
+                     url, $('.status').text(), $('.photos').html()
+                       .replace(':small', ':large').replace(':thumb', ':large'));
+                 },
+                 url
+                 .replace('/twitter.com/', '/mobile.twitter.com/')
+                 .replace('/#!/', '/')
+                ); },
 
     '^https?://.+\\.deviantart.com/art/.+$': function() {
       oembed('http://backend.deviantart.com/oembed?' + $.param({ 'url': url })); },
@@ -377,7 +391,7 @@ function get_description(url, callback) {
       run_jquery(function($) {
                    callback(
                      $('meta[property="og:url"]').attr('content'),
-                     $('.caption').text(), open_graph_body($));
+                     $('.caption').text() || 'Instagram', open_graph_body($));
                  }); },
     '^https?://movapic.com/pic/\\w+$': function() {
       callback(
@@ -385,7 +399,7 @@ function get_description(url, callback) {
           url.replace(
               /http:\/\/movapic.com\/pic\/(\w+)/,
             'http://image.movapic.com/pic/m_$1.jpeg'))); },
-    '^https?://gyazo.com/\\w+$': function() { callback(url, '', image_tag(url + '.png')); },
+    '^https?://gyazo.com/\\w+$': function() { callback(url, 'gyazo.com', image_tag(url + '.png')); },
     '^https?://\\w+.tuna.be/\\d+.html$': function() {
       run_jquery(function($) {
                    callback(url, $('title').text(),
@@ -393,10 +407,12 @@ function get_description(url, callback) {
                  });
     },
     '^https?://ow.ly/i/\\w+': function() {
-      var id = url.match(/^http:\/\/ow.ly\/i\/(\w+)/)[1];
-      callback(
-        'http://ow.ly/i/' + id + '/original', '',
-        image_tag('http://static.ow.ly/photos/normal/' + id + '.jpg'));
+      run_jquery(function($) {
+                   var id = url.match(/^http:\/\/ow.ly\/i\/(\w+)/)[1];
+                   callback(
+                     'http://ow.ly/i/' + id + '/original', $('title').text(),
+                     image_tag('http://static.ow.ly/photos/original/' + id + '.jpg'));
+                 });
     },
 
     '^https?://www.nicovideo.jp/watch/\\w+': function() {
@@ -441,31 +457,6 @@ function get_description(url, callback) {
                $.param({guid: id, autoplay: 1}) + '" ' +
                'width="480" height="360" frameborder="0" />');
     },
-
-    /*
-    '^https?://www.ustream.tv/recorded/\\d+': function() {
-      var id = url.match(/^http:\/\/www.ustream.tv\/recorded\/(\d+)/)[1];
-      $.ajax(
-        { 'url': 'http://api.ustream.tv/json/video/' + id + '/getCustomEmbedTag?' +
-          $.param({key: consumer.USTREAM_KEY, params: 'autoplay:true'}),
-          timeout: config.timeout, dataType: 'json' })
-        .fail(jquery_error_callback).done(
-          function(data) {
-            callback(url, '', data.results);
-          });
-    },
-    '^https?://www.ustream.tv/channel/.+#?': function() {
-      var id = url.match(/^http:\/\/www.ustream.tv\/channel\/(.+)#?/)[1];
-      $.ajax(
-        { 'url': 'http://api.ustream.tv/json/channel/' + id + '/getCustomEmbedTag?' +
-          $.param({key: consumer.USTREAM_KEY, params: 'autoplay:true'}),
-          timeout: config.timeout, dataType: 'json' })
-        .fail(jquery_error_callback).done(
-          function(data) {
-            callback(url, '', data.results);
-          });
-    },
-     */
 
     '^https?://layercloud.net/items/detail_top/\\d+/?$': function() {
       var id = url.match(/^http:\/\/layercloud.net\/items\/detail_top\/(\d+)\/?$/)[1];
@@ -549,7 +540,14 @@ function get_description(url, callback) {
           }
 
           var body = open_graph_body($);
-          body += run_selectors($, ['article', '.entry_body', '.entry_text', '.entry-content', '.entry']);
+          body += run_selectors($, ['article',
+                                    '.entry_text', '.entry-text',
+                                    '.entry_body', '.entry-body',
+                                    '.ently_text', '.ently-text',
+                                    '.ently_body', '.ently-body',
+                                     '.entry-content', '.entry', '.body',
+                                    '#content', '.content', '.caption'
+                                   ]);
           body += unescapeHTML(
             $('meta[property="og:description"]').attr('content')
               || $('meta[name="description"]').attr('content')
@@ -569,9 +567,10 @@ process.on(
 
     switch(msg.type) {
     case 'get_description':
-      retry_count[msg.data.url] = 0;
+      if(retry_count.hasOwnProperty(msg.data.url)) { retry_count[msg.data.url] = 0; }
       get_description(
         msg.data.url, function(url, title, description) {
+          title = title.replace(/@(\w)/, '@ $1');
           process.send({type: 'got_description', data: [msg.data, url, title, description]});
         });
       break;
