@@ -44,7 +44,9 @@ var retry_count = {};
 var iconv_cache = {
   'utf8': true, 'utf-8': true,
   'x-sjis': new Iconv('shift_jis', DEFAULT_ENCODING + '//TRANSLIT//IGNORE'),
-  'x-euc-jp': new Iconv('euc-jp', DEFAULT_ENCODING + '//TRANSLIT//IGNORE') };
+  'x-euc-jp': new Iconv('euc-jp', DEFAULT_ENCODING + '//TRANSLIT//IGNORE'),
+  'windows-31j': new Iconv('shift_jis', DEFAULT_ENCODING + '//TRANSLIT//IGNORE'),
+};
 
 function unescapeHTML(str) {
   return $('<div />').html(str).text();
@@ -84,7 +86,7 @@ function get_description(url, callback) {
   }
 
   function oembed_default_callback(data) {
-    callback(url, data.title || url,
+    callback(url, data.title || 'oEmbed',
              (data.description? data.description + '<br/>' : '') +
              (data.image? image_tag(data.image, data.width, data.height) + '<br/>' :
               data.thumbnail? image_tag(data.thumbnail, data.thumbnail_width, data.thumbnail_height) + '<br/>':
@@ -163,7 +165,10 @@ function get_description(url, callback) {
           return;
         }
 
-        if(!data || !data.toString) { callback(url, '', 'invalid data'); }
+        if(!data || !data.toString) {
+          callback(url, '', 'invalid data');
+          return;
+        }
 
         var cont_type = res.headers['content-type'];
 
@@ -256,9 +261,9 @@ function get_description(url, callback) {
       var id = url.match(/^http:\/\/photozou.jp\/photo\/\w+\/(\d+)\/(\d+)/)[2];
       run_jquery(function($) {
                    callback(
-                     url.replace('show', 'photo_only'),
+                     url, // url.replace('show', 'photo_only'),
                      $('#media_description').text() || $('title').text(),
-                     $('#indivi_media').html());
+                     $('#indivi_media').html()); // .replace(/\.v(\d+)/, '_org.v$1'));
                  });
     },
 
@@ -270,7 +275,8 @@ function get_description(url, callback) {
         .fail(jquery_error_callback).done(
           function(data) {
             callback(
-              'http://twitpic.com/' + id + '/full', data.message || 'Twitpic Content',
+              url, // 'http://twitpic.com/' + id + '/full',
+              data.message || 'Twitpic Content',
               image_tag('http://twitpic.com/show/full/' + id, data.width, data.height)
             );
           });
@@ -282,26 +288,10 @@ function get_description(url, callback) {
           var id = url.match(/^http:\/\/p.twipple.jp\/(\w+)\/?$/)[1];
           callback(
             url, unescapeHTML($('meta[property="og:description"]').attr('content')) ||
-              $('meta[property="og:title"]').attr('content') || $('title').text(),
+              $('meta[property="og:title"]').attr('content') || $('title').text() || 'Twipple Photo',
             image_tag('http://p.twpl.jp/show/orig/' + id));
         });
     },
-
-    '^https?://ameblo.jp/[\\w\\-]+/entry-\\d+\\.html': function() {
-      run_jquery(['.articleText', '.subContents']); },
-    '^https?://blog.goo.ne.jp/[\\w_-]+/e/\\w+$': function() {
-      run_jquery(function($) {
-                   callback(url, $('title').text(), $('.entry-body').html()); }); },
-    '^https?://blog.livedoor.jp/[\\w\\-]+/archives/\\d+.html': function() {
-      run_jquery(function($) {
-                   var main = '';
-                   $('.main').each(function(k,v) { main += $(v).html(); });
-                   $('.mainmore').each(function(k,v) { main += $(v).html(); });
-                   callback(url, $('meta[property="og:title"]').text() || $('title').text(),
-                            main + $('#main').html() || ''); }); },
-    '^https?://\\w+.exblog.jp/\\d+/?$': function() {
-      run_jquery(function($) {
-                   callback(url, $('title').text(), $('.POST_BODY').html()); }); },
 
     '^https?://.+.tumblr.com/post/.+': function() {
       run_jquery(['.post', '.post_content', 'article', '#content']); },
@@ -355,9 +345,11 @@ function get_description(url, callback) {
     '^https?://vimeo.com/\\d+$': function() {
       oembed('http://vimeo.com/api/oembed.json?' +
              $.param({ 'url': url, autoplay: true, iframe: true})); },
-    '^https?://soundcloud.com/.+/.+$': function() {
-      oembed('http://soundcloud.com/oembed?' +
-             $.param({ 'url': url, format: 'json', auto_play: true})); },
+    /*
+     '^https?://soundcloud.com/.+/.+$': function() {
+     oembed('http://soundcloud.com/oembed?' +
+     $.param({ 'url': url, format: 'json', auto_play: true})); },
+     */
     '^https?://\\w+.wordpress.com/.+$': function() {
       oembed('http://public-api.wordpress.com/oembed/1.0/?' +
              $.param({for: 'twi2url', format: 'json', 'url': url})); },
@@ -366,20 +358,20 @@ function get_description(url, callback) {
              $.param({ 'url': url, format: 'json'})); },
 
     '^https?://twitter.com/.+/status/\\d+': function() {
-      oembed('https://api.twitter.com/1/statuses/oembed.json?' +
-             $.param({ 'id': url.match(/\/status\/(\d+)/)[1],
-                       hide_media: false, hide_thread: false,
-                       omit_script: false, align: 'left' })); },
-    '^https?://twitter.com/.+/status/\\d+/photo': function() {
-      run_jquery(function($) {
-                   callback(
-                     url, $('.status').text(), $('.photos').html()
-                       .replace(':small', ':large').replace(':thumb', ':large'));
-                 },
-                 url
-                 .replace('/twitter.com/', '/mobile.twitter.com/')
-                 .replace('/#!/', '/')
-                ); },
+      if(/\/photo/.test(url)) {
+        run_jquery(function($) {
+                     callback(
+                       url, $('.status').text(), $('.photos').html()
+                         .replace(':small', '').replace(':thumb', ''));
+                   },
+                   url.replace('/twitter.com/', '/mobile.twitter.com/'));
+      } else {
+        oembed('https://api.twitter.com/1/statuses/oembed.json?' +
+               $.param({ 'id': url.match(/\/status\/(\d+)/)[1],
+                         hide_media: false, hide_thread: false,
+                         omit_script: false, align: 'left' }));
+      }
+    },
 
     '^https?://.+\\.deviantart.com/art/.+$': function() {
       oembed('http://backend.deviantart.com/oembed?' + $.param({ 'url': url })); },
@@ -387,7 +379,7 @@ function get_description(url, callback) {
       oembed('http://www.flickr.com/services/oembed?' + $.param({ 'url': url, format: 'json' })); },
     '^https?://www.docodemo.jp/twil/view/': function() {
       oembed('http://www.docodemo.jp/twil/oembed.json?' + $.param({ 'url': url })); },
-    '^https?://instagr.am/p/[\\-\\w]+/?$': function() {
+    '^https?://instagr.am/p/[\\-\\w_]+/?$': function() {
       run_jquery(function($) {
                    callback(
                      $('meta[property="og:url"]').attr('content'),
@@ -395,7 +387,7 @@ function get_description(url, callback) {
                  }); },
     '^https?://movapic.com/pic/\\w+$': function() {
       callback(
-        url, '', image_tag(
+        url, 'movapic.com', image_tag(
           url.replace(
               /http:\/\/movapic.com\/pic\/(\w+)/,
             'http://image.movapic.com/pic/m_$1.jpeg'))); },
@@ -404,42 +396,36 @@ function get_description(url, callback) {
       run_jquery(function($) {
                    callback(url, $('title').text(),
                             $('.blog-message').html() || $('.photo').html());
-                 });
-    },
+                 }); },
     '^https?://ow.ly/i/\\w+': function() {
       run_jquery(function($) {
                    var id = url.match(/^http:\/\/ow.ly\/i\/(\w+)/)[1];
                    callback(
                      'http://ow.ly/i/' + id + '/original', $('title').text(),
                      image_tag('http://static.ow.ly/photos/original/' + id + '.jpg'));
-                 });
-    },
+                 }); },
 
     '^https?://www.nicovideo.jp/watch/\\w+': function() {
       run_jquery(function($) {
                    callback(url, $('title').text(), $('body').html());
                  },
                  'http://ext.nicovideo.jp/thumb/'
-                 + url.match(/^http:\/\/www.nicovideo.jp\/watch\/(\w+)/)[1]);
-    },
+                 + url.match(/^http:\/\/www.nicovideo.jp\/watch\/(\w+)/)[1]); },
 
     '^https?://lockerz.com/s/\\d+$': function() {
       run_jquery(function($) {
                    callback(url, $($('p').get(1)).text(), image_tag($('#photo').attr('src')));
-                 });
-    },
+                 }); },
 
     '^https?://kokuru.com/\\w+/?$': function() {
       run_jquery(function($) {
                    callback(url, $('h1').text(), image_tag($('#kokuhaku_image_top').attr('src')));
-                 });
-    },
+                 }); },
 
     '^https?://twitvideo.jp/\\w+/?$': function() {
       run_jquery(function($) {
                    callback(url, $('.sf_comment').text(), unescapeHTML($('#vtSource').attr('value')));
-                 });
-    },
+                 }); },
 
     '^https?://twitcasting.tv/\\w+/?$': function() {
       var id = url.match(/^http:\/\/twitcasting.tv\/(\w+)\/?$/)[1];
@@ -467,14 +453,21 @@ function get_description(url, callback) {
                  });
     },
 
+
+    '^https?://ameblo.jp/[\\w\\-_]+/entry-\\d+.html': function() {
+      run_jquery(
+        function($) {
+          callback(url, $('title').text(),
+                   run_selectors($, ['.articleText', '.subContents'])); });
+    },
+
     '^https?://www.drawlr.com/d/\\w+/view/?$': function() {
       $.ajax(
         { timeout: config.timeout, 'url': url, dataType: 'html' })
         .fail(jquery_error_callback).done(
           function(data) {
             callback(url, '', data.match(/var embed_code = '(.+)';/)[1]);
-          });
-    }
+          }); },
   };
 
   if((function() {
@@ -540,14 +533,7 @@ function get_description(url, callback) {
           }
 
           var body = open_graph_body($);
-          body += run_selectors($, ['article',
-                                    '.entry_text', '.entry-text',
-                                    '.entry_body', '.entry-body',
-                                    '.ently_text', '.ently-text',
-                                    '.ently_body', '.ently-body',
-                                     '.entry-content', '.entry', '.body',
-                                    '#content', '.content', '.caption'
-                                   ]);
+          if(!body) { body += run_selectors($, config.selectors); }
           body += unescapeHTML(
             $('meta[property="og:description"]').attr('content')
               || $('meta[name="description"]').attr('content')
@@ -570,8 +556,11 @@ process.on(
       if(retry_count.hasOwnProperty(msg.data.url)) { retry_count[msg.data.url] = 0; }
       get_description(
         msg.data.url, function(url, title, description) {
-          title = title.replace(/@(\w)/, '@ $1');
-          process.send({type: 'got_description', data: [msg.data, url, title, description]});
+          delete retry_count[msg.data.url];
+          title = title.replace(/@(\w)/g, '@ $1');
+          process.send({type: 'got_description', data: [
+                          msg.data, require(__dirname + '/remove_utm_param')(url),
+                          title, description]});
         });
       break;
 

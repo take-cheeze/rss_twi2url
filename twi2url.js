@@ -114,7 +114,7 @@ function start() {
               { type: 'fetch', data: rss_twi2url });
   setInterval(function() {
                 if(Date.now() - last_item_generation > config.check_frequency) {
-                  generate_item();
+                  for(var i = 0; i < config.executer; ++i) { generate_item(); }
                 }
               }, config.check_frequency);
 }
@@ -145,19 +145,23 @@ database.on(
     }
   });
 
+function remove_utm_param(url) {
+  var url_obj = URL.parse(msg.data.url, true);
+  var removing_param = [];
+  $.each(url_obj.query, function(k, v) {
+           if(/utm_/i.test(k)) { removing_param.push(k); }
+         });
+  $.each(removing_param, function(idx, param) {
+           delete url_obj.query[param];
+         });
+  return URL.format(url_obj);
+}
+
 twitter_api.on(
   'message', function(msg) {
     switch(msg.type) {
     case 'fetched_url':
-      var url_obj = URL.parse(msg.data.url, true);
-      var removing_param = [];
-      $.each(url_obj.query, function(k, v) {
-               if(/utm_/i.test(k)) { removing_param.push(k); }
-             });
-      $.each(removing_param, function(idx, param) {
-               delete url_obj.query[param];
-             });
-      msg.data.url = URL.format(url_obj);
+      msg.data.url = require(__dirname + '/remove_utm_param')(msg.data.url);
       if(!is_queued(msg.data.url)) {
         rss_twi2url.queued_urls.push(msg.data); }
       break;

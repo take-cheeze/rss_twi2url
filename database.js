@@ -13,6 +13,7 @@ var jsdom = require('jsdom');
 var document = jsdom.jsdom(), window = document.createWindow();
 var config = {};
 var db = null;
+var retry_failure_count = [];
 
 function generate_feed(items) {
   var len = items.length, count = 0;
@@ -43,6 +44,21 @@ function generate_feed(items) {
     });
 }
 
+var executer = [], next_executer = 0;
+
+function executer_index(exe) {
+  var ret = -1;
+  $.each(executer, function(k, v) {
+           if(v === exe) {
+             ret = k;
+             return false;
+           }
+           return undefined;
+         });
+  if(ret === -1) { throw 'cannot find executer'; }
+  else { return ret; }
+}
+
 function create_child() {
   var ret = require('child_process')
     .fork(__dirname + '/description.js', [], { env: process.env });
@@ -50,7 +66,13 @@ function create_child() {
 
   ret.on(
     'exit', function(code, signal) {
-      process.exit(code, signal);
+      var idx = executer_index(ret);
+      if(executer[idx].restart) {
+        executer[idx] = create_child();
+        console.log('restarting executer:', idx);
+      } else {
+        process.exit(code, signal);
+      }
     });
 
   ret.on(
@@ -68,6 +90,15 @@ function create_child() {
       case 'got_description':
         var v = msg.data[0];
         (function(url, title, desc) {
+           if(/retry count exceeded/.test(desc)) {
+             var idx = executer_index(ret);
+             if(++retry_failure_count[idx] >= config.retry_failure_max) {
+               retry_failure_count[idx] = 0;
+               executer[idx].kill();
+               executer[idx].restart = true;
+             }
+           }
+
            if(!title) {
              console.error('Invalid title:', url);
              title = url;
@@ -79,17 +110,11 @@ function create_child() {
 
            var cleaned = $('<div />').html(desc);
 
-           $.each(
-             [ 'link', 'script', 'dl' ],
-             function(k,v) { cleaned.find(v).empty(); });
+           $.each(config.removing_tag, function(k,v) { cleaned.find(v).empty(); });
 
            $.each(
-             [ 'data-hatena-bookmark-layout',
-               'data-hatena-bookmark-title', 'data-lang', 'data-count',
-               'data-url', 'data-text', 'data-via' ],
-             function(k,v) {
-               cleaned.find('[' + v + ']').removeAttr(v);
-             });
+             config.removing_attribute, function(k,v) {
+               cleaned.find('[' + v + ']').removeAttr(v); });
 
            db.put(
              url, JSON.stringify(
@@ -110,9 +135,10 @@ function create_child() {
   return ret;
 }
 
-var executer = [], next_executer = 0;
-
 function generate_item(v) {
+  while(executer[next_executer].restart) {
+    if(++next_executer >= config.executer) { next_executer = 0; }
+  }
   executer[next_executer++].send({ type: 'get_description', data: v });
   if(next_executer >= config.executer) { next_executer = 0; }
 }
@@ -140,6 +166,7 @@ process.on(
       executer[config.executer - 1] = undefined;
       $.each(executer, function(k, v) {
                executer[k] = create_child();
+               retry_failure_count[k] = 0;
              });
       $.each(executer, function(k, v) {
                v.send({ type: 'config', data: config }); });

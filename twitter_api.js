@@ -69,8 +69,9 @@ function timeout_when_api_reset(callback) {
       } else {
         var wait_time = data.reset_time_in_seconds - Math.floor((new Date()).getTime() / 1000);
         setTimeout(
-          callback,
-          (wait_time + Math.ceil(Math.random() * 10)) * 1000);
+          timeout_when_api_reset,
+          (wait_time + Math.ceil(Math.random() * 10)) * 1000,
+          callback);
         twitter_api_left = false;
         setTimeout(function() { twitter_api_left = true; }, wait_time * 1000);
       }
@@ -152,7 +153,8 @@ function fetch_page(url, name, info) {
 
             if(info.since_id) {
               info.page++;
-              fetch_page(url, name, info);
+              timeout_when_api_reset(
+                function() { fetch_page(url, name, info); });
             }
           }
         });
