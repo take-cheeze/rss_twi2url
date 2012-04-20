@@ -6,15 +6,19 @@ module.exports = {
   pathname: "",
   author: "Takeshi Watanabe",
 
-  feed_item_max: 200,
+  feed_item_max: 100,
   retry_max: 2,
-  executer: 6,
+  executer: 2,
+  url_expander_number: 5,
 
-  fetch_frequency: 10 * 60 * 1000,
-  item_generation_frequency: 1000 * 1.0,
-  backup_frequency: 1000 * 30,
-  timeout: 1000 * 5,
-  check_frequency: 1000 * 30,
+  long_url_length: 40,
+  tweet_max: 200,
+
+  fetch_frequency: 1000 * 60 * 30,
+  item_generation_frequency: 1000 * 0.5,
+  backup_frequency: 1000 * 60,
+  timeout: 1000 * 2,
+  check_frequency: 1000 * 10,
   retry_failure_max: 3,
 
   user_agent: [
@@ -24,7 +28,7 @@ module.exports = {
   ].join(),
 
   selectors: [
-    'article', '.article',
+    'article', '.article', '.article-body',
     '.POST_BODY', // exblog
     '.articleText', '.subContents', // ameblo
     '#main', '.main', '.mainmore',
@@ -35,26 +39,44 @@ module.exports = {
     '.ently_text', '.ently-text',
     '.ently_body', '.ently-body',
     '.entry', '.body',
-    'pre',
+    '.Photo',
+    'table', 'pre', 'body',
   ],
+
   removing_tag: [
     'link', 'script', 'dl',
     '#comment', '.comment_area', '.comment', '#comments-list',
+    '.comments', '#comment-form',
     '.notes', '.note',
+    '#imageBox',
     '#more-from',
-    'articleImageListArea',
+    '#post-tabs', '.post-meta',
+    '.related-articles',
+    '.pagenav-outer',
   ],
+
   removing_attribute: [
+/*
     'data-hatena-bookmark-layout',
     'data-hatena-bookmark-title', 'data-lang', 'data-count',
     'data-url', 'data-text', 'data-via',
+ */
+  ],
+
+  url_expantion_exclude: [
+    'twitpic.com/',
+    'gist.github.com/',
+    'p.twipple.jp/',
+    'ideone.com/',
+    'instagr.am/p/',
+    'lockerz.com/',
   ],
 
   exclude_filter: [
     '/www.pixiv.net/member_illust.php',
     'auctions.yahoo.co.jp/',
     '://t.co/',
-    'http://shindanmaker.com/',
+    'shindanmaker.com/',
     'news',
     'foursquare.com/',
     '/tou.ch/',
@@ -65,5 +87,8 @@ module.exports = {
     'wikipedia.org',
     'http://homepage1.nifty.com/herumi/diary/',
     '/stream.ogg',
+    'gohantabeyo.com/',
+    'http://4gamer.net/',
+    'http://bit.ly/',
   ],
 };

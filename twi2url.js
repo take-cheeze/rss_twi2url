@@ -30,9 +30,11 @@ process.on(
 
 var twitter_api = fork(__dirname + '/twitter_api.js', [], { env: process.env });
 var database = fork(__dirname + '/database.js', [], { env: process.env });
+var url_expander_queue_length = 0;
 
 function is_signed_in() {
-  var check = ['oauth_token', 'oauth_token_secret', 'user_id', 'screen_name'];
+  var check = ['oauth_token', 'oauth_token_secret',
+               'user_id', 'screen_name'];
   var result = true;
   $.each(check, function(k, v) {
            if(! rss_twi2url[v]) { result = false; }
@@ -86,8 +88,9 @@ function start() {
       ;
 
       console.log('RSS requested:',
-                  'queued_urls.length:', rss_twi2url.queued_urls.length,
-                  'last_urls.length:', rss_twi2url.last_urls.length);
+                  'queued_urls.length:', rss_twi2url.queued_urls.length, ',',
+                  'last_urls.length:', rss_twi2url.last_urls.length, ',',
+                  'url_expander_queue.length:', url_expander_queue_length);
 
       database.send({ type: 'get_feed', data: ary });
       function feed_handle(msg) {
@@ -164,6 +167,7 @@ twitter_api.on(
       msg.data.url = require(__dirname + '/remove_utm_param')(msg.data.url);
       if(!is_queued(msg.data.url)) {
         rss_twi2url.queued_urls.push(msg.data); }
+      url_expander_queue_length = msg.left;
       break;
 
     case 'log':

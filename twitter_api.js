@@ -8,6 +8,7 @@ console.error = function() {
 };
 
 var $ = require('jquery');
+var fs = require('fs');
 var jsdom = require('jsdom');
 var qs = require('querystring');
 var request = require('request');
@@ -16,6 +17,18 @@ var config = {}, consumer = {};
 try { consumer = require('./consumer'); } catch(e) {}
 consumer.CONSUMER_KEY = process.env.TWITTER_CONSUMER_KEY || consumer.CONSUMER_KEY;
 consumer.CONSUMER_SECRET = process.env.TWITTER_CONSUMER_SECRET || consumer.CONSUMER_SECRET;
+
+var QUEUE_FILENAME = process.cwd() + '/rss_twi2url_queue.json';
+var url_expander_queue = require('path').existsSync(QUEUE_FILENAME)
+  ? JSON.parse(fs.readFileSync(QUEUE_FILENAME)) : [];
+function backup() {
+  fs.writeFileSync(QUEUE_FILENAME, JSON.stringify(url_expander_queue));
+}
+process.on(
+  'exit', function() {
+    backup();
+  });
+setInterval(backup, config.backup_frequency);
 
 var twitter_api_left = true;
 
@@ -55,8 +68,6 @@ function get_json(url, callback) {
     });
 }
 
-var LONG_URL_LENGTH = 40, TWEET_MAX = 200;
-
 function timeout_when_api_reset(callback) {
   get_json(
     'https://api.twitter.com/1/account/rate_limit_status.json',
@@ -86,67 +97,12 @@ function fetch_page(url, name, info) {
     function() {
       get_json(
         url + '&' + $.param({page: info.page}), function(data) {
-          $.each(
-            data, function(idx, tweet) {
-              var author_str = tweet.user.name + ' ( @' + tweet.user.screen_name + ' ) / ' + name;
-              $.each(
-                tweet.entities.urls, function(k, v) {
-                  if(!v.expanded_url) { v.expanded_url = v.url; }
-
-                  if(v.expanded_url.length > LONG_URL_LENGTH) {
-                    process.send(
-                      { type: 'fetched_url',
-                        data:{ 'url': v.expanded_url,
-                               author: author_str,
-                               date: tweet.created_at } });
-                    return;
-                  }
-
-                  function longurl(e, res, data) {
-                    if(res !== undefined) {
-                      if(e) {
-                        console.error('Error at LongURL: ' + e);
-                        console.error('URL: ' + v.expanded_url);
-                      } else switch(res.statusCode) {
-                      case 400:
-                        process.send(
-                          { type: 'fetched_url',
-                            data: { 'url': v.expanded_url,
-                                    author: author_str,
-                                    date: tweet.created_at } });
-                        return;
-                      case 500: case 502: case 503: case 504: break;
-                      case 200:
-                        var result = JSON.parse(data);
-                        process.send(
-                          { type: 'fetched_url',
-                            data: { 'url': result['long-url'] || v.expanded_url,
-                                    author: author_str,
-                                    date: tweet.created_at } });
-                        return;
-                      default:
-                        console.error('Error at LongURL: ' + res.statusCode);
-                        console.error('URL: ' + v.expanded_url);
-                        return;
-                      }
-                    }
-
-                    request.get(
-                      { 'url': 'http://api.longurl.org/v2/expand?' +
-                        $.param({ 'url': v.expanded_url, 'all-redirects': 1,
-                                  format: 'json' }),
-                        encoding: 'utf8' },
-                      longurl);
-                  }
-                  longurl();
-                });
-            });
-
           if(data.length > 0) {
+            url_expander_queue = url_expander_queue.concat(data);
+
             if(info.page === 1) {
               process.send(
-                {
-                  type: 'set_since_id',
+                { type: 'set_since_id',
                   data: { 'name': name, since_id: data[0].id_str }
                 });
             }
@@ -169,7 +125,7 @@ function fetch(setting) {
       fetch_page(
         'https://api.twitter.com/1/statuses/home_timeline.json?' +
           $.param(
-            { count: TWEET_MAX, exclude_replies: false,
+            { count: config.tweet_max, exclude_replies: false,
               include_entities: true, include_rts: true
             }), 'home_timeline',
         { page: 1, since_id: setting.since.home_timeline });
@@ -189,7 +145,7 @@ function fetch(setting) {
                   $.param(
                     {
                       include_entities: true, include_rts: true,
-                      list_id: v.id_str, per_page: TWEET_MAX
+                      list_id: v.id_str, per_page: config.tweet_max
                     }), v.full_name,
                 { page: 1, since_id: setting.since[v.full_name] });
             });
@@ -257,3 +213,84 @@ process.on(
       throw 'unknown message type: ' + msg.type;
     }
   });
+
+function expantion_exclude(url) {
+  var ret = false;
+  $.each(config.url_expantion_exclude, function(k, v) {
+           if((new RegExp(v)).test(url)) {
+             ret = true;
+             return false;
+           }
+           return undefined;
+         });
+  return ret;
+}
+
+var expand_count = 0, expand_cache = {};
+setInterval(
+  function() {
+    if(expand_count >= config.url_expander_number) { return; }
+
+    var tweet = url_expander_queue.shift();
+    if(!tweet) { return; }
+
+    var author_str = tweet.user.name + ' ( @' + tweet.user.screen_name + ' )';
+    function send(result) {
+      process.send(
+        { type: 'fetched_url',
+          data:{ url: result, author: author_str,
+                 date: tweet.created_at, text: tweet.text },
+          left: url_expander_queue.length });
+      expand_count--;
+    }
+    $.each(
+      tweet.entities.urls, function(k, v) {
+        expand_count++;
+
+        v.expanded_url = v.expanded_url || v.url;
+        if(expand_cache.hasOwnProperty(v.expanded_url)) {
+          send(expand_cache[v.expanded_url]);
+          return;
+        }
+        if(
+          (v.expanded_url.length > config.long_url_length) ||
+          expantion_exclude(v.expanded_url)
+        ) {
+          send(v.expanded_url);
+          return;
+        }
+
+        function longurl(e, res, data) {
+          if(res !== undefined) {
+            if(e) {
+              console.error('Error at LongURL: ' + e);
+              console.error('URL: ' + v.expanded_url);
+            } else switch(res.statusCode) {
+            case 400:
+              expand_cache[v.expanded_url] = v.expanded_url;
+              send(v.expanded_url);
+              return;
+            case 500: case 502: case 503: case 504: break;
+            case 200:
+              var result = JSON.parse(data)['long-url'] || v.expanded_url;
+              expand_cache[v.expanded_url] = result;
+              send(result);
+              return;
+            default:
+              console.error('Error at LongURL: ' + res.statusCode);
+              console.error('URL: ' + v.expanded_url);
+              send(v.expanded_url);
+              return;
+            }
+            console.log(res);
+            console.log(data);
+          }
+
+          request.get(
+            { 'url': 'http://api.longurl.org/v2/expand?' +
+              $.param({ 'url': v.expanded_url, 'all-redirects': 1, format: 'json' }),
+              encoding: 'utf8', timeout: config.timeout }, longurl);
+        }
+        longurl();
+      });
+  }, config.item_generation_frequency);

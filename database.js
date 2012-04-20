@@ -105,21 +105,23 @@ function create_child() {
            }
            if(!desc) {
              console.error('Invalid description:', url);
-             desc = 'empty description';
            }
 
            var cleaned = $('<div />').html(desc);
 
-           $.each(config.removing_tag, function(k,v) { cleaned.find(v).empty(); });
+           $.each(config.removing_tag, function(k,v) {
+                    cleaned.find(v).each(
+                      function(k, elm) { elm.parentNode.removeChild(elm); }); });
+           $.each(config.removing_attribute, function(k,v) {
+                    cleaned.find('[' + v + ']').removeAttr(v); });
 
-           $.each(
-             config.removing_attribute, function(k,v) {
-               cleaned.find('[' + v + ']').removeAttr(v); });
-
+           if(!v.text) { throw 'invalid tweet text'; }
            db.put(
              url, JSON.stringify(
                {
-                 title: title, description: $('<div />').append(cleaned.clone()).html(),
+                 title: title,
+                 description: v.text + (desc? '<br /><br />' : '') +
+                   $('<div />').append(cleaned.clone()).html(),
                  'url': url, author: v.author, date: v.date
                }), {}, function(err) { if(err) { throw err; } });
 

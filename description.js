@@ -136,7 +136,7 @@ function get_description(url, callback) {
     var body = '';
     $.each(
       selectors, function(k, selector) {
-        if(!body) { $(selector).each(function(idx, elm) { body += $(elm).html(); }); }
+        if(!body) { $(selector).each(function(idx, elm) { body += $('<div />').append(elm).html(); }); }
       });
     return body;
   }
@@ -277,8 +277,9 @@ function get_description(url, callback) {
             callback(
               url, // 'http://twitpic.com/' + id + '/full',
               data.message || 'Twitpic Content',
-              image_tag('http://twitpic.com/show/full/' + id, data.width, data.height)
-            );
+              $('<div />').append(
+                $('<a />').attr('href', 'http://twitpic.com/' + id + '/full').append(
+                  image_tag('http://twitpic.com/show/full/' + id, data.width, data.height))).html());
           });
     },
 
@@ -361,7 +362,8 @@ function get_description(url, callback) {
       if(/\/photo/.test(url)) {
         run_jquery(function($) {
                      callback(
-                       url, $('.status').text(), $('.photos').html()
+                       url, $('.status').text() || 'Twitter Picture',
+                       ($('.photos').html() || '')
                          .replace(':small', '').replace(':thumb', ''));
                    },
                    url.replace('/twitter.com/', '/mobile.twitter.com/'));
@@ -457,7 +459,7 @@ function get_description(url, callback) {
     '^https?://ameblo.jp/[\\w\\-_]+/entry-\\d+.html': function() {
       run_jquery(
         function($) {
-          callback(url, $('title').text(),
+          callback(url, $('meta[property="og:title"]').attr('content') || $('title').text(),
                    run_selectors($, ['.articleText', '.subContents'])); });
     },
 
@@ -473,7 +475,11 @@ function get_description(url, callback) {
   if((function() {
        var result = false;
        $.each(['png', 'jpg', 'jpeg', 'gif'], function(k, v) {
-                if((new RegExp('^.+\\.' + v + '$', 'i')).test(url)) { result = true; }
+                if((new RegExp('^.+\\.' + v + '$', 'i')).test(url)) {
+                  result = true;
+                  return false;
+                }
+                return undefined;
               });
        return result;
      }())) { callback(url, url.match(/\/([^\/]+)$/)[1], image_tag(url)); }
@@ -482,7 +488,12 @@ function get_description(url, callback) {
             var result = false;
             $.each([ 'docx?', 'xlsx?', 'pptx?', 'pages', 'ttf', 'psd', 'ai', 'tiff', 'dxf', 'svg', 'xps', 'pdf'],
                    function(k, v) {
-                     if((new RegExp('^.+\\.' + v + '$', 'i')).test(url)) { result = true; } });
+                     if((new RegExp('^.+\\.' + v + '$', 'i')).test(url)) {
+                       result = true;
+                       return false;
+                     }
+                     return undefined;
+                   });
             return result;
           }()))
   {
@@ -501,7 +512,13 @@ function get_description(url, callback) {
                        /^https?:\/\/d.hatena.ne.jp\/[\w\-_]+\/[\w\-_]+/,
                        /^https?:\/\/[\w\-_]+.g.hatena.ne.jp\/[\w\-_]+\/[\w\-_]+/,
                        /^https?:\/\/anond.hatelabo.jp\/\d+/
-                   ], function(k, v) { if(v.test(url)) { result = true; } });
+                   ], function(k, v) {
+                     if(v.test(url)) {
+                       result = true;
+                       return false;
+                     }
+                     return undefined;
+                   });
             return result;
           }()))
   {
