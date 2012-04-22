@@ -117,7 +117,8 @@ function start() {
               { type: 'fetch', data: rss_twi2url });
   setInterval(function() {
                 if(Date.now() - last_item_generation > config.check_frequency) {
-                  for(var i = 0; i < config.executer; ++i) { generate_item(); }
+                  var i;
+                  for(i = 0; i < config.executer; ++i) { generate_item(); }
                 }
               }, config.check_frequency);
 }
@@ -172,13 +173,16 @@ twitter_api.on(
 
     case 'log':
       console.log(msg.data);
+      url_expander_queue_length = msg.left;
       break;
     case 'error':
       console.error(msg.data);
+      url_expander_queue_length = msg.left;
       break;
 
     case 'set_since_id':
       rss_twi2url[msg.data.name] = msg.data.since_id;
+      url_expander_queue_length = msg.left;
       break;
 
     case 'signed_in':
@@ -195,15 +199,28 @@ twitter_api.on(
     }
   });
 
-$.each(
-  [twitter_api, database], function(K,v) {
-    v.on('exit', function(code, signal) {
-           if(code) {
-             if(signal) { console.error('with signal:', signal); }
-             process.exit(code, signal);
-           }
-         });
-    v.send({ type: 'config', data: config });
-  });
 
-twitter_api.send({ type: 'signin', data: is_signed_in()? rss_twi2url : null });
+require('request')
+  .get({uri: 'http://code.jquery.com/jquery-latest.min.js'},
+       function(e, r, body) {
+         if(e) { throw e; }
+         config.jquery_src = body;
+       });
+
+setTimeout(
+  function() {
+    if(!config.jquery_src) { throw 'jQuery not loaded'; }
+
+    $.each(
+      [twitter_api, database], function(K,v) {
+        v.on('exit', function(code, signal) {
+               if(code) {
+                 if(signal) { console.error('with signal:', signal); }
+                 process.exit(code, signal);
+               }
+             });
+        v.send({ type: 'config', data: config });
+      });
+
+    twitter_api.send({ type: 'signin', data: is_signed_in()? rss_twi2url : null });
+  }, config.check_frequency);

@@ -101,7 +101,7 @@ function create_child() {
 
            if(!title) {
              console.error('Invalid title:', url);
-             title = url;
+             title = v.text;
            }
            if(!desc) {
              console.error('Invalid description:', url);

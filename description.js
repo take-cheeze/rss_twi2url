@@ -32,11 +32,6 @@ $.ajaxSettings.xhr = function () {
   return new XMLHttpRequest();
 };
 var jquery_src = '';
-request.get({uri: 'http://code.jquery.com/jquery-latest.min.js'},
-            function(e, r, body) {
-              if(e) { throw e; }
-              jquery_src = body;
-            });
 
 var config = null;
 var retry_count = {};
@@ -144,7 +139,7 @@ function get_description(url, callback) {
   function run_jquery(cb, u) {
     var target_url = u || url;
     request.get(
-      { uri: target_url, encoding: null, followAllRedirects: true, pool: false,
+      { uri: target_url, encoding: null, followAllRedirects: true,
         timeout: config.timeout, headers: { 'User-Agent': config.user_agent } },
       function(err, res, data) {
         if(err || res.statusCode !== 200) {
@@ -583,6 +578,7 @@ process.on(
 
     case 'config':
       config = msg.data;
+      jquery_src = config.jquery_src;
       break;
 
     default:

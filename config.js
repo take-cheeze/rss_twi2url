@@ -6,20 +6,20 @@ module.exports = {
   pathname: "",
   author: "Takeshi Watanabe",
 
-  feed_item_max: 100,
+  feed_item_max: 500,
   retry_max: 2,
-  executer: 2,
-  url_expander_number: 5,
+  executer: 1,
+  url_expander_number: 10,
 
   long_url_length: 40,
   tweet_max: 200,
 
-  fetch_frequency: 1000 * 60 * 30,
+  fetch_frequency: 1000 * 60 * 10,
   item_generation_frequency: 1000 * 0.5,
   backup_frequency: 1000 * 60,
   timeout: 1000 * 2,
   check_frequency: 1000 * 10,
-  retry_failure_max: 3,
+  retry_failure_max: 2,
 
   user_agent: [
     'Mozilla/5.0',
@@ -53,6 +53,7 @@ module.exports = {
     '#post-tabs', '.post-meta',
     '.related-articles',
     '.pagenav-outer',
+    '#sub',
   ],
 
   removing_attribute: [
@@ -75,7 +76,6 @@ module.exports = {
   exclude_filter: [
     '/www.pixiv.net/member_illust.php',
     'auctions.yahoo.co.jp/',
-    '://t.co/',
     'shindanmaker.com/',
     'news',
     'foursquare.com/',
@@ -89,6 +89,5 @@ module.exports = {
     '/stream.ogg',
     'gohantabeyo.com/',
     'http://4gamer.net/',
-    'http://bit.ly/',
   ],
 };
