@@ -64,23 +64,23 @@ function get_json(url, callback) {
           break;
         case 200:
           try {
-        switch(res.headers['content-encoding']) {
-        case 'gzip':
-          zlib.gunzip(http_data, function(err, buffer) {
-                        if(err) { throw err; }
-                        callback(JSON.parse(buffer.toString('utf8')));
-                      });
-          break;
-        case 'deflate':
-          zlib.inflate(http_data, function(err, buffer) {
-                         if(err) { throw err; }
-                         callback(JSON.parse(buffer.toString('utf8')));
-                       });
-          break;
-        default:
-          callback(JSON.parse(data.toString('utf8')));
-          break;
-        }
+            switch(res.headers['content-encoding']) {
+            case 'gzip':
+              zlib.gunzip(http_data, function(err, buffer) {
+                            if(err) { throw err; }
+                            callback(JSON.parse(buffer.toString('utf8')));
+                          });
+              break;
+            case 'deflate':
+              zlib.inflate(http_data, function(err, buffer) {
+                             if(err) { throw err; }
+                             callback(JSON.parse(buffer.toString('utf8')));
+                           });
+              break;
+            default:
+              callback(JSON.parse(data.toString('utf8')));
+              break;
+            }
           } catch(e) {
             console.error(e);
           }
