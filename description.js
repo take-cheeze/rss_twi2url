@@ -142,8 +142,8 @@ function get_description(url, callback) {
     request.get(
       { uri: target_url, encoding: null, followAllRedirects: true,
         timeout: config.timeout, headers: {
-          'Content-Enconding': 'gzip,deflate',
-          'User-Agent': config.user_agent } },
+          'accept-encoding': 'gzip,deflate',
+          'user-agent': config.user_agent } },
       function(err, res, http_data) {
         if(err || res.statusCode !== 200) {
           if(res) {
@@ -254,18 +254,17 @@ function get_description(url, callback) {
             });
         }
 
+        function uncompress_callback(err, buffer) {
+          if(err) { throw err; }
+          uncompressed(buffer);
+        }
+
         switch(res.headers['content-encoding']) {
         case 'gzip':
-          zlib.gunzip(http_data, function(err, buffer) {
-                         if(err) { throw err; }
-                         uncompressed(buffer);
-                       });
+          zlib.gunzip(http_data, uncompress_callback);
           break;
         case 'deflate':
-          zlib.inflate(http_data, function(err, buffer) {
-                         if(err) { throw err; }
-                         uncompressed(buffer);
-                       });
+          zlib.inflate(http_data, uncompress_callback);
           break;
         default:
           uncompressed(http_data);

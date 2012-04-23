@@ -6,6 +6,7 @@ var jsdom = require('jsdom');
 var qs = require('querystring');
 var request = require('request');
 var url_expander = require('url-expander');
+var zlib = require('zlib');
 
 var QUEUE_FILENAME = process.cwd() + '/rss_twi2url_queue.json';
 var url_expander_queue =
@@ -46,8 +47,8 @@ var opt = {
 };
 function get_json(url, callback) {
   request.get(
-    { 'url': url, 'oauth': opt, timeout: config.timeout,
-      headers: { 'Content-Enconding': 'gzip,deflate' } },
+    { 'url': url, 'oauth': opt, encoding: null, timeout: config.timeout,
+      headers: { 'accept-encoding': 'gzip,deflate' } },
     function(err, res, data) {
       if(err) {
         if(/timed?out/i.test(err.code)) {
@@ -64,18 +65,16 @@ function get_json(url, callback) {
           break;
         case 200:
           try {
+            function uncompress_callback(err, buffer) {
+              if(err) { throw err; }
+              callback(JSON.parse(buffer.toString('utf8')));
+            }
             switch(res.headers['content-encoding']) {
             case 'gzip':
-              zlib.gunzip(http_data, function(err, buffer) {
-                            if(err) { throw err; }
-                            callback(JSON.parse(buffer.toString('utf8')));
-                          });
+              zlib.gunzip(data, uncompress_callback);
               break;
             case 'deflate':
-              zlib.inflate(http_data, function(err, buffer) {
-                             if(err) { throw err; }
-                             callback(JSON.parse(buffer.toString('utf8')));
-                           });
+              zlib.inflate(data, uncompress_callback);
               break;
             default:
               callback(JSON.parse(data.toString('utf8')));
