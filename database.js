@@ -9,6 +9,7 @@ console.error = function() {
 
 var $ = require('jquery');
 var jsdom = require('jsdom');
+var zlib = require('zlib');
 
 var document = jsdom.jsdom(), window = document.createWindow();
 var config = {};
@@ -26,8 +27,16 @@ function generate_feed(items) {
       site_url: 'http://' + config.hostname + ':' + config.port + '/' + config.pathname,
       author: config.author });
 
+  function send_feed() {
+    zlib.gzip(
+      new Buffer(feed.xml()), function(err, out) {
+        if(err) { throw err; }
+        process.send({ type: 'feed', data: out.toString('base64') });
+      });
+  }
+
   if(len === 0) {
-    process.send({ type: 'feed', data: feed.xml() });
+    send_feed();
     return;
   }
 
@@ -37,9 +46,7 @@ function generate_feed(items) {
                if(err) { throw err; }
                
                feed.item(JSON.parse(data));
-               if(++count === len) {
-                 process.send({ type: 'feed', data: feed.xml() });
-               }
+               if(++count === len) { send_feed(); }
              });
     });
 }

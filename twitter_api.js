@@ -5,6 +5,7 @@ var fs = require('fs');
 var jsdom = require('jsdom');
 var qs = require('querystring');
 var request = require('request');
+var url_expander = require('url-expander');
 
 var QUEUE_FILENAME = process.cwd() + '/rss_twi2url_queue.json';
 var url_expander_queue =
@@ -45,8 +46,8 @@ var opt = {
 };
 function get_json(url, callback) {
   request.get(
-    { 'url': url, 'oauth': opt,
-      encoding: 'utf8', timeout: config.timeout },
+    { 'url': url, 'oauth': opt, timeout: config.timeout,
+      headers: { 'Content-Enconding': 'gzip,deflate' } },
     function(err, res, data) {
       if(err) {
         if(/timed?out/i.test(err.code)) {
@@ -63,7 +64,23 @@ function get_json(url, callback) {
           break;
         case 200:
           try {
-            callback(JSON.parse(data));
+        switch(res.headers['content-encoding']) {
+        case 'gzip':
+          zlib.gunzip(http_data, function(err, buffer) {
+                        if(err) { throw err; }
+                        callback(JSON.parse(buffer.toString('utf8')));
+                      });
+          break;
+        case 'deflate':
+          zlib.inflate(http_data, function(err, buffer) {
+                         if(err) { throw err; }
+                         callback(JSON.parse(buffer.toString('utf8')));
+                       });
+          break;
+        default:
+          callback(JSON.parse(data.toString('utf8')));
+          break;
+        }
           } catch(e) {
             console.error(e);
           }
@@ -118,51 +135,28 @@ function fetch_page(url, name, info) {
   url += (info.page === 1 && info.since_id)
     ? '&' + $.param({since_id: info.since_id}) : '';
 
-  get_json(
-    url + '&' + $.param({page: info.page}), function(data) {
-      $.each(
-        data, function(tweet_idx, tweet) {
-          var author_str = tweet.user.name + ' ( @' + tweet.user.screen_name + ' )';
-          function send(result) {
+  check_left_api(
+    function() {
+      get_json(
+        url + '&' + $.param({page: info.page}), function(data) {
+          url_expander_queue = url_expander_queue.concat(data);
+
+          if(info.page === 1) { info.next_since_id = data[0].id_str; }
+
+          if(
+            (!info.since_id) ||
+            (data.length === 0) ||
+              (data[data.length - 1].id_str === info.since_id)
+          ) {
             process.send(
-              { type: 'fetched_url',
-                data:{ url: result, author: author_str,
-                       date: tweet.created_at, text: tweet.text },
+              { type: 'set_since_id',
+                data: { 'name': name, since_id: info.next_since_id },
                 left: url_expander_queue.length });
+          } else {
+            info.page++;
+            fetch_page(url, name, info);
           }
-          $.each(
-            tweet.entities.urls, function(k, v) {
-              v.expanded_url = v.expanded_url || v.url;
-              if(
-                (v.expanded_url.length > config.long_url_length) ||
-                match_exclude_filter(v.expanded_url) ||
-                  expantion_exclude(v.expanded_url)
-              ) {
-                send(v.expanded_url);
-                v.expanded_url = undefined;
-                v.url = undefined;
-                return;
-              }
-            });
         });
-
-      url_expander_queue = url_expander_queue.concat(data);
-
-      if(info.page === 1) { info.next_since_id = data[0].id_str; }
-
-      if(
-        (!info.since_id) ||
-        (data.length === 0) ||
-          (data[data.length - 1].id_str === info.since_id)
-      ) {
-        process.send(
-          { type: 'set_since_id',
-            data: { 'name': name, since_id: info.next_since_id },
-            left: url_expander_queue.length });
-      } else {
-        info.page++;
-        fetch_page(url, name, info);
-      }
     });
 }
 
@@ -254,7 +248,9 @@ process.on(
       signin(msg.data);
       break;
 
-    case 'fetch': fetch(msg.data); break;
+    case 'fetch':
+      fetch(msg.data);
+      break;
     case 'config':
       // setInterval(backup, config.backup_frequency);
       config = msg.data;
@@ -266,66 +262,52 @@ process.on(
   });
 
 var expand_count = 0, expand_cache = {};
-setInterval(
-  function() {
-    if(expand_count >= config.url_expander_number) { return; }
+function expand_url() {
+  if(expand_count >= config.url_expander_number) { return; }
 
-    var tweet = false;
-    while(!tweet) {
-      if(url_expander_queue.length === 0) { return; }
-      tweet = url_expander_queue.shift();
-    }
+  var tweet = false;
+  while(!tweet) {
+    if(url_expander_queue.length === 0) { return; }
+    tweet = url_expander_queue.shift();
+  }
 
-    var author_str = tweet.user.name + ' ( @' + tweet.user.screen_name + ' )';
-    function send(result) {
-      process.send(
-        { type: 'fetched_url',
-          data:{ url: result, author: author_str,
-                 date: tweet.created_at, text: tweet.text },
-          left: url_expander_queue.length });
-      expand_count--;
-    }
-    $.each(
-      tweet.entities.urls, function(k, v) {
-        v.expanded_url = v.expanded_url || v.url;
-        if(!v.expanded_url) { return; }
+  var author_str = tweet.user.name + ' ( @' + tweet.user.screen_name + ' )';
+  function send_url(result) {
+    expand_count--;
+    expand_url();
 
-        expand_count++;
+    process.send(
+      { type: 'fetched_url',
+        data:{ url: result, author: author_str,
+               date: tweet.created_at, text: tweet.text },
+        left: url_expander_queue.length });
+  }
 
-        if(expand_cache.hasOwnProperty(v.expanded_url)) {
-          send(expand_cache[v.expanded_url]);
-          return;
-        }
+  $.each(
+    tweet.entities.urls, function(k, v) {
+      expand_count++;
 
-        function longurl(e, res, data) {
-          if(res !== undefined) {
-            if(e) {
-              console.error('Error at LongURL: ' + e);
-              console.error('URL: ' + v.expanded_url);
-            } else switch(res.statusCode) {
-            case 400:
-              expand_cache[v.expanded_url] = v.expanded_url;
-              send(v.expanded_url);
-              return;
-            case 500: case 502: case 503: case 504: break;
-            case 200:
-              var result = JSON.parse(data)['long-url'] || v.expanded_url;
-              expand_cache[v.expanded_url] = result;
-              send(result);
-              return;
-            default:
-              console.error('Error at LongURL: ' + res.statusCode);
-              console.error('URL: ' + v.expanded_url);
-              send(v.expanded_url);
-              return;
-            }
-          }
+      v.expanded_url = v.expanded_url || v.url;
 
-          request.get(
-            { 'url': 'http://api.longurl.org/v2/expand?' +
-              $.param({ 'url': v.expanded_url, 'all-redirects': 1, format: 'json' }),
-              encoding: 'utf8', timeout: config.timeout }, longurl);
-        }
-        longurl();
-      });
-  }, config.item_generation_frequency);
+      if(expand_cache.hasOwnProperty(v.expanded_url)) {
+        send_url(expand_cache[v.expanded_url]);
+        return;
+      }
+
+      if(
+        (v.expanded_url.length > config.long_url_length) ||
+        match_exclude_filter(v.expanded_url) ||
+          expantion_exclude(v.expanded_url)
+      ) {
+        send_url(v.expanded_url);
+        return;
+      }
+
+      var expander = new (url_expander.SingleUrlExpander)(v.expanded_url);
+      expander.on('expanded', function(orig, exp) { send_url(exp); });
+      expander.expand();
+    });
+
+  expand_url();
+}
+setInterval(expand_url, config.check_frequency);

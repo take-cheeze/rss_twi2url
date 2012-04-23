@@ -6,20 +6,20 @@ module.exports = {
   pathname: "",
   author: "Takeshi Watanabe",
 
-  feed_item_max: 500,
+  feed_item_max: 200,
   retry_max: 2,
-  executer: 1,
-  url_expander_number: 10,
+  executer: 4,
+  url_expander_number: 50,
 
   long_url_length: 40,
-  tweet_max: 200,
+  tweet_max: 100,
 
   fetch_frequency: 1000 * 60 * 10,
   item_generation_frequency: 1000 * 0.5,
   backup_frequency: 1000 * 60,
   timeout: 1000 * 2,
   check_frequency: 1000 * 10,
-  retry_failure_max: 2,
+  retry_failure_max: 1,
 
   user_agent: [
     'Mozilla/5.0',
@@ -54,6 +54,8 @@ module.exports = {
     '.related-articles',
     '.pagenav-outer',
     '#sub',
+    '.side',
+    '.tweetBtn1201',
   ],
 
   removing_attribute: [
@@ -79,6 +81,7 @@ module.exports = {
     'shindanmaker.com/',
     'news',
     'foursquare.com/',
+    '4sq.com/',
     '/tou.ch/',
     'amazon.co',
     'youtube.com/',

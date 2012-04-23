@@ -15,6 +15,7 @@ var request = require('request');
 var URL = require('url');
 var XMLHttpRequest = require("xmlhttprequest").XMLHttpRequest;
 var Iconv = require('iconv').Iconv;
+var zlib = require('zlib');
 
 var jsdom = require('jsdom');
 var document = jsdom.jsdom(), window = document.createWindow();
@@ -140,8 +141,10 @@ function get_description(url, callback) {
     var target_url = u || url;
     request.get(
       { uri: target_url, encoding: null, followAllRedirects: true,
-        timeout: config.timeout, headers: { 'User-Agent': config.user_agent } },
-      function(err, res, data) {
+        timeout: config.timeout, headers: {
+          'Content-Enconding': 'gzip,deflate',
+          'User-Agent': config.user_agent } },
+      function(err, res, http_data) {
         if(err || res.statusCode !== 200) {
           if(res) {
             switch(res.statusCode) {
@@ -160,94 +163,114 @@ function get_description(url, callback) {
           return;
         }
 
-        if(!data || !data.toString) {
+        if(!http_data || !http_data.toString) {
           callback(url, '', 'invalid data');
           return;
         }
 
-        var cont_type = res.headers['content-type'];
+        function uncompressed(data) {
+          var cont_type = res.headers['content-type'];
 
-        if(!/html/i.test(cont_type)) {
-          error_callback('unknown content type');
-          return;
-        }
-
-        var charset_regex = /charset="?'?([\w_\-]+)"?'?/i;
-        var ascii = data.toString('ascii');
-        var enc =
-          charset_regex.test(ascii)? ascii.match(charset_regex)[1]:
-          charset_regex.test(cont_type)? cont_type.match(charset_regex)[1]:
-          DEFAULT_ENCODING;
-        enc = enc.toLowerCase();
-        if(iconv_cache[enc]) {
-          if(iconv_cache[enc] === 'unsupported') {
-            error_callback('unsupported charset: ' + enc);
+          if(!/html/i.test(cont_type)) {
+            error_callback('unknown content type');
             return;
           }
-        } else {
+
+          var charset_regex = /charset="?'?([\w_\-]+)"?'?/i;
+          var ascii = data.toString('ascii');
+          var enc =
+            charset_regex.test(ascii)? ascii.match(charset_regex)[1]:
+            charset_regex.test(cont_type)? cont_type.match(charset_regex)[1]:
+            DEFAULT_ENCODING;
+          enc = enc.toLowerCase();
+          if(iconv_cache[enc]) {
+            if(iconv_cache[enc] === 'unsupported') {
+              error_callback('unsupported charset: ' + enc);
+              return;
+            }
+          } else {
+            try {
+              iconv_cache[enc] = new Iconv(
+                enc, DEFAULT_ENCODING + '//TRANSLIT//IGNORE');
+            } catch(e) {
+              console.error('iconv open error:', e, enc);
+              iconv_cache[enc] = 'unsupported';
+              error_callback('unsupported charset: ' + enc);
+              return;
+            }
+          }
+
+          var html = '';
           try {
-            iconv_cache[enc] = new Iconv(
-              enc, DEFAULT_ENCODING + '//TRANSLIT//IGNORE');
-          } catch(e) {
-            console.error('iconv open error:', e, enc);
-            iconv_cache[enc] = 'unsupported';
+            html = /utf-?8/i.test(enc)? data.toString() :
+              iconv_cache[enc].convert(data).toString(DEFAULT_ENCODING);
+          } catch(convert_error) {
+            console.error('iconv error:', convert_error, enc);
             error_callback('unsupported charset: ' + enc);
             return;
           }
+
+          jsdom.env(
+            html, { features: DEFAULT_FEATURE },
+            function(err, window) {
+              if(err) {
+                error_callback(err);
+                return;
+              }
+
+              var document = window.document;
+
+              Array.prototype.forEach.call(
+                document.getElementsByTagName('script'),
+                function(elm) { elm.parentNode.removeChild(elm); });
+
+              try { eval(jquery_src); }
+              catch(e) { console.error('jQuery error:', e); }
+
+              if(!window.jQuery) {
+                error_callback('Cannot load jQuery');
+                return;
+              }
+              var $ = window.jQuery;
+
+              $('a').each(
+                function(idx,elm) {
+                  $(elm).attr('href', URL.resolve(target_url, $(elm).attr('href')));
+                });
+              $('img').each(
+                function(idx,elm) {
+                  $(elm).attr('src', URL.resolve(target_url, $(elm).attr('src')));
+                });
+
+              switch(typeof cb) {
+              case 'function':
+                cb($, window); break;
+              case 'object':
+                callback(url, $('meta[property="og:title"]').attr('content') ||
+                         $('title').text(), run_selectors($, cb));
+                break;
+              default: throw 'unknown callback type';
+              }
+            });
         }
 
-        var html = '';
-        try {
-          html = /utf-?8/i.test(enc)? data.toString() :
-            iconv_cache[enc].convert(data).toString(DEFAULT_ENCODING);
-        } catch(convert_error) {
-          console.error('iconv error:', convert_error, enc);
-          error_callback('unsupported charset: ' + enc);
-          return;
+        switch(res.headers['content-encoding']) {
+        case 'gzip':
+          zlib.gunzip(http_data, function(err, buffer) {
+                         if(err) { throw err; }
+                         uncompressed(buffer);
+                       });
+          break;
+        case 'deflate':
+          zlib.inflate(http_data, function(err, buffer) {
+                         if(err) { throw err; }
+                         uncompressed(buffer);
+                       });
+          break;
+        default:
+          uncompressed(http_data);
+          break;
         }
-
-        jsdom.env(
-          html, { features: DEFAULT_FEATURE },
-          function(err, window) {
-            if(err) {
-              error_callback(err);
-              return;
-            }
-
-            var document = window.document;
-
-            Array.prototype.forEach.call(
-              document.getElementsByTagName('script'),
-              function(elm) { elm.parentNode.removeChild(elm); });
-
-            try { eval(jquery_src); }
-            catch(e) { console.error('jQuery error:', e); }
-
-            if(!window.jQuery) {
-              error_callback('Cannot load jQuery');
-              return;
-            }
-            var $ = window.jQuery;
-
-            $('a').each(
-              function(idx,elm) {
-                $(elm).attr('href', URL.resolve(target_url, $(elm).attr('href')));
-              });
-            $('img').each(
-              function(idx,elm) {
-                $(elm).attr('src', URL.resolve(target_url, $(elm).attr('src')));
-              });
-
-            switch(typeof cb) {
-            case 'function':
-              cb($, window); break;
-            case 'object':
-              callback(url, $('meta[property="og:title"]').attr('content') ||
-                       $('title').text(), run_selectors($, cb));
-              break;
-            default: throw 'unknown callback type';
-            }
-          });
       });
   }
 
@@ -341,14 +364,6 @@ function get_description(url, callback) {
     '^https?://vimeo.com/\\d+$': function() {
       oembed('http://vimeo.com/api/oembed.json?' +
              $.param({ 'url': url, autoplay: true, iframe: true})); },
-    /*
-     '^https?://soundcloud.com/.+/.+$': function() {
-     oembed('http://soundcloud.com/oembed?' +
-     $.param({ 'url': url, format: 'json', auto_play: true})); },
-     */
-    '^https?://\\w+.wordpress.com/.+$': function() {
-      oembed('http://public-api.wordpress.com/oembed/1.0/?' +
-             $.param({for: 'twi2url', format: 'json', 'url': url})); },
     '^https?://www.slideshare.net/[^/]+/[^/]+': function() {
       oembed('http://www.slideshare.net/api/oembed/2?' +
              $.param({ 'url': url, format: 'json'})); },

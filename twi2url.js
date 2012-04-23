@@ -4,6 +4,7 @@ var fs = require('fs');
 var $ = require('jquery');
 var fork = require('child_process').fork;
 var URL = require('url');
+var zlib = require('zlib');
 
 var last_item_generation = Date.now();
 
@@ -80,7 +81,16 @@ function generate_item() {
 function start() {
   require('http').createServer(
     function(req, res) {
-      res.writeHead(200, {'Content-Type': 'application/rss+xml'});
+      var accept = req.headers['accept-encoding'] || '';
+      var header = {'Content-Type': 'application/rss+xml'};
+      header['content-encoding'] =
+        /\bgzip\b/.test(accept)? 'gzip':
+        /\bdeflate\b/.test(accept)? 'deflate':
+        false;
+      if(!header['content-encoding']) {
+        delete header['content-encoding']; }
+
+      res.writeHead(200, header);
 
       var ary = rss_twi2url.last_urls.length > config.feed_item_max
         ? rss_twi2url.last_urls.slice(rss_twi2url.last_urls.length - config.feed_item_max)
@@ -95,7 +105,24 @@ function start() {
       database.send({ type: 'get_feed', data: ary });
       function feed_handle(msg) {
         var d = JSON.stringify(msg);
-        if(msg.type === 'feed') { res.end(msg.data); }
+        if(msg.type === 'feed') {
+          switch(header['content-encoding']) {
+          case 'gzip':
+            res.end(new Buffer(msg.data, 'base64'));
+            break;
+          case 'deflate':
+            (new Buffer(msg.data, 'base64'))
+              .pipe(zlib.createGunzip())
+              .pipe(zlib.createDeflate())
+              .pipe(res);
+            break;
+          default:
+            (new Buffer(msg.data, 'base64'))
+              .pipe(zlib.createGunzip())
+              .pipe(res);
+            break;
+          }
+        }
         else { database.once('message', feed_handle); }
       }
       database.once('message', feed_handle);
