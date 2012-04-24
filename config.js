@@ -12,10 +12,10 @@ module.exports = {
   url_expander_number: 50,
 
   long_url_length: 40,
-  tweet_max: 100,
+  tweet_max: 200,
 
   fetch_frequency: 1000 * 60 * 10,
-  item_generation_frequency: 1000 * 0.5,
+  item_generation_frequency: 1000 * 2.0,
   backup_frequency: 1000 * 60,
   timeout: 1000 * 2,
   check_frequency: 1000 * 10,
@@ -39,7 +39,7 @@ module.exports = {
     '.ently_text', '.ently-text',
     '.ently_body', '.ently-body',
     '.entry', '.body',
-    '.Photo',
+    '#posts', '.Photo',
     'table', 'pre', 'body',
   ],
 

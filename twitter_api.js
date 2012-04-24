@@ -248,7 +248,10 @@ process.on(
       break;
 
     case 'fetch':
-      fetch(msg.data);
+      zlib.gunzip(new Buffer(msg.data, 'base64'), function(err, buf) {
+                    if(err) { throw err; }
+                    fetch(JSON.parse(buf.toString()));
+                  });
       break;
     case 'config':
       // setInterval(backup, config.backup_frequency);
@@ -295,6 +298,8 @@ function expand_url() {
 
       if(
         (v.expanded_url.length > config.long_url_length) ||
+        /\?/.test(v.expanded_url) ||
+        /&/.test(v.expanded_url) ||
         match_exclude_filter(v.expanded_url) ||
           expantion_exclude(v.expanded_url)
       ) {

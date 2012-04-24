@@ -14,15 +14,26 @@ config.hostname = process.env.HOST || config.hostname;
 config.DB_FILE = process.cwd() + '/rss_twi2url.db';
 var JSON_FILE = process.cwd() + '/rss_twi2url.json';
 
-var rss_twi2url = require('path').existsSync(JSON_FILE)
+var rss_twi2url =
+  require('path').existsSync(JSON_FILE)
   ? JSON.parse(fs.readFileSync(JSON_FILE))
   : { last_urls: [], queued_urls: [], since: {} };
+if(require('path').existsSync(JSON_FILE + '.gz')) {
+  zlib.gunzip(fs.readFileSync(JSON_FILE + '.gz'), function(err, buf) {
+               if(err) { throw err; }
+               rss_twi2url = JSON.parse(buf.toString());
+             });
+}
+
 // reduce feed size
 while(rss_twi2url.last_urls.length > config.feed_item_max) {
   rss_twi2url.last_urls.shift(); }
 
 function backup() {
-  fs.writeFileSync(JSON_FILE, JSON.stringify(rss_twi2url));
+  zlib.gzip(new Buffer(JSON.stringify(rss_twi2url)), function(err, buf) {
+              if(err) { throw err; }
+              fs.writeFileSync(JSON_FILE + '.gz', buf);
+            });
 }
 process.on(
   'exit', function() {
@@ -106,6 +117,7 @@ function start() {
       function feed_handle(msg) {
         var d = JSON.stringify(msg);
         if(msg.type === 'feed') {
+          console.log('Sending feed with:', header['content-encoding']);
           switch(header['content-encoding']) {
           case 'gzip':
             res.end(new Buffer(msg.data, 'base64'));
@@ -137,11 +149,21 @@ function start() {
   var i = 0;
   for(; i < config.executer; i++) { generate_item(); }
 
-  twitter_api.send({ type: 'fetch', data: rss_twi2url });
+  zlib.gzip(new Buffer(JSON.stringify(rss_twi2url)), function(err, buf) {
+              if(err) { throw err; }
+              twitter_api.send({ type: 'fetch', data: buf.toString('base64') });
+            });
 
   setInterval(backup, config.backup_frequency);
-  setInterval(twitter_api.send, config.fetch_frequency,
-              { type: 'fetch', data: rss_twi2url });
+  setInterval(
+    function() {
+      zlib.gzip(
+        new Buffer(JSON.stringify(rss_twi2url)), function(err, buf) {
+          if(err) { throw err; }
+          twitter_api.send({ type: 'fetch', data: buf.toString('base64') });
+        });
+    }, config.fetch_frequency);
+
   setInterval(function() {
                 if(Date.now() - last_item_generation > config.check_frequency) {
                   var i;
