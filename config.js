@@ -6,7 +6,7 @@ module.exports = {
   pathname: "",
   author: "Takeshi Watanabe",
 
-  feed_item_max: 200,
+  feed_item_max: 150,
   retry_max: 2,
   executer: 4,
   url_expander_number: 50,
@@ -15,7 +15,7 @@ module.exports = {
   tweet_max: 200,
 
   fetch_frequency: 1000 * 60 * 10,
-  item_generation_frequency: 1000 * 2.0,
+  item_generation_frequency: 1000 * 1.5,
   backup_frequency: 1000 * 60,
   timeout: 1000 * 2,
   check_frequency: 1000 * 10,
@@ -44,7 +44,8 @@ module.exports = {
   ],
 
   removing_tag: [
-    'link', 'script', 'dl',
+    'link', 'script', 'dl', 'object', 'style',
+    'frameset', 'frame', 'noframes',
     '#comment', '.comment_area', '.comment', '#comments-list',
     '.comments', '#comment-form',
     '.notes', '.note',
@@ -53,17 +54,14 @@ module.exports = {
     '#post-tabs', '.post-meta',
     '.related-articles',
     '.pagenav-outer',
-    '#sub',
-    '.side',
+    '#sub', '.side',
     '.tweetBtn1201',
   ],
 
   removing_attribute: [
-/*
     'data-hatena-bookmark-layout',
     'data-hatena-bookmark-title', 'data-lang', 'data-count',
     'data-url', 'data-text', 'data-via',
- */
   ],
 
   url_expantion_exclude: [

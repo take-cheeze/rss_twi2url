@@ -47,7 +47,8 @@ var opt = {
 };
 function get_json(url, callback) {
   request.get(
-    { 'url': url, 'oauth': opt, encoding: null, timeout: config.timeout,
+    { 'url': url, 'oauth': opt, encoding: null,
+      timeout: config.timeout,
       headers: { 'accept-encoding': 'gzip,deflate' } },
     function(err, res, data) {
       if(err) {
@@ -134,29 +135,31 @@ function fetch_page(url, name, info) {
   url += (info.page === 1 && info.since_id)
     ? '&' + $.param({since_id: info.since_id}) : '';
 
-  check_left_api(
-    function() {
-      get_json(
-        url + '&' + $.param({page: info.page}), function(data) {
-          url_expander_queue = url_expander_queue.concat(data);
+  // check_left_api(
+  // function() {
+  get_json(
+    url + '&' + $.param({page: info.page}), function(data) {
+      url_expander_queue = url_expander_queue.concat(data);
 
-          if(info.page === 1) { info.next_since_id = data[0].id_str; }
+      if(info.page === 1) {
+        info.next_since_id = data.length > 0
+          ? data[0].id_str : info.since_id; }
 
-          if(
-            (!info.since_id) ||
-            (data.length === 0) ||
-              (data[data.length - 1].id_str === info.since_id)
-          ) {
-            process.send(
-              { type: 'set_since_id',
-                data: { 'name': name, since_id: info.next_since_id },
-                left: url_expander_queue.length });
-          } else {
-            info.page++;
-            fetch_page(url, name, info);
-          }
-        });
+      if(
+        (!info.since_id) || (data.length === 0) ||
+          (data[data.length - 1].id_str === info.since_id)
+      ) {
+        console.log('next since id of', name, ':', info.next_since_id);
+        process.send(
+          { type: 'set_since_id',
+            data: { 'name': name, since_id: info.next_since_id },
+            left: url_expander_queue.length });
+      } else {
+        info.page++;
+        fetch_page(url, name, info);
+      }
     });
+  // });
 }
 
 function fetch(setting) {
@@ -308,7 +311,9 @@ function expand_url() {
       }
 
       var expander = new (url_expander.SingleUrlExpander)(v.expanded_url);
-      expander.on('expanded', function(orig, exp) { send_url(exp); });
+      expander.on('expanded', function(orig, exp) {
+                    if(/\/t\.co\//.test(exp)) { send_url(exp); }
+                  });
       expander.expand();
     });
 

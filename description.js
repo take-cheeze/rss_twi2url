@@ -29,9 +29,6 @@ jsdom.defaultDocumentFeatures = DEFAULT_FEATURE;
 var DEFAULT_ENCODING = 'utf8';
 var $ = require('jquery');
 $.support.cors = true;
-$.ajaxSettings.xhr = function () {
-  return new XMLHttpRequest();
-};
 var jquery_src = '';
 
 var config = null;
@@ -81,6 +78,55 @@ function get_description(url, callback) {
     }
   }
 
+  function fetch_data(cb, u) {
+    request.get(
+      { uri: u || url, encoding: null, followAllRedirects: true,
+        timeout: config.timeout, headers: {
+          'accept-encoding': 'gzip,deflate',
+          'user-agent': config.user_agent } },
+      function(err, res, http_data) {
+        if(err || res.statusCode !== 200) {
+          if(res) {
+            switch(res.statusCode) {
+            case 500: case 502: case 503: case 504:
+              retry();
+              return;
+            } }
+          if(err && /timed?out/i.test(err.code)) {
+            retry();
+            return;
+          }
+          console.error('URL:', u);
+          if(res) { console.error('Status Code:', res.statusCode); }
+          console.error('Error:', JSON.stringify(err));
+          error_callback('error fetching');
+          return;
+        }
+
+        if(!http_data || !http_data.toString) {
+          callback(url, '', 'invalid data');
+          return;
+        }
+
+        function uncompress_callback(err, buffer) {
+          if(err) { throw err; }
+          cb(buffer, res);
+        }
+
+        switch(res.headers['content-encoding']) {
+        case 'gzip':
+          zlib.gunzip(http_data, uncompress_callback);
+          break;
+        case 'deflate':
+          zlib.inflate(http_data, uncompress_callback);
+          break;
+        default:
+          uncompress_callback(false, http_data);
+          break;
+        }
+      });
+  }
+
   function oembed_default_callback(data) {
     callback(url, data.title || 'oEmbed',
              (data.description? data.description + '<br/>' : '') +
@@ -94,12 +140,12 @@ function get_description(url, callback) {
               ''));
   }
   function oembed(req_url, oembed_callback) {
-    $.ajax({ 'url': req_url, dataType: 'json', timeout: config.timeout })
-      .fail(jquery_error_callback).done(
-        function(data) {
-          if(oembed_callback === undefined) { oembed_default_callback(data); }
-          else { oembed_callback(data); }
-        });
+    fetch_data(
+      function(buf) {
+        var data = JSON.parse(buf.toString());
+        if(oembed_callback === undefined) { oembed_default_callback(data); }
+        else { oembed_callback(data); }
+      }, req_url);
   }
 
   function open_graph_body($) {
@@ -139,138 +185,91 @@ function get_description(url, callback) {
 
   function run_jquery(cb, u) {
     var target_url = u || url;
-    request.get(
-      { uri: target_url, encoding: null, followAllRedirects: true,
-        timeout: config.timeout, headers: {
-          'accept-encoding': 'gzip,deflate',
-          'user-agent': config.user_agent } },
-      function(err, res, http_data) {
-        if(err || res.statusCode !== 200) {
-          if(res) {
-            switch(res.statusCode) {
-            case 500: case 502: case 503: case 504:
-              retry();
-              return;
-            } }
-          if(err && /timed?out/i.test(err.code)) {
-            retry();
-            return;
-          }
-          console.error('URL:', target_url);
-          if(res) { console.error('Status Code:', res.statusCode); }
-          console.error('Error:', JSON.stringify(err));
-          error_callback('error fetching');
+    fetch_data(function(data, res) {
+      var cont_type = res.headers['content-type'];
+
+      if(!/html/i.test(cont_type)) {
+        error_callback('unknown content type');
+        return;
+      }
+
+      var charset_regex = /charset="?'?([\w_\-]+)"?'?/i;
+      var ascii = data.toString('ascii');
+      var enc =
+        charset_regex.test(ascii)? ascii.match(charset_regex)[1]:
+        charset_regex.test(cont_type)? cont_type.match(charset_regex)[1]:
+        DEFAULT_ENCODING;
+      enc = enc.toLowerCase();
+      if(iconv_cache[enc]) {
+        if(iconv_cache[enc] === 'unsupported') {
+          error_callback('unsupported charset: ' + enc);
           return;
         }
-
-        if(!http_data || !http_data.toString) {
-          callback(url, '', 'invalid data');
+      } else {
+        try {
+          iconv_cache[enc] = new Iconv(
+            enc, DEFAULT_ENCODING + '//TRANSLIT//IGNORE');
+        } catch(e) {
+          console.error('iconv open error:', e, enc);
+          iconv_cache[enc] = 'unsupported';
+          error_callback('unsupported charset: ' + enc);
           return;
         }
+      }
 
-        function uncompressed(data) {
-          var cont_type = res.headers['content-type'];
+      var html = '';
+      try {
+        html = /utf-?8/i.test(enc)? data.toString() :
+          iconv_cache[enc].convert(data).toString(DEFAULT_ENCODING);
+      } catch(convert_error) {
+        console.error('iconv error:', convert_error, enc);
+        error_callback('unsupported charset: ' + enc);
+        return;
+      }
 
-          if(!/html/i.test(cont_type)) {
-            error_callback('unknown content type');
+      jsdom.env(
+        html, { features: DEFAULT_FEATURE },
+        function(err, window) {
+          if(err) {
+            error_callback(err);
             return;
           }
 
-          var charset_regex = /charset="?'?([\w_\-]+)"?'?/i;
-          var ascii = data.toString('ascii');
-          var enc =
-            charset_regex.test(ascii)? ascii.match(charset_regex)[1]:
-            charset_regex.test(cont_type)? cont_type.match(charset_regex)[1]:
-            DEFAULT_ENCODING;
-          enc = enc.toLowerCase();
-          if(iconv_cache[enc]) {
-            if(iconv_cache[enc] === 'unsupported') {
-              error_callback('unsupported charset: ' + enc);
-              return;
-            }
-          } else {
-            try {
-              iconv_cache[enc] = new Iconv(
-                enc, DEFAULT_ENCODING + '//TRANSLIT//IGNORE');
-            } catch(e) {
-              console.error('iconv open error:', e, enc);
-              iconv_cache[enc] = 'unsupported';
-              error_callback('unsupported charset: ' + enc);
-              return;
-            }
-          }
+          var document = window.document;
 
-          var html = '';
-          try {
-            html = /utf-?8/i.test(enc)? data.toString() :
-              iconv_cache[enc].convert(data).toString(DEFAULT_ENCODING);
-          } catch(convert_error) {
-            console.error('iconv error:', convert_error, enc);
-            error_callback('unsupported charset: ' + enc);
+          Array.prototype.forEach.call(
+            document.getElementsByTagName('script'),
+            function(elm) { elm.parentNode.removeChild(elm); });
+
+          try { eval(jquery_src); }
+          catch(e) { console.error('jQuery error:', e); }
+
+          if(!window.jQuery) {
+            error_callback('Cannot load jQuery');
             return;
           }
+          var $ = window.jQuery;
 
-          jsdom.env(
-            html, { features: DEFAULT_FEATURE },
-            function(err, window) {
-              if(err) {
-                error_callback(err);
-                return;
-              }
-
-              var document = window.document;
-
-              Array.prototype.forEach.call(
-                document.getElementsByTagName('script'),
-                function(elm) { elm.parentNode.removeChild(elm); });
-
-              try { eval(jquery_src); }
-              catch(e) { console.error('jQuery error:', e); }
-
-              if(!window.jQuery) {
-                error_callback('Cannot load jQuery');
-                return;
-              }
-              var $ = window.jQuery;
-
-              $('a').each(
-                function(idx,elm) {
-                  $(elm).attr('href', URL.resolve(target_url, $(elm).attr('href')));
-                });
-              $('img').each(
-                function(idx,elm) {
-                  $(elm).attr('src', URL.resolve(target_url, $(elm).attr('src')));
-                });
-
-              switch(typeof cb) {
-              case 'function':
-                cb($, window); break;
-              case 'object':
-                callback(url, $('meta[property="og:title"]').attr('content') ||
-                         $('title').text(), run_selectors($, cb));
-                break;
-              default: throw 'unknown callback type';
-              }
+          $('a').each(
+            function(idx,elm) {
+              $(elm).attr('href', URL.resolve(target_url, $(elm).attr('href')));
             });
-        }
+          $('img').each(
+            function(idx,elm) {
+              $(elm).attr('src', URL.resolve(target_url, $(elm).attr('src')));
+            });
 
-        function uncompress_callback(err, buffer) {
-          if(err) { throw err; }
-          uncompressed(buffer);
-        }
-
-        switch(res.headers['content-encoding']) {
-        case 'gzip':
-          zlib.gunzip(http_data, uncompress_callback);
-          break;
-        case 'deflate':
-          zlib.inflate(http_data, uncompress_callback);
-          break;
-        default:
-          uncompressed(http_data);
-          break;
-        }
-      });
+          switch(typeof cb) {
+          case 'function':
+            cb($, window); break;
+          case 'object':
+            callback(url, $('meta[property="og:title"]').attr('content') ||
+                     $('title').text(), run_selectors($, cb));
+            break;
+          default: throw 'unknown callback type';
+          }
+        });
+    }, u);
   }
 
   var GALLERY_FILTER = {
@@ -286,18 +285,16 @@ function get_description(url, callback) {
 
     '^https?://twitpic\\.com/(\\w+)(/full)?/?': function() {
       var id = url.match(/^http:\/\/twitpic.com\/(\w+)(\/full)?\/?/)[1];
-      $.ajax(
-        { 'url': 'http://api.twitpic.com/2/media/show.json?' + $.param({id: id}),
-          dataType: 'json', timeout: config.timeout })
-        .fail(jquery_error_callback).done(
-          function(data) {
-            callback(
-              url, // 'http://twitpic.com/' + id + '/full',
-              data.message || 'Twitpic Content',
-              $('<div />').append(
-                $('<a />').attr('href', 'http://twitpic.com/' + id + '/full').append(
-                  image_tag('http://twitpic.com/show/full/' + id, data.width, data.height))).html());
-          });
+      fetch_data(
+        function(buf) {
+          var data = JSON.parse(buf.toString());
+          callback(
+            url, // 'http://twitpic.com/' + id + '/full',
+            data.message || 'Twitpic Content',
+            $('<div />').append(
+              $('<a />').attr('href', 'http://twitpic.com/' + id + '/full').append(
+                image_tag('http://twitpic.com/show/full/' + id, data.width, data.height))).html());
+        }, 'http://api.twitpic.com/2/media/show.json?' + $.param({id: id}));
     },
 
     '^https?://p.twipple.jp/\\w+/?$': function() {
@@ -327,24 +324,19 @@ function get_description(url, callback) {
 
     '^https?://gist.github.com/\\w+/?': function() {
       var id = url.match(/^https?:\/\/gist.github.com\/(\w+)\/?/)[1];
-      $.ajax(
-        { 'url': 'https://gist.github.com/' + id + '.js',
-          dataType: 'text', timeout: config.timeout })
-        .fail(jquery_error_callback).done(
-          function(data) {
-            var html = '';
-            $.each(data.match(/document\.write\('(.+)'\)/g), function(k, v) {
-                     html += v.match(/document\.write\('(.+)'\)/)[1];
-                   });
-            eval("html = '" + html + "'");
-            $.ajax(
-              { 'url': 'https://api.github.com/gists/' + id,
-                dataType: 'json', timeout: config.timeout })
-              .fail(jquery_error_callback).done(
-                function(data) {
-                  callback(url, 'Gist: ' + data.id + ': ' + data.description || '', html);
-                });
-          });
+      fetch_data(
+        function(data) {
+          var html = '';
+          $.each(data.match(/document\.write\('(.+)'\)/g), function(k, v) {
+                   html += v.match(/document\.write\('(.+)'\)/)[1];
+                 });
+          eval("html = '" + html + "'");
+          fetch_data(
+            function(buf) {
+              var data = JSON.parse(buf.toString());
+              callback(url, 'Gist: ' + data.id + ': ' + data.description || '', html);
+            }, 'https://api.github.com/gists/' + id);
+        }, 'https://gist.github.com/' + id + '.js');
     },
 
     '^https?://ideone.com/\\w+/?$': function() {
@@ -473,12 +465,11 @@ function get_description(url, callback) {
     },
 
     '^https?://www.drawlr.com/d/\\w+/view/?$': function() {
-      $.ajax(
-        { timeout: config.timeout, 'url': url, dataType: 'html' })
-        .fail(jquery_error_callback).done(
-          function(data) {
-            callback(url, '', data.match(/var embed_code = '(.+)';/)[1]);
-          }); },
+      fetch_data(
+        function(buf) {
+          callback(url, '', buf.toString().match(/var embed_code = '(.+)';/)[1]);
+        });
+    },
   };
 
   if((function() {

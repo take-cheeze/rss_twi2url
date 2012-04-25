@@ -22,12 +22,12 @@ if(require('path').existsSync(JSON_FILE + '.gz')) {
   zlib.gunzip(fs.readFileSync(JSON_FILE + '.gz'), function(err, buf) {
                if(err) { throw err; }
                rss_twi2url = JSON.parse(buf.toString());
-             });
-}
 
-// reduce feed size
-while(rss_twi2url.last_urls.length > config.feed_item_max) {
-  rss_twi2url.last_urls.shift(); }
+                // reduce feed size
+                while(rss_twi2url.last_urls.length > config.feed_item_max) {
+                  rss_twi2url.last_urls.shift(); }
+              });
+}
 
 function backup() {
   zlib.gzip(new Buffer(JSON.stringify(rss_twi2url)), function(err, buf) {
@@ -230,7 +230,7 @@ twitter_api.on(
       break;
 
     case 'set_since_id':
-      rss_twi2url[msg.data.name] = msg.data.since_id;
+      rss_twi2url.since[msg.data.name] = msg.data.since_id;
       url_expander_queue_length = msg.left;
       break;
 
