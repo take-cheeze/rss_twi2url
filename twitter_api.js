@@ -46,6 +46,11 @@ var opt = {
   consumer_secret: consumer.CONSUMER_SECRET
 };
 function get_json(url, callback) {
+  function retry() {
+    console.log('retrying:', url);
+    setTimeout(get_json, config.item_generation_frequency, url, callback);
+  }
+
   request.get(
     { 'url': url, 'oauth': opt, encoding: null,
       timeout: config.timeout,
@@ -53,7 +58,7 @@ function get_json(url, callback) {
     function(err, res, data) {
       if(err) {
         if(/timed?out/i.test(err.code)) {
-          get_json(url, callback);
+          retry();
           return;
         }
         console.error("Error fetching json from twitter:", err);
@@ -61,8 +66,7 @@ function get_json(url, callback) {
       } else if(res) {
         switch(res.statusCode) {
         case 500: case 502: case 503: case 504:
-          console.log('retrying:', url);
-          setTimeout(get_json, config.item_generation_frequency, url, callback);
+          retry();
           break;
         case 200:
           try {
@@ -182,6 +186,7 @@ function fetch(setting) {
         'https://api.twitter.com/1/lists/all.json?' +
           $.param({user_id: setting.user_id}),
         function(data) {
+          console.log('list number:', data.length);
           $.each(
             data, function(k, v) {
               setTimeout(
@@ -281,11 +286,13 @@ function expand_url() {
     expand_count--;
     expand_url();
 
-    process.send(
-      { type: 'fetched_url',
-        data:{ url: result, author: author_str,
-               date: tweet.created_at, text: tweet.text },
-        left: url_expander_queue.length });
+    if(! /\/t\.co\//.test(result)) {
+      process.send(
+        { type: 'fetched_url',
+          data:{ url: result, author: author_str,
+                 date: tweet.created_at, text: tweet.text },
+          left: url_expander_queue.length });
+    }
   }
 
   $.each(
@@ -312,7 +319,7 @@ function expand_url() {
 
       var expander = new (url_expander.SingleUrlExpander)(v.expanded_url);
       expander.on('expanded', function(orig, exp) {
-                    if(/\/t\.co\//.test(exp)) { send_url(exp); }
+                    send_url(exp);
                   });
       expander.expand();
     });
