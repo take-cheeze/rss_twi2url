@@ -6,18 +6,18 @@ module.exports = {
   pathname: "",
   author: "Takeshi Watanabe",
 
-  feed_item_max: 150,
+  feed_item_max: 100,
   retry_max: 2,
   executer: 4,
-  url_expander_number: 50,
+  url_expander_number: 20,
 
   long_url_length: 40,
   tweet_max: 200,
 
   fetch_frequency: 1000 * 60 * 10,
-  item_generation_frequency: 1000 * 1.5,
+  item_generation_frequency: 1000 * 0.5,
   backup_frequency: 1000 * 60,
-  timeout: 1000 * 2,
+  timeout: 1000 * 10,
   check_frequency: 1000 * 10,
   retry_failure_max: 1,
 

@@ -228,7 +228,8 @@ function get_description(url, callback) {
       }
 
       jsdom.env(
-        html, { features: DEFAULT_FEATURE },
+        { 'html': html || '<html><body></body></html>',
+          features: DEFAULT_FEATURE },
         function(err, window) {
           if(err) {
             error_callback(err);
@@ -335,8 +336,8 @@ function get_description(url, callback) {
             function(buf) {
               var data = JSON.parse(buf.toString());
               callback(url, 'Gist: ' + data.id + ': ' + data.description || '', html);
-            }, 'https://api.github.com/gists/' + id);
-        }, 'https://gist.github.com/' + id + '.js');
+            }, 'http://api.github.com/gists/' + id);
+        }, 'http://gist.github.com/' + id + '.js');
     },
 
     '^https?://ideone.com/\\w+/?$': function() {
@@ -369,7 +370,7 @@ function get_description(url, callback) {
                    },
                    url.replace('/twitter.com/', '/mobile.twitter.com/'));
       } else {
-        oembed('https://api.twitter.com/1/statuses/oembed.json?' +
+        oembed('http://api.twitter.com/1/statuses/oembed.json?' +
                $.param({ 'id': url.match(/\/status\/(\d+)/)[1],
                          hide_media: false, hide_thread: false,
                          omit_script: false, align: 'left' }));

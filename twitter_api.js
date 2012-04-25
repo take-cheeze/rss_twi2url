@@ -58,6 +58,7 @@ function get_json(url, callback) {
     function(err, res, data) {
       if(err) {
         if(/timed?out/i.test(err.code)) {
+          console.log(err);
           retry();
           return;
         }
@@ -66,6 +67,7 @@ function get_json(url, callback) {
       } else if(res) {
         switch(res.statusCode) {
         case 500: case 502: case 503: case 504:
+          console.log(res);
           retry();
           break;
         case 200:
@@ -102,7 +104,7 @@ function check_left_api(callback) {
   if(!twitter_api_left) { return; }
 
   get_json(
-    'https://api.twitter.com/1/account/rate_limit_status.json',
+    'http://api.twitter.com/1/account/rate_limit_status.json',
     function(data) {
       console.log('api left:', data.remaining_hits);
 
@@ -135,7 +137,7 @@ function expantion_exclude(url) {
   return ret;
 }
 
-function fetch_page(url, name, info) {
+function fetch_page(url, name, info, cb) {
   url += (info.page === 1 && info.since_id)
     ? '&' + $.param({since_id: info.since_id}) : '';
 
@@ -144,7 +146,7 @@ function fetch_page(url, name, info) {
   get_json(
     url + '&' + $.param({page: info.page}), function(data) {
       url_expander_queue = url_expander_queue.concat(data);
-
+      
       if(info.page === 1) {
         info.next_since_id = data.length > 0
           ? data[0].id_str : info.since_id; }
@@ -158,9 +160,10 @@ function fetch_page(url, name, info) {
           { type: 'set_since_id',
             data: { 'name': name, since_id: info.next_since_id },
             left: url_expander_queue.length });
+        if(typeof cb === 'function') { cb(); }
       } else {
         info.page++;
-        fetch_page(url, name, info);
+        fetch_page(url, name, info, cb);
       }
     });
   // });
@@ -172,31 +175,37 @@ function fetch(setting) {
   check_left_api(
     function() {
       fetch_page(
-        'https://api.twitter.com/1/statuses/home_timeline.json?' +
+        'http://api.twitter.com/1/statuses/home_timeline.json?' +
           $.param(
             { count: config.tweet_max, exclude_replies: false,
               include_entities: true, include_rts: true
-            }), 'home_timeline',
-        { page: 1, since_id: setting.since.home_timeline });
-    });
+            }),
+        'home_timeline',
+        { page: 1, since_id: setting.since.home_timeline },
+        function() {
+          get_json(
+            'http://api.twitter.com/1/lists/all.json?' +
+              $.param({user_id: setting.user_id}),
+            function(data) {
+              console.log('list number:', data.length);
 
-  check_left_api(
-    function() {
-      get_json(
-        'https://api.twitter.com/1/lists/all.json?' +
-          $.param({user_id: setting.user_id}),
-        function(data) {
-          console.log('list number:', data.length);
-          $.each(
-            data, function(k, v) {
-              setTimeout(
-                fetch_page, config.item_generation_frequency * k,
-                'https://api.twitter.com/1/lists/statuses.json?' +
-                  $.param(
-                    { include_entities: true, include_rts: true,
-                      list_id: v.id_str, per_page: config.tweet_max
-                    }), v.full_name,
-                { page: 1, since_id: setting.since[v.full_name] });
+              function list_fetch() {
+                var list_info = data;
+                var v = list_info.shift();
+                if(!v) { return; }
+
+                // console.log('fetching:', v.full_name);
+
+                fetch_page(
+                  'http://api.twitter.com/1/lists/statuses.json?' +
+                    $.param(
+                      { include_entities: true, include_rts: true,
+                        list_id: v.id_str, per_page: config.tweet_max
+                      }), v.full_name,
+                  { page: 1, since_id: setting.since[v.full_name] },
+                  list_fetch);
+              }
+              list_fetch();
             });
         });
     });
@@ -327,3 +336,12 @@ function expand_url() {
   expand_url();
 }
 setInterval(expand_url, config.check_frequency);
+
+process.on(
+  'uncaughtException', function (err) {
+    if(/URI malformed/.test(err)) {
+      console.log('uncaught error:', err);
+      return;
+    }
+    else { throw err; }
+  });

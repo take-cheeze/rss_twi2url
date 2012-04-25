@@ -254,22 +254,17 @@ require('request')
        function(e, r, body) {
          if(e) { throw e; }
          config.jquery_src = body;
+
+         $.each(
+           [twitter_api, database], function(K,v) {
+             v.on('exit', function(code, signal) {
+                    if(code) {
+                      if(signal) { console.error('with signal:', signal); }
+                      process.exit(code, signal);
+                    }
+                  });
+             v.send({ type: 'config', data: config });
+           });
+
+         twitter_api.send({ type: 'signin', data: is_signed_in()? rss_twi2url : null });
        });
-
-setTimeout(
-  function() {
-    if(!config.jquery_src) { throw 'jQuery not loaded'; }
-
-    $.each(
-      [twitter_api, database], function(K,v) {
-        v.on('exit', function(code, signal) {
-               if(code) {
-                 if(signal) { console.error('with signal:', signal); }
-                 process.exit(code, signal);
-               }
-             });
-        v.send({ type: 'config', data: config });
-      });
-
-    twitter_api.send({ type: 'signin', data: is_signed_in()? rss_twi2url : null });
-  }, config.check_frequency);
