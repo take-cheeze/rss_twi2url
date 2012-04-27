@@ -94,6 +94,12 @@ function start() {
     function(req, res) {
       console.log('Request:', req.headers);
 
+      if(req.url !== '/') {
+        res.writeHead(404, {'Content-Type': 'application/rss+xml'});
+        res.end(config.title + '(by ' + config.author + ') : ' + config.description);
+        return;
+      }
+
       var accept = req.headers['accept-encoding'] || '';
       var header = {'Content-Type': 'application/rss+xml'};
       header['content-encoding'] =

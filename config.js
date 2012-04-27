@@ -18,7 +18,7 @@ module.exports = {
   item_generation_frequency: 1000 * 2.5,
   backup_frequency: 1000 * 60,
   timeout: 1000 * 8,
-  check_frequency: 1000 * 10,
+  check_frequency: 1000 * 30,
   retry_failure_max: 1,
 
   user_agent: [
@@ -59,6 +59,7 @@ module.exports = {
     '.pagenav-outer',
     '#sub', '.side',
     '.tweetBtn1201',
+    '.appstore',
     '.content_footer'
   ],
 
