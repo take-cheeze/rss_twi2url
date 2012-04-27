@@ -16,7 +16,7 @@ var JSON_FILE = process.cwd() + '/rss_twi2url.json';
 
 var rss_twi2url =
   require('path').existsSync(JSON_FILE)
-  ? JSON.parse(fs.readFileSync(JSON_FILE))
+  ? JSON.parse(fs.readFileSync(JSON_FILE, 'utf8'))
   : { last_urls: [], queued_urls: [], since: {} };
 if(require('path').existsSync(JSON_FILE + '.gz')) {
   zlib.gunzip(fs.readFileSync(JSON_FILE + '.gz'), function(err, buf) {
@@ -92,6 +92,8 @@ function generate_item() {
 function start() {
   require('http').createServer(
     function(req, res) {
+      console.log('Request:', req.headers);
+
       var accept = req.headers['accept-encoding'] || '';
       var header = {'Content-Type': 'application/rss+xml'};
       header['content-encoding'] =
@@ -117,8 +119,11 @@ function start() {
       function feed_handle(msg) {
         var d = JSON.stringify(msg);
         if(msg.type === 'feed') {
-          console.log('Sending feed with:', header['content-encoding']);
-          switch(header['content-encoding']) {
+          console.log('Sending feed with:', header.hasOwnProperty('content-encoding')
+                      ? header['content-encoding'] : 'plain');
+          switch(header.hasOwnProperty('content-encoding')
+                 ? header['content-encoding'] : false)
+          {
           case 'gzip':
             res.end(new Buffer(msg.data, 'base64'));
             break;
@@ -193,6 +198,8 @@ database.on(
     case 'feed': // ignore this message
       break;
 
+    case 'dummy': break;
+
     default:
       throw 'unknown message type: ' + msg.type;
     }
@@ -242,6 +249,8 @@ twitter_api.on(
         });
       start();
       break;
+
+    case 'dummy': break;
 
     default:
       throw 'unknown message type: ' + msg.type;

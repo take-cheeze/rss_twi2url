@@ -6,18 +6,18 @@ module.exports = {
   pathname: "",
   author: "Takeshi Watanabe",
 
-  feed_item_max: 100,
+  feed_item_max: 200,
   retry_max: 2,
-  executer: 4,
+  executer: 2,
   url_expander_number: 20,
 
   long_url_length: 40,
   tweet_max: 200,
 
-  fetch_frequency: 1000 * 60 * 10,
-  item_generation_frequency: 1000 * 0.5,
+  fetch_frequency: 1000 * 60 * 20,
+  item_generation_frequency: 1000 * 2.5,
   backup_frequency: 1000 * 60,
-  timeout: 1000 * 10,
+  timeout: 1000 * 8,
   check_frequency: 1000 * 10,
   retry_failure_max: 1,
 
@@ -40,15 +40,18 @@ module.exports = {
     '.ently_body', '.ently-body',
     '.entry', '.body',
     '#posts', '.Photo',
-    'table', 'pre', 'body',
+    'table', 'pre', 'body:first-child',
   ],
 
   removing_tag: [
     'link', 'script', 'dl', 'object', 'style',
-    'frameset', 'frame', 'noframes',
+    'frameset', 'frame', 'noframes', 'title', 'form',
+    'embed', 'meta',
     '#comment', '.comment_area', '.comment', '#comments-list',
-    '.comments', '#comment-form',
-    '.notes', '.note',
+    '.comments', '#comment-form', '#comment_post', '#comment_preview',
+    '#comment_form_table',
+    '.entryInfoList',
+    '.notes', '.note', '#menu',
     '#imageBox',
     '#more-from',
     '#post-tabs', '.post-meta',
@@ -56,12 +59,21 @@ module.exports = {
     '.pagenav-outer',
     '#sub', '.side',
     '.tweetBtn1201',
+    '.content_footer'
   ],
 
   removing_attribute: [
-    'data-hatena-bookmark-layout',
-    'data-hatena-bookmark-title', 'data-lang', 'data-count',
-    'data-url', 'data-text', 'data-via',
+    'pubdate',
+    'onclick', 'onmouseover', 'onmouseout', 'illustrations',
+    'by', 'cesar', 'onkeypress', 'onsubmit', 'onkeydown',
+    'onblur', 'onfocus', 'onkeyup', 'role',
+    'columnguid', 'rodrez',
+    'preview-capable-text', 'more-text',
+    'metrics-loc', 'num-items', 'rating-software',
+    'parental-rating', 'adam-id', 'preview-artist',
+    'aria-label', 'preview-title', 'columnid',
+    'state', 'border_color', 'padding',
+    'border_width', 'boder_type', 'onchange'
   ],
 
   url_expantion_exclude: [
@@ -74,6 +86,17 @@ module.exports = {
   ],
 
   exclude_filter: [
+    'google.co.jp/search',
+    'slash.jp/',
+    'blogos.com/',
+    'yaraon.blog109.fc2.com/',
+    'jin115.com/',
+    'togetter.com/',
+    'blog.esuteru.com/',
+    '/matome.naver.jp/',
+    'maps.google.co',
+    'favstar.fm/',
+    'toranoana.jp/',
     '/www.pixiv.net/member_illust.php',
     'auctions.yahoo.co.jp/',
     'shindanmaker.com/',
@@ -83,7 +106,7 @@ module.exports = {
     '/tou.ch/',
     'amazon.co',
     'youtube.com/',
-    // 'nicovideo.jp/watch/',
+    'nicovideo.jp/watch/',
     'paper.li/',
     'wikipedia.org',
     'http://homepage1.nifty.com/herumi/diary/',

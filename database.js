@@ -114,27 +114,41 @@ function create_child() {
              console.error('Invalid description:', url);
            }
 
-           var cleaned = $('<div />').html(desc);
+           try {
+             var cleaned = $('<div />').html(desc);
 
-           $.each(config.removing_tag, function(k,v) {
-                    cleaned.find(v).each(
-                      function(k, elm) { elm.parentNode.removeChild(elm); }); });
-           $.each(config.removing_attribute, function(k,v) {
-                    cleaned.find('[' + v + ']').removeAttr(v); });
+             $.each(config.removing_tag, function(k,v) {
+                      cleaned.find(v).each(
+                        function(k, elm) { elm.parentNode.removeChild(elm); }); });
+             $.each(config.removing_attribute, function(k,v) {
+                      cleaned.find('[' + v + ']').removeAttr(v); });
+             cleaned.find('*').removeData();
 
-           if(!v.text) { throw 'invalid tweet text'; }
-           db.put(
-             url, JSON.stringify(
-               {
-                 title: title,
-                 description: v.text + (desc? '<br /><br />' : '') +
-                   $('<div />').append(cleaned.clone()).html(),
-                 'url': url, author: v.author, date: v.date
-               }), {}, function(err) { if(err) { throw err; } });
+             if(!v.text) { throw 'invalid tweet text'; }
+             db.put(
+               url, JSON.stringify(
+                 {
+                   title: title,
+                   description: v.text + (desc? '<br /><br />' : '') +
+                     $('<div />').append(cleaned.clone()).html(),
+                   'url': url, author: v.author, date: v.date
+                 }), {}, function(err) { if(err) { throw err; } });
+           } catch(e) {
+             db.put(
+               url, JSON.stringify(
+                 {
+                   title: title,
+                   description: e + '<br /><br />' +
+                     v.text + (desc? '<br /><br />' : '') + desc,
+                   'url': url, author: v.author, date: v.date
+                 }), {}, function(err) { if(err) { throw err; } });
+           }
 
            process.send({ type: 'item_generated', data: url });
          }(msg.data[1], msg.data[2], msg.data[3]));
         break;
+
+      case 'dummy': break;
 
       default:
         throw 'unknown message type: ' + msg.type;
@@ -179,6 +193,7 @@ process.on(
              });
       $.each(executer, function(k, v) {
                v.send({ type: 'config', data: config }); });
+      setInterval(process.send, config.check_frequency, { type: 'dummy' });
       break;
 
     default:

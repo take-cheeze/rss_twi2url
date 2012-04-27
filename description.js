@@ -35,14 +35,15 @@ var config = null;
 var retry_count = {};
 
 var iconv_cache = {
-  'utf8': true, 'utf-8': true,
   'x-sjis': new Iconv('shift_jis', DEFAULT_ENCODING + '//TRANSLIT//IGNORE'),
   'x-euc-jp': new Iconv('euc-jp', DEFAULT_ENCODING + '//TRANSLIT//IGNORE'),
   'windows-31j': new Iconv('shift_jis', DEFAULT_ENCODING + '//TRANSLIT//IGNORE'),
+  'utf8': true, 'utf-8': true
 };
 
 function unescapeHTML(str) {
-  return $('<div />').html(str).text();
+  try { return $('<div />').html(str).text(); }
+  catch(e) { return str; }
 }
 function escapeHTML(str) {
   return $('<div />').text(str).html();
@@ -326,17 +327,18 @@ function get_description(url, callback) {
     '^https?://gist.github.com/\\w+/?': function() {
       var id = url.match(/^https?:\/\/gist.github.com\/(\w+)\/?/)[1];
       fetch_data(
-        function(data) {
+        function(buf) {
           var html = '';
+          var data = buf.toString(); 
           $.each(data.match(/document\.write\('(.+)'\)/g), function(k, v) {
                    html += v.match(/document\.write\('(.+)'\)/)[1];
                  });
           eval("html = '" + html + "'");
           fetch_data(
-            function(buf) {
-              var data = JSON.parse(buf.toString());
-              callback(url, 'Gist: ' + data.id + ': ' + data.description || '', html);
-            }, 'http://api.github.com/gists/' + id);
+            function(info_buf) {
+              var info = JSON.parse(info_buf.toString());
+              callback(url, 'Gist: ' + info.id + ': ' + info.description || '', html);
+            }, 'https://api.github.com/gists/' + id);
         }, 'http://gist.github.com/' + id + '.js');
     },
 
@@ -585,6 +587,8 @@ process.on(
     case 'config':
       config = msg.data;
       jquery_src = config.jquery_src;
+      setInterval(process.send, config.check_frequency,
+                  { type: 'dummy', data: 'dummy' });
       break;
 
     default:

@@ -5,23 +5,22 @@ var fs = require('fs');
 var jsdom = require('jsdom');
 var qs = require('querystring');
 var request = require('request');
-var url_expander = require('url-expander');
+var SingleUrlExpander = require('url-expander').SingleUrlExpander;
 var zlib = require('zlib');
 
 var QUEUE_FILENAME = process.cwd() + '/rss_twi2url_queue.json';
-var url_expander_queue =
-  [];
-/*
-  require('path').existsSync(QUEUE_FILENAME)
-  ? JSON.parse(fs.readFileSync(QUEUE_FILENAME)) : [];
+var url_expander_queue = [];
 function backup() {
-  fs.writeFileSync(QUEUE_FILENAME, JSON.stringify(url_expander_queue));
+  zlib.gzip(
+    new Buffer(JSON.stringify(url_expander_queue)), function(err, buf) {
+      if(err) { throw err; }
+      fs.writeFileSync(QUEUE_FILENAME + '.gz', buf);
+    });
 }
 process.on(
   'exit', function() {
     backup();
   });
-*/
 
 console.log = function() {
   process.send(
@@ -146,6 +145,17 @@ function fetch_page(url, name, info, cb) {
   get_json(
     url + '&' + $.param({page: info.page}), function(data) {
       url_expander_queue = url_expander_queue.concat(data);
+
+      $.each(
+        data, function(tweet_idx, tweet) {
+          var author_str = tweet.user.name + ' ( @' + tweet.user.screen_name + ' )';
+          $.each(
+            tweet.entities.urls, function(k, v) {
+              url_expander_queue.push(
+                { 'url': v.expanded_url || v.url, author: author_str,
+                  date: tweet.created_at, text: tweet.text });
+            });
+        });
       
       if(info.page === 1) {
         info.next_since_id = data.length > 0
@@ -187,8 +197,6 @@ function fetch(setting) {
             'http://api.twitter.com/1/lists/all.json?' +
               $.param({user_id: setting.user_id}),
             function(data) {
-              console.log('list number:', data.length);
-
               function list_fetch() {
                 var list_info = data;
                 var v = list_info.shift();
@@ -254,6 +262,69 @@ function signin(setting) {
   }
 }
 
+var expand_count = 0, expand_cache = {};
+
+function expand_url() {
+  if(expand_count >= config.url_expander_number) {
+    if(url_expander_queue.length >= 1000) { expand_count = 0; }
+    else { return; }
+  }
+
+  var tweet = false;
+  while(!tweet || !tweet.url) {
+    if(url_expander_queue.length === 0) { return; }
+    tweet = url_expander_queue.shift();
+  }
+
+
+  function send_url(result) {
+    tweet.url = result;
+    if(! /\/t\.co\//.test(result)) {
+      process.send(
+        { type: 'fetched_url', data: tweet,
+          left: url_expander_queue.length });
+    }
+
+    expand_count--;
+    expand_url();
+  }
+
+  expand_count++;
+
+  if(expand_cache.hasOwnProperty(tweet.url)) {
+    send_url(expand_cache[tweet.url]);
+  }
+
+  if(
+    (tweet.url.length > config.long_url_length) ||
+    /\?/.test(tweet.url) ||
+      /&/.test(tweet.url) ||
+      match_exclude_filter(tweet.url) ||
+      expantion_exclude(tweet.url)
+  ) {
+    send_url(tweet.url);
+    return;
+  }
+
+  var expander = new SingleUrlExpander(tweet.url);
+  expander.on('expanded', function(orig, exp) {
+                expand_cache[orig] = exp;
+                send_url(exp);
+              });
+  expander.expand();
+
+  expand_url();
+}
+
+process.on(
+  'uncaughtException', function (err) {
+    if(/URI malformed/.test(err)) {
+      console.log('uncaught error:', err);
+      return;
+    }
+    else { throw err; }
+  });
+
 process.on(
   'message', function(msg) {
     if(msg.data === undefined) { throw 'empty data in message: ' + msg.type; }
@@ -262,6 +333,16 @@ process.on(
     case 'signin':
       if(opt.oauth_token_secret) { throw 'already singed in'; }
       signin(msg.data);
+      if(require('path').existsSync(QUEUE_FILENAME + '.gz')) {
+        fs.readFile(
+          QUEUE_FILENAME + '.gz', function(err, b) {
+            zlib.gunzip(
+              b, function(err, buf) {
+                if(err) { throw err; }
+                url_expander_queue = url_expander_queue.concat(JSON.parse(buf.toString()));
+              });
+          });
+      }
       break;
 
     case 'fetch':
@@ -271,77 +352,13 @@ process.on(
                   });
       break;
     case 'config':
-      // setInterval(backup, config.backup_frequency);
       config = msg.data;
+      setInterval(backup, config.backup_frequency);
+      setInterval(expand_url, config.check_frequency);
+      setInterval(process.send, config.check_frequency, { type: 'dummy' });
       break;
 
     default:
       throw 'unknown message type: ' + msg.type;
     }
-  });
-
-var expand_count = 0, expand_cache = {};
-function expand_url() {
-  if(expand_count >= config.url_expander_number) { return; }
-
-  var tweet = false;
-  while(!tweet) {
-    if(url_expander_queue.length === 0) { return; }
-    tweet = url_expander_queue.shift();
-  }
-
-  var author_str = tweet.user.name + ' ( @' + tweet.user.screen_name + ' )';
-  function send_url(result) {
-    expand_count--;
-    expand_url();
-
-    if(! /\/t\.co\//.test(result)) {
-      process.send(
-        { type: 'fetched_url',
-          data:{ url: result, author: author_str,
-                 date: tweet.created_at, text: tweet.text },
-          left: url_expander_queue.length });
-    }
-  }
-
-  $.each(
-    tweet.entities.urls, function(k, v) {
-      expand_count++;
-
-      v.expanded_url = v.expanded_url || v.url;
-
-      if(expand_cache.hasOwnProperty(v.expanded_url)) {
-        send_url(expand_cache[v.expanded_url]);
-        return;
-      }
-
-      if(
-        (v.expanded_url.length > config.long_url_length) ||
-        /\?/.test(v.expanded_url) ||
-        /&/.test(v.expanded_url) ||
-        match_exclude_filter(v.expanded_url) ||
-          expantion_exclude(v.expanded_url)
-      ) {
-        send_url(v.expanded_url);
-        return;
-      }
-
-      var expander = new (url_expander.SingleUrlExpander)(v.expanded_url);
-      expander.on('expanded', function(orig, exp) {
-                    send_url(exp);
-                  });
-      expander.expand();
-    });
-
-  expand_url();
-}
-setInterval(expand_url, config.check_frequency);
-
-process.on(
-  'uncaughtException', function (err) {
-    if(/URI malformed/.test(err)) {
-      console.log('uncaught error:', err);
-      return;
-    }
-    else { throw err; }
   });
