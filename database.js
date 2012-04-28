@@ -8,6 +8,7 @@ console.error = function() {
 };
 
 var $ = require('jquery');
+var htmlcompressor = require(__dirname + '/htmlcompressor.js');
 var jsdom = require('jsdom');
 var zlib = require('zlib');
 
@@ -33,6 +34,21 @@ function generate_feed(items) {
         if(err) { throw err; }
         process.send({ type: 'feed', data: out.toString('base64') });
       });
+
+    // slow
+    /*
+    htmlcompressor(
+      feed.xml(), function(c_err, stdout, stderr) {
+        if(stderr) { console.error(stderr); }
+        if(c_err) { throw c_err; }
+
+        zlib.gzip(
+          stdout, function(err, out) {
+            if(err) { throw err; }
+            process.send({ type: 'feed', data: out.toString('base64') });
+          });
+      });
+     */
   }
 
   if(len === 0) {
@@ -44,8 +60,7 @@ function generate_feed(items) {
     items, function(idx, key) {
       db.get(key, function(err, data) {
                if(err) { throw err; }
-               
-               feed.item(JSON.parse(data));
+               if(data) { feed.item(JSON.parse(data)); }
                if(++count === len) { send_feed(); }
              });
     });
@@ -114,35 +129,43 @@ function create_child() {
              console.error('Invalid description:', url);
            }
 
-           try {
-             var cleaned = $('<div />').html(desc);
+           htmlcompressor(
+             desc, function(err, stdout, stderr) {
+               if(stderr) {
+                 console.error('htmlcompressor error:', stderr.toString());
+               }
+               if(err) { throw err; }
 
-             $.each(config.removing_tag, function(k,v) {
-                      cleaned.find(v).each(
-                        function(k, elm) { elm.parentNode.removeChild(elm); }); });
-             $.each(config.removing_attribute, function(k,v) {
-                      cleaned.find('[' + v + ']').removeAttr(v); });
-             cleaned.find('*').removeData();
+               try {
+                 var cleaned = $('<div />').html(stdout.toString());
 
-             if(!v.text) { throw 'invalid tweet text'; }
-             db.put(
-               url, JSON.stringify(
-                 {
-                   title: title,
-                   description: v.text + (desc? '<br /><br />' : '') +
-                     $('<div />').append(cleaned.clone()).html(),
-                   'url': url, author: v.author, date: v.date
-                 }), {}, function(err) { if(err) { throw err; } });
-           } catch(e) {
-             db.put(
-               url, JSON.stringify(
-                 {
-                   title: title,
-                   description: e + '<br /><br />' +
-                     v.text + (desc? '<br /><br />' : '') + desc,
-                   'url': url, author: v.author, date: v.date
-                 }), {}, function(err) { if(err) { throw err; } });
-           }
+                 $.each(config.removing_tag, function(k,v) {
+                          cleaned.find(v).each(
+                            function(k, elm) { elm.parentNode.removeChild(elm); }); });
+                 $.each(config.removing_attribute, function(k,v) {
+                          cleaned.find('[' + v + ']').removeAttr(v); });
+                 cleaned.find('*').removeData();
+
+                 if(!v.text) { throw 'invalid tweet text'; }
+                 db.put(
+                   url, JSON.stringify(
+                     {
+                       title: title,
+                       description: v.text + (stdout? '<br /><br />' : '') +
+                         $('<div />').append(cleaned.clone()).html(),
+                       'url': url, author: v.author, date: v.date
+                     }), {}, function(err) { if(err) { throw err; } });
+               } catch(e) {
+                 db.put(
+                   url, JSON.stringify(
+                     {
+                       title: title,
+                       description: e + '<br /><br />' +
+                         v.text + (stdout? '<br /><br />' : '') + stdout.toString(),
+                       'url': url, author: v.author, date: v.date
+                     }), {}, function(err) { if(err) { throw err; } });
+               }
+             });
 
            process.send({ type: 'item_generated', data: url });
          }(msg.data[1], msg.data[2], msg.data[3]));
