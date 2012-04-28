@@ -145,10 +145,13 @@ function fetch_page(url, name, info, cb) {
   get_json(
     url + '&' + $.param({page: info.page}), function(data) {
       url_expander_queue = url_expander_queue.concat(data);
+      data = data.results || data;
 
       $.each(
         data, function(tweet_idx, tweet) {
-          var author_str = tweet.user.name + ' ( @' + tweet.user.screen_name + ' )';
+          var user_name = tweet.from_user_name || tweet.user.name;
+          var screen_name = tweet.from_user || tweet.user.screen_name;
+          var author_str = user_name + ' ( @' + screen_name + ' ) / ' + name;
           $.each(
             tweet.entities.urls, function(k, v) {
               url_expander_queue.push(
@@ -182,6 +185,51 @@ function fetch_page(url, name, info, cb) {
 function fetch(setting) {
   if(!twitter_api_left) { return; }
 
+  function fetch_lists() {
+    get_json(
+      'http://api.twitter.com/1/lists/all.json?' +
+        $.param({user_id: setting.user_id}),
+      function(data) {
+        function list_fetch() {
+          var list_info = data;
+          var v = list_info.pop();
+          if(!v) { return; }
+
+          fetch_page(
+            'http://api.twitter.com/1/lists/statuses.json?' +
+              $.param(
+                { include_entities: true, include_rts: true,
+                  list_id: v.id_str, per_page: config.tweet_max
+                }), v.full_name,
+            { page: 1, since_id: setting.since[v.full_name] },
+            list_fetch);
+        }
+        list_fetch();
+      });
+  }
+
+  function fetch_searches() {
+    get_json(
+      'http://api.twitter.com/1/saved_searches.json',
+      function(data) {
+        function search_fetch() {
+          var search_info = data;
+          var v = search_info.shift();
+          if(!v) { fetch_lists(); }
+
+          fetch_page(
+            'http://search.twitter.com/search.json?' +
+              $.param(
+                { include_entities: true, rpp: config.search_max,
+                  q: v.query, result_type: config.search_type
+                }), v.name,
+            { page: 1, since_id: setting.since[v.name] },
+            search_fetch);
+        }
+        search_fetch();
+      });
+  }
+
   check_left_api(
     function() {
       fetch_page(
@@ -192,30 +240,7 @@ function fetch(setting) {
             }),
         'home_timeline',
         { page: 1, since_id: setting.since.home_timeline },
-        function() {
-          get_json(
-            'http://api.twitter.com/1/lists/all.json?' +
-              $.param({user_id: setting.user_id}),
-            function(data) {
-              function list_fetch() {
-                var list_info = data;
-                var v = list_info.shift();
-                if(!v) { return; }
-
-                // console.log('fetching:', v.full_name);
-
-                fetch_page(
-                  'http://api.twitter.com/1/lists/statuses.json?' +
-                    $.param(
-                      { include_entities: true, include_rts: true,
-                        list_id: v.id_str, per_page: config.tweet_max
-                      }), v.full_name,
-                  { page: 1, since_id: setting.since[v.full_name] },
-                  list_fetch);
-              }
-              list_fetch();
-            });
-        });
+        fetch_searches);
     });
 }
 

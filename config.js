@@ -13,6 +13,8 @@ module.exports = {
 
   long_url_length: 40,
   tweet_max: 200,
+  search_max: 100,
+  search_type: 'recent',
 
   fetch_frequency: 1000 * 60 * 20,
   item_generation_frequency: 1000 * 2.5,
