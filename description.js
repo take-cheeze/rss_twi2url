@@ -195,8 +195,10 @@ function get_description(url, callback) {
       }
 
       var charset_regex = /charset="?'?([\w_\-]+)"?'?/i;
+      var encoding_regex = /encoding="?'?([\w_\-]+)"?'?\?/i;
       var ascii = data.toString('ascii');
       var enc =
+        encoding_regex.test(ascii)? ascii.match(encoding_regex)[1]:
         charset_regex.test(ascii)? ascii.match(charset_regex)[1]:
         charset_regex.test(cont_type)? cont_type.match(charset_regex)[1]:
         DEFAULT_ENCODING;
