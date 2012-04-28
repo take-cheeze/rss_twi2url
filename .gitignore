@@ -1,3 +1,6 @@
 /consumer.js
 /rss_twi2url.db
 /rss_twi2url.json
+/rss_twi2url.json.js
+/rss_twi2url_queue.json
+/rss_twi2url_queue.json.gz
