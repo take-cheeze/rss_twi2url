@@ -214,8 +214,11 @@ function fetch(setting) {
       function(data) {
         function search_fetch() {
           var search_info = data;
-          var v = search_info.shift();
-          if(!v) { fetch_lists(); }
+          var v = search_info.pop();
+          if(!v) {
+            fetch_lists();
+            return;
+          }
 
           fetch_page(
             'http://search.twitter.com/search.json?' +
@@ -347,7 +350,10 @@ process.on(
       console.log('uncaught error:', err);
       return;
     }
-    else { throw err; }
+    else {
+      console.error(err);
+      process.exit(1);
+    }
   });
 
 process.on(
