@@ -95,6 +95,7 @@ function start() {
       console.log('Request:', req.headers);
 
       if(req.url !== '/') {
+        console.log('not rss request:', req.url);
         res.writeHead(404, {'Content-Type': 'application/rss+xml'});
         res.end(config.title + '(by ' + config.author + ') : ' + config.description);
         return;
