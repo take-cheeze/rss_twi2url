@@ -31,6 +31,7 @@ module.exports = {
     'article', '.article', '.article-body',
     '.POST_BODY', // exblog
     '.articleText', '.subContents', // ameblo
+    '.viewbody', // tinami
     '#main', '.main', '.mainmore',
     '#content', '.content', '.caption',
     '.entry-content',
@@ -87,7 +88,9 @@ module.exports = {
   ],
 
   exclude_filter: [
+    'itunes.apple.com/',
     'google.co.jp/search',
+    'google.com/search',
     'slash.jp/',
     'blogos.com/',
     'yaraon.blog109.fc2.com/',
