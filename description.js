@@ -36,6 +36,7 @@ var retry_count = {};
 
 var iconv_cache = {
   'x-sjis': new Iconv('shift_jis', DEFAULT_ENCODING + '//TRANSLIT//IGNORE'),
+  'shiftjis': new Iconv('shift_jis', DEFAULT_ENCODING + '//TRANSLIT//IGNORE'),
   'x-euc-jp': new Iconv('euc-jp', DEFAULT_ENCODING + '//TRANSLIT//IGNORE'),
   'windows-31j': new Iconv('shift_jis', DEFAULT_ENCODING + '//TRANSLIT//IGNORE'),
   'utf8': true, 'utf-8': true
@@ -143,7 +144,12 @@ function get_description(url, callback) {
   function oembed(req_url, oembed_callback) {
     fetch_data(
       function(buf) {
-        var data = JSON.parse(buf.toString());
+        var data = null;
+        try { data = JSON.parse(buf.toString()); }
+        catch(e) {
+          error_callback('JSON parse error in oembed: ' + buf.toString());
+          return;
+        }
         if(oembed_callback === undefined) { oembed_default_callback(data); }
         else { oembed_callback(data); }
       }, req_url);
@@ -190,7 +196,11 @@ function get_description(url, callback) {
       var cont_type = res.headers['content-type'];
 
       if(!/html/i.test(cont_type)) {
-        error_callback('unknown content type');
+        if(/image\/\w+/.test(cont_type)) {
+          callback(url, url.match(/\/([^\/]+)$/)[1], image_tag(url));
+        } else {
+          error_callback('unknown content type: ' + cont_type);
+        }
         return;
       }
 
@@ -311,9 +321,6 @@ function get_description(url, callback) {
             image_tag('http://p.twpl.jp/show/orig/' + id));
         });
     },
-
-    '^https?://.+.tumblr.com/post/.+': function() {
-      run_jquery(['.post', '.post_content', 'article', '#content']); },
 
     '^https?://www.twitlonger.com/show/\\w+/?$': function() {
       run_jquery(function($) { callback(url, $('title').text(), $($('p').get(1)).html()); }); },

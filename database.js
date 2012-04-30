@@ -130,7 +130,7 @@ function create_child() {
            }
 
            htmlcompressor(
-             desc, function(err, stdout, stderr) {
+             desc || '', function(err, stdout, stderr) {
                if(stderr) {
                  console.error('htmlcompressor error:', stderr.toString());
                }

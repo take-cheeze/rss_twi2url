@@ -17,7 +17,7 @@ module.exports = {
   search_type: 'recent',
 
   fetch_frequency: 1000 * 60 * 20,
-  item_generation_frequency: 1000 * 2.5,
+  item_generation_frequency: 1000 * 1.5,
   backup_frequency: 1000 * 60,
   timeout: 1000 * 8,
   check_frequency: 1000 * 30,
@@ -31,7 +31,7 @@ module.exports = {
 
   selectors: [
     'article', '.article', '.article-body',
-    '.POST_BODY', // exblog
+    '.POST_BODY', '.post', // exblog
     '.articleText', '.subContents', // ameblo
     '.viewbody', // tinami
     '#main', '.main', '.mainmore',
@@ -41,8 +41,9 @@ module.exports = {
     '.entry_body', '.entry-body',
     '.ently_text', '.ently-text',
     '.ently_body', '.ently-body',
-    '.entry', '.body',
+    '.entry', '#entry', '.body',
     '#posts', '.Photo',
+    '#foto-body',
     'table', 'pre', 'body:first-child',
   ],
 
@@ -90,6 +91,8 @@ module.exports = {
   ],
 
   exclude_filter: [
+    'book.akahoshitakuya.com/',
+    'mediamarker.net/',
     'itunes.apple.com/',
     'google.co.jp/search',
     'google.com/search',

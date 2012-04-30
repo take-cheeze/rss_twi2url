@@ -92,8 +92,6 @@ function generate_item() {
 function start() {
   require('http').createServer(
     function(req, res) {
-      console.log('Request:', req.headers);
-
       if(req.url !== '/') {
         console.log('not rss request:', req.url);
         res.writeHead(404, {'Content-Type': 'application/rss+xml'});
@@ -117,6 +115,7 @@ function start() {
         : rss_twi2url.last_urls
       ;
 
+      console.log('Request:', req.headers);
       console.log('RSS requested:',
                   'queued_urls.length:', rss_twi2url.queued_urls.length, ',',
                   'last_urls.length:', rss_twi2url.last_urls.length, ',',
