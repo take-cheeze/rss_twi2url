@@ -34,6 +34,7 @@ module.exports = {
     '.POST_BODY', '.post', // exblog
     '.articleText', '.subContents', // ameblo
     '.viewbody', // tinami
+    '#foto-body', // hatena photo
     '#main', '.main', '.mainmore',
     '#content', '.content', '.caption',
     '.entry-content',
@@ -43,7 +44,6 @@ module.exports = {
     '.ently_body', '.ently-body',
     '.entry', '#entry', '.body',
     '#posts', '.Photo',
-    '#foto-body',
     'table', 'pre', 'body:first-child',
   ],
 
