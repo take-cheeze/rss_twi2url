@@ -298,7 +298,7 @@ function get_description(url, callback) {
     },
 
     '^https?://twitpic\\.com/(\\w+)(/full)?/?': function() {
-      var id = url.match(/^http:\/\/twitpic.com\/(\w+)(\/full)?\/?/)[1];
+      var id = url.match(/^https?:\/\/twitpic.com\/(\w+)(\/full)?\/?/)[1];
       fetch_data(
         function(buf) {
           var data = JSON.parse(buf.toString());

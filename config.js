@@ -91,6 +91,7 @@ module.exports = {
   ],
 
   exclude_filter: [
+    'ymnn.rdy.jp/',
     'book.akahoshitakuya.com/',
     'mediamarker.net/',
     'itunes.apple.com/',
