@@ -7,7 +7,7 @@ module.exports = {
   author: "Takeshi Watanabe",
 
   feed_item_max: 200,
-  retry_max: 2,
+  retry_max: 1,
   executer: 2,
   url_expander_number: 20,
 
@@ -19,9 +19,9 @@ module.exports = {
   fetch_frequency: 1000 * 60 * 20,
   item_generation_frequency: 1000 * 1.5,
   backup_frequency: 1000 * 60,
-  timeout: 1000 * 8,
+  timeout: 1000 * 10,
   check_frequency: 1000 * 30,
-  retry_failure_max: 1,
+  retry_failure_max: 2,
 
   user_agent: [
     'Mozilla/5.0',
@@ -35,8 +35,9 @@ module.exports = {
     '.articleText', '.subContents', // ameblo
     '.viewbody', // tinami
     '#foto-body', // hatena photo
-    '#main', '.main', '.mainmore',
+    '#main', '.main', '.mainmore', '.blogbody',
     '#content', '.content', '.caption',
+    '.mainEntryBody',
     '.entry-content',
     '.entry_text', '.entry-text',
     '.entry_body', '.entry-body',
@@ -44,7 +45,8 @@ module.exports = {
     '.ently_body', '.ently-body',
     '.entry', '#entry', '.body',
     '#posts', '.Photo',
-    'table', 'pre', 'body:first-child',
+    'pre', 'table',
+    'body:first-child'
   ],
 
   removing_tag: [
@@ -91,6 +93,11 @@ module.exports = {
   ],
 
   exclude_filter: [
+    '\\.tumblr.com/',
+    '^https?://twitter.com/.+/status/\\d+$',
+    '/dqnplus/',
+    'theinterviews.jp/',
+    'booklog.jp/',
     'ymnn.rdy.jp/',
     'book.akahoshitakuya.com/',
     'mediamarker.net/',
