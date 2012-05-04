@@ -130,7 +130,7 @@ function get_description(url, callback) {
   }
 
   function oembed_default_callback(data) {
-    callback(url, data.title || 'oEmbed',
+    callback(url, data.title || '',
              (data.description? data.description + '<br/>' : '') +
              (data.image? image_tag(data.image, data.width, data.height) + '<br/>' :
               data.thumbnail? image_tag(data.thumbnail, data.thumbnail_width, data.thumbnail_height) + '<br/>':
@@ -304,7 +304,7 @@ function get_description(url, callback) {
           var data = JSON.parse(buf.toString());
           callback(
             url, // 'http://twitpic.com/' + id + '/full',
-            data.message || 'Twitpic Content',
+            data.message || '',
             $('<div />').append(
               $('<a />').attr('href', 'http://twitpic.com/' + id + '/full').append(
                 image_tag('http://twitpic.com/show/full/' + id, data.width, data.height))).html());
@@ -317,7 +317,7 @@ function get_description(url, callback) {
           var id = url.match(/^http:\/\/p.twipple.jp\/(\w+)\/?$/)[1];
           callback(
             url, unescapeHTML($('meta[property="og:description"]').attr('content')) ||
-              $('meta[property="og:title"]').attr('content') || $('title').text() || 'Twipple Photo',
+              $('meta[property="og:title"]').attr('content') || $('title').text() || '',
             image_tag('http://p.twpl.jp/show/orig/' + id));
         });
     },
@@ -375,7 +375,7 @@ function get_description(url, callback) {
       if(/\/photo/.test(url)) {
         run_jquery(function($) {
                      callback(
-                       url, $('.status').text() || 'Twitter Picture',
+                       url, $('.status').text() || '',
                        ($('.photos').html() || '')
                          .replace(':small', '').replace(':thumb', ''));
                    },
@@ -398,7 +398,7 @@ function get_description(url, callback) {
       run_jquery(function($) {
                    callback(
                      $('meta[property="og:url"]').attr('content'),
-                     $('.caption').text() || 'Instagram', open_graph_body($));
+                     $('.caption').text() || '', open_graph_body($));
                  }); },
     '^https?://movapic.com/pic/\\w+$': function() {
       callback(
