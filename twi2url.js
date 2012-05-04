@@ -270,6 +270,10 @@ require('request')
          if(e) { throw e; }
          config.jquery_src = body;
 
+         process.on(
+           'exit', function() {
+             v.kill();
+           });
          $.each(
            [twitter_api, database], function(K,v) {
              v.on('exit', function(code, signal) {
