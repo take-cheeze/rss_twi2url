@@ -19,21 +19,30 @@ var rss_twi2url =
   ? JSON.parse(fs.readFileSync(JSON_FILE, 'utf8'))
   : { last_urls: [], queued_urls: [], since: {} };
 if(require('path').existsSync(JSON_FILE + '.gz')) {
-  zlib.gunzip(fs.readFileSync(JSON_FILE + '.gz'), function(err, buf) {
-               if(err) { throw err; }
-               rss_twi2url = JSON.parse(buf.toString());
+  zlib.gunzip(
+    fs.readFileSync(JSON_FILE + '.gz'), function(err, buf) {
+      if(err) { throw err; }
+      rss_twi2url = JSON.parse(buf.toString());
 
-                // reduce feed size
-                while(rss_twi2url.last_urls.length > config.feed_item_max) {
-                  rss_twi2url.last_urls.shift(); }
-              });
+      if(rss_twi2url.generating_items) {
+        $.each(rss_twi2url.generating_items, function(k, v) {
+                 rss_twi2url.queued_urls.push(v);
+               });
+      }
+      rss_twi2url.generating_items = {};
+
+      // reduce feed size
+      while(rss_twi2url.last_urls.length > config.feed_item_max) {
+        rss_twi2url.last_urls.shift(); }
+    });
 }
 
 function backup() {
-  zlib.gzip(new Buffer(JSON.stringify(rss_twi2url)), function(err, buf) {
-              if(err) { throw err; }
-              fs.writeFileSync(JSON_FILE + '.gz', buf);
-            });
+  zlib.gzip(
+    new Buffer(JSON.stringify(rss_twi2url)), function(err, buf) {
+      if(err) { throw err; }
+      fs.writeFileSync(JSON_FILE + '.gz', buf);
+    });
 }
 process.on(
   'exit', function() {
@@ -74,6 +83,7 @@ function generate_item() {
              if((new RegExp(v)).test(str)) { result = true; } });
     return result;
   }
+
   while(rss_twi2url.queued_urls.length > 0) {
     var d = rss_twi2url.queued_urls.shift();
     if(! match_exclude_filter(d.url) &&
@@ -83,6 +93,7 @@ function generate_item() {
       // console.log('start:', d.url);
       setTimeout(database.send, config.item_generation_frequency,
                  { type: 'generate_item', data: d });
+      rss_twi2url.generating_items[d.url] = d;
       last_item_generation = Date.now();
       return;
     }
@@ -116,10 +127,12 @@ function start() {
       ;
 
       console.log('Request:', req.headers);
-      console.log('RSS requested:',
-                  'queued_urls.length:', rss_twi2url.queued_urls.length, ',',
-                  'last_urls.length:', rss_twi2url.last_urls.length, ',',
-                  'url_expander_queue.length:', url_expander_queue_length);
+      console.log('RSS requested:'
+                  , 'queued_urls.length:', rss_twi2url.queued_urls.length, ','
+                  , 'last_urls.length:', rss_twi2url.last_urls.length, ','
+                  , 'url_expander_queue.length:', url_expander_queue_length, ','
+                  , 'generating_items:', rss_twi2url.generating_items, ','
+                 );
 
       database.send({ type: 'get_feed', data: ary });
       function feed_handle(msg) {
@@ -197,6 +210,8 @@ database.on(
       if(!in_last_urls(msg.data))
       { rss_twi2url.last_urls.push(msg.data); }
       // console.log('end  :', msg.data);
+
+      delete rss_twi2url.generating_items[msg.data];
 
       generate_item();
       break;
