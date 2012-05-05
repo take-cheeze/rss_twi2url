@@ -21,7 +21,7 @@ module.exports = {
   backup_frequency: 1000 * 60,
   timeout: 1000 * 10,
   check_frequency: 1000 * 30,
-  retry_failure_max: 2,
+  retry_failure_max: 1,
 
   user_agent: [
     'Mozilla/5.0',
@@ -46,6 +46,7 @@ module.exports = {
     '.entry', '#entry', '.body',
     '#posts', '.Photo',
     'pre', 'table',
+    '[istex="istex"]',
     'body:first-child'
   ],
 
