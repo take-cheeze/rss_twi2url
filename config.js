@@ -6,10 +6,10 @@ module.exports = {
   pathname: "",
   author: "Takeshi Watanabe",
 
-  feed_item_max: 200,
+  feed_item_max: 250,
   retry_max: 1,
-  executer: 2,
-  url_expander_number: 20,
+  executer: 3,
+  url_expander_number: 10,
 
   long_url_length: 40,
   tweet_max: 200,
@@ -17,7 +17,7 @@ module.exports = {
   search_type: 'recent',
 
   fetch_frequency: 1000 * 60 * 20,
-  item_generation_frequency: 1000 * 1.5,
+  item_generation_frequency: 1000 * 0.5,
   backup_frequency: 1000 * 60,
   timeout: 1000 * 10,
   check_frequency: 1000 * 30,
@@ -35,6 +35,7 @@ module.exports = {
     '.articleText', '.subContents', // ameblo
     '.viewbody', // tinami
     '#foto-body', // hatena photo
+    '.EntryText',
     '#main', '.main', '.mainmore', '.blogbody',
     '#content', '.content', '.caption',
     '.mainEntryBody',
@@ -94,6 +95,7 @@ module.exports = {
   ],
 
   exclude_filter: [
+    '/p.tl/',
     '\\.tumblr.com/',
     '^https?://twitter.com/.+/status/\\d+$',
     '/dqnplus/',
