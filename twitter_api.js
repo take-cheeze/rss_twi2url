@@ -13,14 +13,14 @@ var url_expander_queue = [];
 function backup() {
   zlib.gzip(
     new Buffer(JSON.stringify(url_expander_queue)), function(err, buf) {
-      if(err) { throw err; }
-      fs.writeFileSync(QUEUE_FILENAME + '.gz', buf);
-    });
+                                                      if(err) { throw err; }
+                                                      fs.writeFileSync(QUEUE_FILENAME + '.gz', buf);
+                                                    });
 }
 process.on(
   'exit', function() {
-    backup();
-  });
+            backup();
+          });
 
 console.log = function() {
   process.send(
@@ -57,7 +57,7 @@ function get_json(url, callback) {
     function(err, res, data) {
       if(err) {
         if(/timed?out/i.test(err.code)) {
-          console.log(err);
+          console.log(JSON.stringify(err));
           retry();
           return;
         }
@@ -65,32 +65,36 @@ function get_json(url, callback) {
         console.error('URL: ' + url);
       } else if(res) {
         switch(res.statusCode) {
-        case 500: case 502: case 503: case 504:
-          console.log(res);
+          case 500: case 502: case 503: case 504:
+          console.log(JSON.stringify(res));
           retry();
           break;
-        case 200:
+
+          case 200:
           try {
             function uncompress_callback(err, buffer) {
               if(err) { throw err; }
               callback(JSON.parse(buffer.toString('utf8')));
             }
             switch(res.headers['content-encoding']) {
-            case 'gzip':
+              case 'gzip':
               zlib.gunzip(data, uncompress_callback);
               break;
-            case 'deflate':
+
+              case 'deflate':
               zlib.inflate(data, uncompress_callback);
               break;
-            default:
+
+              default:
               callback(JSON.parse(data.toString('utf8')));
               break;
             }
           } catch(e) {
-            console.error(e);
+            console.error(JSON.stringify(e));
           }
           break;
-        default:
+
+          default:
           console.error("Error fetching json from twitter:", res.statusCode);
           console.error('URL: ' + url);
           break;
@@ -121,64 +125,61 @@ function check_left_api(callback) {
 function match_exclude_filter(str) {
   var result = false;
   $.each(config.exclude_filter, function(k, v) {
-           if((new RegExp(v)).test(str)) { result = true; } });
+    if((new RegExp(v)).test(str)) { result = true; } });
   return result;
 }
 function expantion_exclude(url) {
   var ret = false;
   $.each(config.url_expantion_exclude, function(k, v) {
-           if((new RegExp(v)).test(url)) {
-             ret = true;
-             return false;
-           }
-           return undefined;
-         });
+    if((new RegExp(v)).test(url)) {
+      ret = true;
+      return false;
+    }
+    return undefined;
+  });
   return ret;
 }
 
 function fetch_page(url, name, info, cb) {
   url += (info.page === 1 && info.since_id)
-    ? '&' + $.param({since_id: info.since_id}) : '';
+       ? '&' + $.param({since_id: info.since_id}) : '';
 
   // check_left_api(
   // function() {
-  get_json(
-    url + '&' + $.param({page: info.page}), function(data) {
-      url_expander_queue = url_expander_queue.concat(data);
-      data = data.results || data;
+  get_json(url + '&' + $.param({page: info.page}), function(data) {
+    url_expander_queue = url_expander_queue.concat(data);
+    data = data.results || data;
 
-      $.each(
-        data, function(tweet_idx, tweet) {
-          var user_name = tweet.from_user_name || tweet.user.name;
-          var screen_name = tweet.from_user || tweet.user.screen_name;
-          var author_str = user_name + ' ( @' + screen_name + ' ) / ' + name;
-          $.each(
-            tweet.entities.urls, function(k, v) {
-              url_expander_queue.push(
-                { 'url': v.expanded_url || v.url, author: author_str,
-                  date: tweet.created_at, text: tweet.text });
-            });
-        });
-      
-      if(info.page === 1) {
-        info.next_since_id = data.length > 0
-          ? data[0].id_str : info.since_id; }
-
-      if(
-        (!info.since_id) || (data.length === 0) ||
-          (data[data.length - 1].id_str === info.since_id)
-      ) {
-        console.log('next since id of', name, ':', info.next_since_id);
-        process.send(
-          { type: 'set_since_id',
-            data: { 'name': name, since_id: info.next_since_id },
-            left: url_expander_queue.length });
-        if(typeof cb === 'function') { cb(); }
-      } else {
-        info.page++;
-        fetch_page(url, name, info, cb);
-      }
+    $.each(data, function(tweet_idx, tweet) {
+      var user_name = tweet.from_user_name || tweet.user.name;
+      var screen_name = tweet.from_user || tweet.user.screen_name;
+      var author_str = user_name + ' ( @' + screen_name + ' ) / ' + name;
+      $.each(tweet.entities.urls, function(k, v) {
+        url_expander_queue.push(
+          { 'url': v.expanded_url || v.url, author: author_str,
+            date: tweet.created_at, text: tweet.text });
+      });
     });
+
+    if(info.page === 1) {
+      info.next_since_id = data.length > 0
+                         ? data[0].id_str : info.since_id; }
+
+    if(
+      (!info.since_id) || (data.length === 0) ||
+        (data[data.length - 1].id_str === info.since_id)
+    ) {
+      console.log('next since id of', name, ':', info.next_since_id);
+      process.send(
+        { type: 'set_since_id',
+          data: { 'name': name, since_id: info.next_since_id },
+          left: url_expander_queue.length });
+      if(typeof cb === 'function') { cb(); }
+    } else {
+      info.page++;
+      fetch_page(url, name, info, cb);
+    }
+  });
   // });
 }
 
@@ -284,8 +285,8 @@ function signin(setting) {
                 process.send({ type: 'signed_in', data: result });
               });
           })
-          .listen(config.port)
-          .on('clientError', function(e) { console.error(e); });
+                 .listen(config.port)
+                 .on('clientError', function(e) { console.error(JSON.stringify(e)); });
       });
   }
 }
@@ -325,8 +326,8 @@ function expand_url() {
 
   if(
     (tweet.url.length > config.long_url_length) ||
-    /\?/.test(tweet.url) ||
-      /&/.test(tweet.url) ||
+      /\?/.test(tweet.url) ||
+       /&/.test(tweet.url) ||
       match_exclude_filter(tweet.url) ||
       expantion_exclude(tweet.url)
   ) {
@@ -336,25 +337,24 @@ function expand_url() {
 
   var expander = new SingleUrlExpander(tweet.url);
   expander.on('expanded', function(orig, exp) {
-                expand_cache[orig] = exp;
-                send_url(exp);
-              });
+                        expand_cache[orig] = exp;
+                        send_url(exp);
+                      });
   expander.expand();
 
   expand_url();
 }
 
-process.on(
-  'uncaughtException', function (err) {
-    if(/URI malformed/.test(err)) {
-      console.log('uncaught error:', err);
-      return;
-    }
-    else {
-      console.error(err);
-      process.exit(1);
-    }
-  });
+process.on('uncaughtException', function (err) {
+  if(/URI malformed/.test(err)) {
+    console.log('uncaught error:', err);
+    return;
+  }
+  else {
+    console.error(JSON.stringify(err));
+    process.exit(1);
+  }
+});
 
 process.on(
   'message', function(msg) {
@@ -377,7 +377,7 @@ process.on(
       break;
 
     case 'fetch':
-      zlib.gunzip(new Buffer(msg.data, 'base64'), function(err, buf) {
+      zlib.inflateRaw(new Buffer(msg.data, 'base64'), function(err, buf) {
                     if(err) { throw err; }
                     fetch(JSON.parse(buf.toString()));
                   });

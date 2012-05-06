@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 
+var BufferStream = require('bufferstream');
 var fs = require('fs');
 var $ = require('jquery');
 var fork = require('child_process').fork;
@@ -17,7 +18,7 @@ var JSON_FILE = process.cwd() + '/rss_twi2url.json';
 var rss_twi2url =
   require('path').existsSync(JSON_FILE)
   ? JSON.parse(fs.readFileSync(JSON_FILE, 'utf8'))
-  : { last_urls: [], queued_urls: [], since: {} };
+  : { last_urls: [], queued_urls: [], since: {}, generating_items: {} };
 if(require('path').existsSync(JSON_FILE + '.gz')) {
   zlib.gunzip(
     fs.readFileSync(JSON_FILE + '.gz'), function(err, buf) {
@@ -26,8 +27,8 @@ if(require('path').existsSync(JSON_FILE + '.gz')) {
 
       if(rss_twi2url.generating_items) {
         $.each(rss_twi2url.generating_items, function(k, v) {
-                 rss_twi2url.queued_urls.push(v);
-               });
+          rss_twi2url.queued_urls.push(v);
+        });
       }
       rss_twi2url.generating_items = {};
 
@@ -105,59 +106,93 @@ function start() {
     function(req, res) {
       if(req.url !== '/') {
         console.log('not rss request:', req.url);
-        res.writeHead(404, {'Content-Type': 'application/rss+xml'});
+        res.writeHead(404, {'content-type': 'plain'});
         res.end(config.title + '(by ' + config.author + ') : ' + config.description);
         return;
       }
 
       var accept = req.headers['accept-encoding'] || '';
-      var header = {'Content-Type': 'application/rss+xml'};
+      var header = {'content-type': 'application/rss+xml'};
       header['content-encoding'] =
-        /\bgzip\b/.test(accept)? 'gzip':
         /\bdeflate\b/.test(accept)? 'deflate':
+        /\bgzip\b/.test(accept)? 'gzip':
         false;
       if(!header['content-encoding']) {
         delete header['content-encoding']; }
-
-      res.writeHead(200, header);
 
       var ary = rss_twi2url.last_urls.length > config.feed_item_max
         ? rss_twi2url.last_urls.slice(rss_twi2url.last_urls.length - config.feed_item_max)
         : rss_twi2url.last_urls
       ;
 
+      function count_map_element(map) {
+        var ret = 0;
+        $.each(map, function(k, v) {
+          ret++;
+        });
+        return ret;
+      }
       console.log('Request:', req.headers);
       console.log('RSS requested:'
                   , 'queued_urls.length:', rss_twi2url.queued_urls.length, ','
                   , 'last_urls.length:', rss_twi2url.last_urls.length, ','
                   , 'url_expander_queue.length:', url_expander_queue_length, ','
-                  , 'generating_items:', rss_twi2url.generating_items, ','
+                  , 'generating_items.length:', count_map_element(rss_twi2url.generating_items), ','
                  );
+
+      $.each(rss_twi2url.generating_items, function(k, v) {
+        rss_twi2url.queued_urls.push(v);
+      });
+      rss_twi2url.generating_items = {};
+
+      var gen_timeout = false;
+      var gen_timeout_handle =
+        setTimeout(function() {
+          gen_timeout = true;
+          console.log('feed generation timed out');
+          delete header['content-encoding'];
+          header['content-type'] = 'plain';
+
+          res.writeHead(503, header);
+          res.end('feed generation timed out');
+        }, config.timeout);
 
       database.send({ type: 'get_feed', data: ary });
       function feed_handle(msg) {
+        if(gen_timeout) {
+          return;
+        } else {
+          clearTimeout(gen_timeout_handle);
+        }
+
         var d = JSON.stringify(msg);
         if(msg.type === 'feed') {
           console.log('Sending feed with:', header.hasOwnProperty('content-encoding')
                       ? header['content-encoding'] : 'plain');
+          var buf_stream = new BufferStream();
           switch(header.hasOwnProperty('content-encoding')
-                 ? header['content-encoding'] : false)
+                ? header['content-encoding'] : false)
           {
-          case 'gzip':
-            res.end(new Buffer(msg.data, 'base64'));
+            case 'gzip':
+            buf_stream
+            .pipe(zlib.createInflateRaw())
+            .pipe(zlib.createGzip())
+            .pipe(res);
             break;
-          case 'deflate':
-            (new Buffer(msg.data, 'base64'))
-              .pipe(zlib.createGunzip())
-              .pipe(zlib.createDeflate())
-              .pipe(res);
+
+            case 'deflate':
+            buf_stream
+            .pipe(res);
             break;
-          default:
-            (new Buffer(msg.data, 'base64'))
-              .pipe(zlib.createGunzip())
-              .pipe(res);
+
+            default:
+            buf_stream
+            .pipe(zlib.createInflateRaw())
+            .pipe(res);
             break;
           }
+          res.writeHead(200, header);
+          buf_stream.end(msg.data, 'base64');
         }
         else { database.once('message', feed_handle); }
       }
@@ -173,58 +208,58 @@ function start() {
   var i = 0;
   for(; i < config.executer; i++) { generate_item(); }
 
-  zlib.gzip(new Buffer(JSON.stringify(rss_twi2url)), function(err, buf) {
-              if(err) { throw err; }
-              twitter_api.send({ type: 'fetch', data: buf.toString('base64') });
-            });
+  zlib.deflateRaw(new Buffer(JSON.stringify(rss_twi2url)), function(err, buf) {
+    if(err) { throw err; }
+    twitter_api.send({ type: 'fetch', data: buf.toString('base64') });
+  });
 
   setInterval(backup, config.backup_frequency);
-  setInterval(
-    function() {
-      zlib.gzip(
-        new Buffer(JSON.stringify(rss_twi2url)), function(err, buf) {
-          if(err) { throw err; }
-          twitter_api.send({ type: 'fetch', data: buf.toString('base64') });
-        });
-    }, config.fetch_frequency);
+  setInterval(function() {
+    zlib.deflateRaw(
+      new Buffer(JSON.stringify(rss_twi2url)),
+      function(err, buf) {
+        if(err) { throw err; }
+        twitter_api.send({ type: 'fetch', data: buf.toString('base64') });
+      });
+  }, config.fetch_frequency);
 
   setInterval(function() {
-                if(Date.now() - last_item_generation > config.check_frequency) {
-                  var i;
-                  for(i = 0; i < config.executer; ++i) { generate_item(); }
-                }
-              }, config.check_frequency);
+    if(Date.now() - last_item_generation > config.check_frequency) {
+      var i;
+      for(i = 0; i < config.executer; ++i) { generate_item(); }
+    }
+  }, config.check_frequency);
 }
 
-database.on(
-  'message', function(msg) {
-    switch(msg.type) {
+database.on('message', function(msg) {
+  switch(msg.type) {
     case 'log':
-      console.log(msg.data);
-      break;
+    console.log(msg.data);
+    break;
+
     case 'error':
-      console.error(msg.data);
-      break;
+    console.error(msg.data);
+    break;
 
     case 'item_generated':
-      if(!in_last_urls(msg.data))
-      { rss_twi2url.last_urls.push(msg.data); }
-      // console.log('end  :', msg.data);
+    if(!in_last_urls(msg.data))
+    { rss_twi2url.last_urls.push(msg.data); }
+    // console.log('end  :', msg.data);
 
-      delete rss_twi2url.generating_items[msg.data];
+    delete rss_twi2url.generating_items[msg.data];
 
-      generate_item();
-      break;
+    generate_item();
+    break;
 
     case 'feed': // ignore this message
-      break;
+    break;
 
     case 'dummy': break;
 
     default:
-      throw 'unknown message type: ' + msg.type;
-    }
-  });
+    throw 'unknown message type: ' + msg.type;
+  }
+});
 
 function remove_utm_param(url) {
   var url_obj = URL.parse(msg.data.url, true);
@@ -238,67 +273,62 @@ function remove_utm_param(url) {
   return URL.format(url_obj);
 }
 
-twitter_api.on(
-  'message', function(msg) {
-    switch(msg.type) {
+twitter_api.on('message', function(msg) {
+  switch(msg.type) {
     case 'fetched_url':
-      msg.data.url = require(__dirname + '/remove_utm_param')(msg.data.url);
-      if(!is_queued(msg.data.url)) {
-        rss_twi2url.queued_urls.push(msg.data); }
-      url_expander_queue_length = msg.left;
-      break;
+    msg.data.url = require(__dirname + '/remove_utm_param')(msg.data.url);
+    if(!is_queued(msg.data.url)) {
+      rss_twi2url.queued_urls.push(msg.data); }
+    url_expander_queue_length = msg.left;
+    break;
 
     case 'log':
-      console.log(msg.data);
-      url_expander_queue_length = msg.left;
-      break;
+    console.log(msg.data);
+    url_expander_queue_length = msg.left;
+    break;
+
     case 'error':
-      console.error(msg.data);
-      url_expander_queue_length = msg.left;
-      break;
+    console.error(msg.data);
+    url_expander_queue_length = msg.left;
+    break;
 
     case 'set_since_id':
-      rss_twi2url.since[msg.data.name] = msg.data.since_id;
-      url_expander_queue_length = msg.left;
-      break;
+    rss_twi2url.since[msg.data.name] = msg.data.since_id;
+    url_expander_queue_length = msg.left;
+    break;
 
     case 'signed_in':
-      console.log('Authorized!');
-      $.each(
-        ['oauth_token', 'oauth_token_secret', 'user_id', 'screen_name'], function(k,v) {
-          rss_twi2url[v] = msg.data[v];
-        });
-      start();
-      break;
+    console.log('Authorized!');
+    $.each(['oauth_token', 'oauth_token_secret', 'user_id', 'screen_name'],
+           function(k,v) {
+             rss_twi2url[v] = msg.data[v];
+           });
+    start();
+    break;
 
     case 'dummy': break;
 
     default:
-      throw 'unknown message type: ' + msg.type;
-    }
-  });
+    throw 'unknown message type: ' + msg.type;
+  }
+});
 
 
 require('request')
-  .get({uri: 'http://code.jquery.com/jquery-latest.min.js'},
-       function(e, r, body) {
-         if(e) { throw e; }
-         config.jquery_src = body;
+.get({uri: 'http://code.jquery.com/jquery-latest.min.js'}, function(e, r, body) {
+  if(e) { throw e; }
+  config.jquery_src = body;
 
-         process.on(
-           'exit', function() {
-             v.kill();
-           });
-         $.each(
-           [twitter_api, database], function(K,v) {
-             v.on('exit', function(code, signal) {
-                    if(code) {
-                      if(signal) { console.error('with signal:', signal); }
-                      process.exit(code, signal);
-                    }
-                  });
-             v.send({ type: 'config', data: config });
-           });
+  $.each([twitter_api, database], function(k, v) {
+    v.on('exit', function(code, signal) {
+      if(code) {
+        v.kill();
+        if(signal) { console.error('with signal:', signal); }
+        process.exit(code, signal);
+      }
+    });
+    v.send({ type: 'config', data: config });
+  });
 
-         twitter_api.send({ type: 'signin', data: is_signed_in()? rss_twi2url : null });
-       });
+  twitter_api.send({ type: 'signin', data: is_signed_in()? rss_twi2url : null });
+});

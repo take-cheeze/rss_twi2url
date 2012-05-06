@@ -16,8 +16,11 @@ var document = jsdom.jsdom(), window = document.createWindow();
 var config = {};
 var db = null;
 var retry_failure_count = [];
+var is_generating_feed = false;
 
 function generate_feed(items) {
+  if(is_generating_feed) { return; }
+
   var len = items.length, count = 0;
 
   var feed = new (require('rss'))(
@@ -28,12 +31,13 @@ function generate_feed(items) {
       site_url: 'http://' + config.hostname + ':' + config.port + '/' + config.pathname,
       author: config.author });
 
+  is_generating_feed = true;
   function send_feed() {
-    zlib.gzip(
-      new Buffer(feed.xml()), function(err, out) {
-        if(err) { throw err; }
-        process.send({ type: 'feed', data: out.toString('base64') });
-      });
+    zlib.deflateRaw(new Buffer(feed.xml(), 'utf8'), function(err, out) {
+      if(err) { throw err; }
+      process.send({ type: 'feed', data: out.toString('base64') });
+      is_generating_feed = false;
+    });
 
     // slow
     /*
@@ -42,7 +46,7 @@ function generate_feed(items) {
         if(stderr) { console.error(stderr); }
         if(c_err) { throw c_err; }
 
-        zlib.gzip(
+        zlib.deflateRaw(
           stdout, function(err, out) {
             if(err) { throw err; }
             process.send({ type: 'feed', data: out.toString('base64') });

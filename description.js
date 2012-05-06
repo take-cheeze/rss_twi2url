@@ -338,7 +338,7 @@ function get_description(url, callback) {
       fetch_data(
         function(buf) {
           var html = '';
-          var data = buf.toString(); 
+          var data = buf.toString();
           $.each(data.match(/document\.write\('(.+)'\)/g), function(k, v) {
                    html += v.match(/document\.write\('(.+)'\)/)[1];
                  });
