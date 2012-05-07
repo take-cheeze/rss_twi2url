@@ -6,12 +6,12 @@ module.exports = {
   pathname: "",
   author: "Takeshi Watanabe",
 
-  feed_item_max: 250,
+  feed_item_max: 200,
   retry_max: 1,
-  executer: 3,
+  executer: 1,
   url_expander_number: 10,
 
-  long_url_length: 40,
+  long_url_length: 30,
   tweet_max: 200,
   search_max: 100,
   search_type: 'recent',
@@ -35,6 +35,7 @@ module.exports = {
     '.articleText', '.subContents', // ameblo
     '.viewbody', // tinami
     '#foto-body', // hatena photo
+    '#q_back1', // nazolab
     '.EntryText',
     '#main', '.main', '.mainmore', '.blogbody',
     '#content', '.content', '.caption',
@@ -52,7 +53,7 @@ module.exports = {
   ],
 
   removing_tag: [
-    'link', 'script', 'dl', 'object', 'style',
+    'link', 'script', 'dl', 'object', 'style', 'input',
     'frameset', 'frame', 'noframes', 'title', 'form',
     'embed', 'meta',
     '#comment', '.comment_area', '.comment', '#comments-list',

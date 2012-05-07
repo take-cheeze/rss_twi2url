@@ -308,7 +308,7 @@ function expand_url() {
 
   function send_url(result) {
     tweet.url = result;
-    if(! /\/t\.co\//.test(result)) {
+    if(! /\/t\.co\//.test(result) || ! match_exclude_filter(tweet.url)) {
       process.send(
         { type: 'fetched_url', data: tweet,
           left: url_expander_queue.length });
@@ -328,7 +328,6 @@ function expand_url() {
     (tweet.url.length > config.long_url_length) ||
       /\?/.test(tweet.url) ||
        /&/.test(tweet.url) ||
-      match_exclude_filter(tweet.url) ||
       expantion_exclude(tweet.url)
   ) {
     send_url(tweet.url);

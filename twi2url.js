@@ -313,7 +313,6 @@ twitter_api.on('message', function(msg) {
   }
 });
 
-
 require('request')
 .get({uri: 'http://code.jquery.com/jquery-latest.min.js'}, function(e, r, body) {
   if(e) { throw e; }
@@ -331,4 +330,15 @@ require('request')
   });
 
   twitter_api.send({ type: 'signin', data: is_signed_in()? rss_twi2url : null });
+});
+
+process.on('uncaughtException', function (err) {
+  if(/Error: timeout/.test(err)) {
+    console.log('uncaught error:', err);
+    return;
+  }
+  else {
+    console.error(JSON.stringify(err));
+    process.exit(1);
+  }
 });
