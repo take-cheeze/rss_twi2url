@@ -299,6 +299,12 @@ function get_description(url, callback) {
 
     '^https?://twitpic\\.com/(\\w+)(/full)?/?': function() {
       var id = url.match(/^https?:\/\/twitpic.com\/(\w+)(\/full)?\/?/)[1];
+      callback(
+        url, '',
+        $('<div />').append(
+          $('<a />').attr('href', 'http://twitpic.com/' + id + '/full').append(
+            image_tag('http://twitpic.com/show/large/' + id))).html());
+      /*
       fetch_data(
         function(buf) {
           var data = JSON.parse(buf.toString());
@@ -307,14 +313,16 @@ function get_description(url, callback) {
             data.message || '',
             $('<div />').append(
               $('<a />').attr('href', 'http://twitpic.com/' + id + '/full').append(
-                image_tag('http://twitpic.com/show/full/' + id, data.width, data.height))).html());
+                image_tag('http://twitpic.com/show/thumb/' + id, data.width, data.height))).html());
+                // image_tag('http://twitpic.com/show/full/' + id, data.width, data.height))).html());
         }, 'http://api.twitpic.com/2/media/show.json?' + $.param({id: id}));
+       */
     },
 
     '^https?://p.twipple.jp/\\w+/?$': function() {
+      var id = url.match(/^http:\/\/p.twipple.jp\/(\w+)\/?$/)[1];
       run_jquery(
         function($) {
-          var id = url.match(/^http:\/\/p.twipple.jp\/(\w+)\/?$/)[1];
           callback(
             url, unescapeHTML($('meta[property="og:description"]').attr('content')) ||
               $('meta[property="og:title"]').attr('content') || $('title').text() || '',
@@ -330,8 +338,8 @@ function get_description(url, callback) {
 
     '^https?://theinterviews.jp/[\\w\\-]+/\\d+': function() {
       run_jquery(function($) {
-                   callback(url, $('meta[property="og:title"]').attr('content'),
-                            $('.note').html()); }); },
+        callback(url, $('meta[property="og:title"]').attr('content'),
+                 $('.note').html()); }); },
 
     '^https?://gist.github.com/\\w+/?': function() {
       var id = url.match(/^https?:\/\/gist.github.com\/(\w+)\/?/)[1];
@@ -375,8 +383,8 @@ function get_description(url, callback) {
       if(/\/photo/.test(url)) {
         run_jquery(function($) {
                      callback(
-                       url, $('.status').text() || '',
-                       ($('.photos').html() || '')
+                       url, $('.tweet-text').text() || '',
+                       ($('.main-tweet').html() || '')
                          .replace(':small', '').replace(':thumb', ''));
                    },
                    url.replace('/twitter.com/', '/mobile.twitter.com/'));
@@ -396,10 +404,10 @@ function get_description(url, callback) {
       oembed('http://www.docodemo.jp/twil/oembed.json?' + $.param({ 'url': url })); },
     '^https?://instagr.am/p/[\\-\\w_]+/?$': function() {
       run_jquery(function($) {
-                   callback(
-                     $('meta[property="og:url"]').attr('content'),
-                     $('.caption').text() || '', open_graph_body($));
-                 }); },
+        callback(
+          $('meta[property="og:url"]').attr('content'),
+          $('.caption').text() || '', open_graph_body($));
+      }); },
     '^https?://movapic.com/pic/\\w+$': function() {
       callback(
         url, 'movapic.com', image_tag(
