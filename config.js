@@ -47,6 +47,7 @@ module.exports = {
     '.ently_body', '.ently-body',
     '.entry', '#entry', '.body',
     '#posts', '.Photo',
+    '.Text',
     'pre', 'table',
     '[istex="istex"]',
     'body:first-child'
@@ -96,6 +97,7 @@ module.exports = {
   ],
 
   exclude_filter: [
+    '/ux.nu/',
     '/p.tl/',
     '\\.tumblr.com/',
     '^https?://twitter.com/.+/status/\\d+$',
