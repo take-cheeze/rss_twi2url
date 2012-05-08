@@ -11,11 +11,10 @@ var zlib = require('zlib');
 var QUEUE_FILENAME = process.cwd() + '/rss_twi2url_queue.json';
 var url_expander_queue = [];
 function backup() {
-  zlib.gzip(
-    new Buffer(JSON.stringify(url_expander_queue)), function(err, buf) {
-                                                      if(err) { throw err; }
-                                                      fs.writeFileSync(QUEUE_FILENAME + '.gz', buf);
-                                                    });
+  zlib.gzip(new Buffer(JSON.stringify(url_expander_queue)), function(err, buf) {
+    if(err) { throw err; }
+    fs.writeFileSync(QUEUE_FILENAME + '.gz', buf);
+  });
 }
 process.on(
   'exit', function() {
@@ -364,22 +363,20 @@ process.on(
       if(opt.oauth_token_secret) { throw 'already singed in'; }
       signin(msg.data);
       if(require('path').existsSync(QUEUE_FILENAME + '.gz')) {
-        fs.readFile(
-          QUEUE_FILENAME + '.gz', function(err, b) {
-            zlib.gunzip(
-              b, function(err, buf) {
-                if(err) { throw err; }
-                url_expander_queue = url_expander_queue.concat(JSON.parse(buf.toString()));
-              });
+        fs.readFile(QUEUE_FILENAME + '.gz', function(err, b) {
+          zlib.gunzip(b, function(err, buf) {
+            if(err) { throw err; }
+            url_expander_queue = url_expander_queue.concat(JSON.parse(buf.toString()));
           });
+        });
       }
       break;
 
     case 'fetch':
       zlib.inflateRaw(new Buffer(msg.data, 'base64'), function(err, buf) {
-                    if(err) { throw err; }
-                    fetch(JSON.parse(buf.toString()));
-                  });
+        if(err) { throw err; }
+        fetch(JSON.parse(buf.toString()));
+      });
       break;
     case 'config':
       config = msg.data;
