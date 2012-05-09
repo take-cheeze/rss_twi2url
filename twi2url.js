@@ -15,27 +15,39 @@ config.hostname = process.env.HOST || config.hostname;
 config.DB_FILE = process.cwd() + '/rss_twi2url.db';
 var JSON_FILE = process.cwd() + '/rss_twi2url.json';
 
+function match_exclude_filter(str) {
+  var result = false;
+  $.each(config.exclude_filter, function(k, v) {
+    if((new RegExp(v)).test(str)) { result = true; } });
+  return result;
+}
+
 var rss_twi2url =
   require('path').existsSync(JSON_FILE)
   ? JSON.parse(fs.readFileSync(JSON_FILE, 'utf8'))
   : { last_urls: [], queued_urls: [], since: {}, generating_items: {} };
 if(require('path').existsSync(JSON_FILE + '.gz')) {
-  zlib.gunzip(
-    fs.readFileSync(JSON_FILE + '.gz'), function(err, buf) {
-      if(err) { throw err; }
-      rss_twi2url = JSON.parse(buf.toString());
+  zlib.gunzip(fs.readFileSync(JSON_FILE + '.gz'), function(err, buf) {
+    if(err) { throw err; }
+    rss_twi2url = JSON.parse(buf.toString());
 
-      if(rss_twi2url.generating_items) {
-        $.each(rss_twi2url.generating_items, function(k, v) {
-          rss_twi2url.queued_urls.push(v);
-        });
-      }
-      rss_twi2url.generating_items = {};
+    if(rss_twi2url.generating_items) {
+      $.each(rss_twi2url.generating_items, function(k, v) {
+        rss_twi2url.queued_urls.push(v);
+      });
+    }
+    rss_twi2url.generating_items = {};
+
+    var filtered_queue = [];
+    $.each(rss_twi2url.queued_urls, function(k, v) {
+      if(!match_exclude_filter(v.url)) { filtered_queue.push(v); }
+    });
+    rss_twi2url.queued_urls = filtered_queue;
 
       // reduce feed size
       while(rss_twi2url.last_urls.length > config.feed_item_max) {
         rss_twi2url.last_urls.shift(); }
-    });
+  });
 }
 
 function backup() {
@@ -78,13 +90,6 @@ function is_queued(url) {
 }
 
 function generate_item() {
-  function match_exclude_filter(str) {
-    var result = false;
-    $.each(config.exclude_filter, function(k, v) {
-             if((new RegExp(v)).test(str)) { result = true; } });
-    return result;
-  }
-
   while(rss_twi2url.queued_urls.length > 0) {
     var d = rss_twi2url.queued_urls.shift();
     if(! match_exclude_filter(d.url) &&
@@ -139,11 +144,6 @@ function start() {
                   , 'url_expander_queue.length:', url_expander_queue_length, ','
                   , 'generating_items.length:', count_map_element(rss_twi2url.generating_items), ','
                  );
-
-      $.each(rss_twi2url.generating_items, function(k, v) {
-        rss_twi2url.queued_urls.push(v);
-      });
-      rss_twi2url.generating_items = {};
 
       var gen_timeout = false;
       var gen_timeout_handle =
@@ -224,9 +224,9 @@ function start() {
   }, config.fetch_frequency);
 
   setInterval(function() {
-    if(Date.now() - last_item_generation > config.check_frequency) {
-      var i;
-      for(i = 0; i < config.executer; ++i) { generate_item(); }
+    if((Date.now() - last_item_generation) > config.check_frequency) {
+      var i = 0;
+      for(; i < config.executer; ++i) { generate_item(); }
     }
   }, config.check_frequency);
 }
@@ -260,18 +260,6 @@ database.on('message', function(msg) {
     throw 'unknown message type: ' + msg.type;
   }
 });
-
-function remove_utm_param(url) {
-  var url_obj = URL.parse(msg.data.url, true);
-  var removing_param = [];
-  $.each(url_obj.query, function(k, v) {
-           if(/utm_/i.test(k)) { removing_param.push(k); }
-         });
-  $.each(removing_param, function(idx, param) {
-           delete url_obj.query[param];
-         });
-  return URL.format(url_obj);
-}
 
 twitter_api.on('message', function(msg) {
   switch(msg.type) {

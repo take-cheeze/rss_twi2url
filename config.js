@@ -8,7 +8,7 @@ module.exports = {
 
   feed_item_max: 200,
   retry_max: 1,
-  executer: 1,
+  executer: 2,
   url_expander_number: 10,
 
   long_url_length: 30,
@@ -136,5 +136,8 @@ module.exports = {
     '/stream.ogg',
     'gohantabeyo.com/',
     'http://4gamer.net/',
+    'twilog.org/',
+    'twitlonger.com/',
+    'naturum.co.jp/',
   ],
 };

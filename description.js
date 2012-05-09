@@ -29,7 +29,6 @@ jsdom.defaultDocumentFeatures = DEFAULT_FEATURE;
 var DEFAULT_ENCODING = 'utf8';
 var $ = require('jquery');
 $.support.cors = true;
-var jquery_src = '';
 
 var config = null;
 var retry_count = {};
@@ -255,7 +254,7 @@ function get_description(url, callback) {
             document.getElementsByTagName('script'),
             function(elm) { elm.parentNode.removeChild(elm); });
 
-          try { eval(jquery_src); }
+          try { eval(config.jquery_src); }
           catch(e) { console.error('jQuery error:', e); }
 
           if(!window.jQuery) {
@@ -364,7 +363,7 @@ function get_description(url, callback) {
 
     '^https?://tmbox.net/pl/\\d+/?$': function() {
       run_jquery(function($) {
-                   callback(url, $('title').text(), unescapeHTML($('#name').html())); });
+        callback(url, $('title').text(), unescapeHTML($('#name').html())); });
     },
 
     '^https?://www.youtube.com/watch\\?.*v=[\\w\\-]+': function() {
@@ -382,12 +381,11 @@ function get_description(url, callback) {
     '^https?://twitter.com/.+/status/\\d+': function() {
       if(/\/photo/.test(url)) {
         run_jquery(function($) {
-                     callback(
-                       url, $('.tweet-text').text() || '',
-                       ($('.main-tweet').html() || '')
-                         .replace(':small', '').replace(':thumb', ''));
-                   },
-                   url.replace('/twitter.com/', '/mobile.twitter.com/'));
+          callback(
+            url, $('.tweet-text').text() || '',
+            ($('.main-tweet').html() || '')
+            .replace(':small', '').replace(':thumb', ''));
+        }, url.replace('/twitter.com/', '/mobile.twitter.com/'));
       } else {
         oembed('http://api.twitter.com/1/statuses/oembed.json?' +
                $.param({ 'id': url.match(/\/status\/(\d+)/)[1],
@@ -404,16 +402,13 @@ function get_description(url, callback) {
       oembed('http://www.docodemo.jp/twil/oembed.json?' + $.param({ 'url': url })); },
     '^https?://instagr.am/p/[\\-\\w_]+/?$': function() {
       run_jquery(function($) {
-        callback(
-          $('meta[property="og:url"]').attr('content'),
-          $('.caption').text() || '', open_graph_body($));
+        callback(url, $('.caption').text() || '', open_graph_body($));
       }); },
     '^https?://movapic.com/pic/\\w+$': function() {
-      callback(
-        url, 'movapic.com', image_tag(
-          url.replace(
-              /http:\/\/movapic.com\/pic\/(\w+)/,
-            'http://image.movapic.com/pic/m_$1.jpeg'))); },
+      callback(url, 'movapic.com', image_tag(
+        url.replace(
+                /http:\/\/movapic.com\/pic\/(\w+)/,
+          'http://image.movapic.com/pic/m_$1.jpeg'))); },
     '^https?://gyazo.com/\\w+$': function() { callback(url, 'gyazo.com', image_tag(url + '.png')); },
     '^https?://\\w+.tuna.be/\\d+.html$': function() {
       run_jquery(function($) {
@@ -422,33 +417,32 @@ function get_description(url, callback) {
                  }); },
     '^https?://ow.ly/i/\\w+': function() {
       run_jquery(function($) {
-                   var id = url.match(/^http:\/\/ow.ly\/i\/(\w+)/)[1];
-                   callback(
-                     'http://ow.ly/i/' + id + '/original', $('title').text(),
-                     image_tag('http://static.ow.ly/photos/original/' + id + '.jpg'));
-                 }); },
+        var id = url.match(/^http:\/\/ow.ly\/i\/(\w+)/)[1];
+        callback(url, $('title').text(),
+                 image_tag('http://static.ow.ly/photos/original/' + id + '.jpg'));
+      }); },
 
     '^https?://www.nicovideo.jp/watch/\\w+': function() {
       run_jquery(function($) {
-                   callback(url, $('title').text(), $('body').html());
-                 },
+        callback(url, $('title').text(), $('body').html());
+      },
                  'http://ext.nicovideo.jp/thumb/'
-                 + url.match(/^http:\/\/www.nicovideo.jp\/watch\/(\w+)/)[1]); },
+        + url.match(/^http:\/\/www.nicovideo.jp\/watch\/(\w+)/)[1]); },
 
     '^https?://lockerz.com/s/\\d+$': function() {
       run_jquery(function($) {
-                   callback(url, $($('p').get(1)).text(), image_tag($('#photo').attr('src')));
-                 }); },
+        callback(url, $($('p').get(1)).text(), image_tag($('#photo').attr('src')));
+      }); },
 
     '^https?://kokuru.com/\\w+/?$': function() {
       run_jquery(function($) {
-                   callback(url, $('h1').text(), image_tag($('#kokuhaku_image_top').attr('src')));
-                 }); },
+        callback(url, $('h1').text(), image_tag($('#kokuhaku_image_top').attr('src')));
+      }); },
 
     '^https?://twitvideo.jp/\\w+/?$': function() {
       run_jquery(function($) {
-                   callback(url, $('.sf_comment').text(), unescapeHTML($('#vtSource').attr('value')));
-                 }); },
+        callback(url, $('.sf_comment').text(), unescapeHTML($('#vtSource').attr('value')));
+      }); },
 
     '^https?://twitcasting.tv/\\w+/?$': function() {
       var id = url.match(/^http:\/\/twitcasting.tv\/(\w+)\/?$/)[1];
@@ -470,25 +464,23 @@ function get_description(url, callback) {
     '^https?://layercloud.net/items/detail_top/\\d+/?$': function() {
       var id = url.match(/^http:\/\/layercloud.net\/items\/detail_top\/(\d+)\/?$/)[1];
       run_jquery(function($) {
-                   callback(
-                     url, $('.ItemDescription').html(),
-                     image_tag('http://layercloud.net/img/items/' + id + '.jpg'));
-                 });
+        callback(
+          url, $('.ItemDescription').html(),
+          image_tag('http://layercloud.net/img/items/' + id + '.jpg'));
+      });
     },
 
 
     '^https?://ameblo.jp/[\\w\\-_]+/entry-\\d+.html': function() {
-      run_jquery(
-        function($) {
-          callback(url, $('meta[property="og:title"]').attr('content') || $('title').text(),
-                   run_selectors($, ['.articleText', '.subContents'])); });
+      run_jquery(function($) {
+        callback(url, $('meta[property="og:title"]').attr('content') || $('title').text(),
+                 run_selectors($, ['.articleText', '.subContents'])); });
     },
 
     '^https?://www.drawlr.com/d/\\w+/view/?$': function() {
-      fetch_data(
-        function(buf) {
-          callback(url, '', buf.toString().match(/var embed_code = '(.+)';/)[1]);
-        });
+      fetch_data(function(buf) {
+        callback(url, '', buf.toString().match(/var embed_code = '(.+)';/)[1]);
+      });
     },
   };
 
@@ -517,8 +509,7 @@ function get_description(url, callback) {
             return result;
           }()))
   {
-    callback(
-      url, url.match(/\/([^\/]+)$/)[1],
+    callback(url, url.match(/\/([^\/]+)$/)[1],
       $('<div />').append($('<iframe />').attr(
                             { title: 'Google Docs Viewer',
                               'class': 'google-docs-viewer',
@@ -576,39 +567,35 @@ function get_description(url, callback) {
               || $('meta[name="description"]').attr('content')
               || '');
 
-          callback(
-            $('meta[property="og:url"]').attr('content') || url,
-            $('meta[property="og:title"]').attr('content') || $('title').text(), body);
+          callback(url, $('meta[property="og:title"]').attr('content') || $('title').text(), body);
         });
     }
   }
 }
 
-process.on(
-  'message', function(msg) {
-    if(msg.data === undefined) { throw 'empty data in message: ' + msg.type; }
+process.on('message', function(msg) {
+  if(msg.data === undefined) { throw 'empty data in message: ' + msg.type; }
 
-    switch(msg.type) {
+  switch(msg.type) {
     case 'get_description':
-      if(retry_count.hasOwnProperty(msg.data.url)) { retry_count[msg.data.url] = 0; }
-      get_description(
-        msg.data.url, function(url, title, description) {
-          delete retry_count[msg.data.url];
-          title = title.replace(/@(\w)/g, '@ $1');
-          process.send({type: 'got_description', data: [
-                          msg.data, require(__dirname + '/remove_utm_param')(url),
-                          title, description]});
-        });
-      break;
+    if(retry_count.hasOwnProperty(msg.data.url)) { retry_count[msg.data.url] = 0; }
+    get_description(
+      msg.data.url, function(url, title, description) {
+                      delete retry_count[msg.data.url];
+                      title = title.replace(/@(\w)/g, '@ $1');
+                      process.send({type: 'got_description', data: [
+                        msg.data, require(__dirname + '/remove_utm_param')(url),
+                        title, description]});
+                    });
+    break;
 
     case 'config':
-      config = msg.data;
-      jquery_src = config.jquery_src;
-      setInterval(process.send, config.check_frequency,
-                  { type: 'dummy', data: 'dummy' });
-      break;
+    config = msg.data;
+    setInterval(process.send, config.check_frequency,
+                { type: 'dummy', data: 'dummy' });
+    break;
 
     default:
-      throw 'unknown message type: ' + msg.type;
-    }
-  });
+    throw 'unknown message type: ' + msg.type;
+  }
+});

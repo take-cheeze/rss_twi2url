@@ -307,10 +307,8 @@ function expand_url() {
 
   function send_url(result) {
     tweet.url = result;
-    if(! /\/t\.co\//.test(result) || ! match_exclude_filter(tweet.url)) {
-      process.send(
-        { type: 'fetched_url', data: tweet,
-          left: url_expander_queue.length });
+    if(!/\/t\.co\//.test(result) && !match_exclude_filter(tweet.url)) {
+      process.send({ type: 'fetched_url', data: tweet, left: url_expander_queue.length });
     }
 
     expand_count--;
