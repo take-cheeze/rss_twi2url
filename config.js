@@ -6,9 +6,9 @@ module.exports = {
   pathname: "",
   author: "Takeshi Watanabe",
 
-  feed_item_max: 200,
+  feed_item_max: 250,
   retry_max: 1,
-  executer: 2,
+  executer: 1,
   url_expander_number: 10,
 
   long_url_length: 30,
@@ -99,8 +99,8 @@ module.exports = {
   exclude_filter: [
     '/ux.nu/',
     '/p.tl/',
-    '\\.tumblr.com/',
-    '^https?://twitter.com/.+/status/\\d+$',
+    // '\\.tumblr.com/',
+    // '^https?://twitter.com/.+/status/\\d+$',
     '/dqnplus/',
     'theinterviews.jp/',
     'booklog.jp/',
@@ -137,7 +137,7 @@ module.exports = {
     'gohantabeyo.com/',
     'http://4gamer.net/',
     'twilog.org/',
-    'twitlonger.com/',
+    // 'twitlonger.com/',
     'naturum.co.jp/',
   ],
 };

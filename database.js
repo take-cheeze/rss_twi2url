@@ -133,6 +133,8 @@ function create_child() {
              console.error('Invalid description:', url);
            }
 
+          title = title.replace(/@(\w)/g, '@ $1');
+
            htmlcompressor(
              (typeof desc === 'string')? desc : '',
              function(err, stdout, stderr) {

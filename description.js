@@ -320,13 +320,15 @@ function get_description(url, callback) {
 
     '^https?://p.twipple.jp/\\w+/?$': function() {
       var id = url.match(/^http:\/\/p.twipple.jp\/(\w+)\/?$/)[1];
-      run_jquery(
-        function($) {
+      callback(url, '', image_tag('http://p.twpl.jp/show/orig/' + id));
+      /*
+      run_jquery(function($) {
           callback(
             url, unescapeHTML($('meta[property="og:description"]').attr('content')) ||
               $('meta[property="og:title"]').attr('content') || $('title').text() || '',
             image_tag('http://p.twpl.jp/show/orig/' + id));
         });
+       */
     },
 
     '^https?://www.twitlonger.com/show/\\w+/?$': function() {
@@ -582,7 +584,6 @@ process.on('message', function(msg) {
     get_description(
       msg.data.url, function(url, title, description) {
                       delete retry_count[msg.data.url];
-                      title = title.replace(/@(\w)/g, '@ $1');
                       process.send({type: 'got_description', data: [
                         msg.data, require(__dirname + '/remove_utm_param')(url),
                         title, description]});
