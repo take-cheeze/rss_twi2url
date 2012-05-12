@@ -319,14 +319,3 @@ require('request')
 
   twitter_api.send({ type: 'signin', data: is_signed_in()? rss_twi2url : null });
 });
-
-process.on('uncaughtException', function (err) {
-  if(/Error: timeout/.test(err)) {
-    console.log('uncaught error:', err);
-    return;
-  }
-  else {
-    console.error(JSON.stringify(err));
-    process.exit(1);
-  }
-});

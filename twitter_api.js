@@ -16,10 +16,9 @@ function backup() {
     fs.writeFileSync(QUEUE_FILENAME + '.gz', buf);
   });
 }
-process.on(
-  'exit', function() {
-            backup();
-          });
+process.on('exit', function() {
+  backup();
+});
 
 console.log = function() {
   process.send(
@@ -56,7 +55,7 @@ function get_json(url, callback) {
     function(err, res, data) {
       if(err) {
         if(/timed?out/i.test(err.code)) {
-          console.log(JSON.stringify(err));
+          // console.log(JSON.stringify(err));
           retry();
           return;
         }
@@ -65,7 +64,7 @@ function get_json(url, callback) {
       } else if(res) {
         switch(res.statusCode) {
           case 500: case 502: case 503: case 504:
-          console.log(JSON.stringify(res));
+          // console.log(JSON.stringify(res));
           retry();
           break;
 
@@ -176,7 +175,7 @@ function fetch_page(url, name, info, cb) {
       if(typeof cb === 'function') { cb(); }
     } else {
       info.page++;
-      fetch_page(url, name, info, cb);
+      setTimeout(fetch_page, config.item_generation_frequency, url, name, info, cb);
     }
   });
   // });

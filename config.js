@@ -6,7 +6,7 @@ module.exports = {
   pathname: "",
   author: "Takeshi Watanabe",
 
-  feed_item_max: 250,
+  feed_item_max: 200,
   retry_max: 1,
   executer: 1,
   url_expander_number: 10,
@@ -17,9 +17,9 @@ module.exports = {
   search_type: 'recent',
 
   fetch_frequency: 1000 * 60 * 20,
-  item_generation_frequency: 1000 * 0.5,
+  item_generation_frequency: 1000 * 0.3,
   backup_frequency: 1000 * 60,
-  timeout: 1000 * 10,
+  timeout: 1000 * 7.5,
   check_frequency: 1000 * 30,
   retry_failure_max: 1,
 
@@ -40,7 +40,7 @@ module.exports = {
     '#main', '.main', '.mainmore', '.blogbody',
     '#content', '.content', '.caption',
     '.mainEntryBody',
-    '.entry-content',
+    '.entry-content', // hatenablog
     '.entry_text', '.entry-text',
     '.entry_body', '.entry-body',
     '.ently_text', '.ently-text',
@@ -74,6 +74,7 @@ module.exports = {
   ],
 
   removing_attribute: [
+    /*
     'pubdate',
     'onclick', 'onmouseover', 'onmouseout', 'illustrations',
     'by', 'cesar', 'onkeypress', 'onsubmit', 'onkeydown',
@@ -85,6 +86,7 @@ module.exports = {
     'aria-label', 'preview-title', 'columnid',
     'state', 'border_color', 'padding',
     'border_width', 'boder_type', 'onchange'
+     */
   ],
 
   url_expantion_exclude: [
@@ -100,7 +102,8 @@ module.exports = {
     '/ux.nu/',
     '/p.tl/',
     // '\\.tumblr.com/',
-    // '^https?://twitter.com/.+/status/\\d+$',
+    '^https?://twitter.com/.+/status/\\d+$',
+    'twitlonger.com/',
     '/dqnplus/',
     'theinterviews.jp/',
     'booklog.jp/',
@@ -129,7 +132,7 @@ module.exports = {
     '/tou.ch/',
     'amazon.co',
     'youtube.com/',
-    'nicovideo.jp/watch/',
+    // 'nicovideo.jp/watch/',
     'paper.li/',
     'wikipedia.org',
     'http://homepage1.nifty.com/herumi/diary/',
@@ -137,7 +140,7 @@ module.exports = {
     'gohantabeyo.com/',
     'http://4gamer.net/',
     'twilog.org/',
-    // 'twitlonger.com/',
     'naturum.co.jp/',
-  ],
+    'cnn.co.jp/'
+  ]
 };

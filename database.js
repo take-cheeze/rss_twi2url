@@ -60,14 +60,13 @@ function generate_feed(items) {
     return;
   }
 
-  $.each(
-    items, function(idx, key) {
-      db.get(key, function(err, data) {
-               if(err) { throw err; }
-               if(data) { feed.item(JSON.parse(data)); }
-               if(++count === len) { send_feed(); }
-             });
+  $.each(items, function(idx, key) {
+    db.get(key, function(err, data) {
+      if(err) { throw err; }
+      if(data) { feed.item(JSON.parse(data)); }
+      if(++count === len) { send_feed(); }
     });
+  });
 }
 
 var executer = [], next_executer = 0;
@@ -75,12 +74,12 @@ var executer = [], next_executer = 0;
 function executer_index(exe) {
   var ret = -1;
   $.each(executer, function(k, v) {
-           if(v === exe) {
-             ret = k;
-             return false;
-           }
-           return undefined;
-         });
+    if(v === exe) {
+      ret = k;
+      return false;
+    }
+    return undefined;
+  });
   if(ret === -1) { throw 'cannot find executer'; }
   else { return ret; }
 }
@@ -90,100 +89,95 @@ function create_child() {
     .fork(__dirname + '/description.js', [], { env: process.env });
   ret.send({ type: 'config', data: config });
 
-  ret.on(
-    'exit', function(code, signal) {
-      var idx = executer_index(ret);
-      if(executer[idx].restart) {
-        executer[idx] = create_child();
-        console.log('restarting executer:', idx);
-      } else {
-        process.exit(code, signal);
-      }
-    });
+  ret.on('exit', function(code, signal) {
+    var idx = executer_index(ret);
+    if(executer[idx].restart) {
+      executer[idx] = create_child();
+      console.log('restarting executer:', idx);
+    } else {
+      process.exit(code, signal);
+    }
+  });
 
-  ret.on(
-    'message', function(msg) {
-      if(msg.data === undefined) { throw 'empty data in message: ' + msg.type; }
+  ret.on('message', function(msg) {
+    if(msg.data === undefined) { throw 'empty data in message: ' + msg.type; }
 
-      switch(msg.type) {
+    switch(msg.type) {
       case 'log':
-        console.log(msg.data);
-        break;
+      console.log(msg.data);
+      break;
       case 'error':
-        console.error(msg.data);
-        break;
+      console.error(msg.data);
+      break;
 
       case 'got_description':
-        var v = msg.data[0];
-        (function(url, title, desc) {
-           if(/retry count exceeded/.test(desc)) {
-             var idx = executer_index(ret);
-             if(++retry_failure_count[idx] >= config.retry_failure_max) {
-               retry_failure_count[idx] = 0;
-               executer[idx].kill();
-               executer[idx].restart = true;
-             }
-           }
+      var v = msg.data[0];
+      (function(url, title, desc) {
+        if(/retry count exceeded/.test(desc)) {
+          var idx = executer_index(ret);
+          if(++retry_failure_count[idx] >= config.retry_failure_max) {
+            retry_failure_count[idx] = 0;
+            executer[idx].kill();
+            executer[idx].restart = true;
+          }
+        }
 
-           if(!title) {
-             console.error('Invalid title:', url);
-             title = v.text;
-           }
-           if(!desc) {
-             console.error('Invalid description:', url);
-           }
+        if(!title) {
+          console.error('Invalid title:', url);
+          title = v.text;
+        }
+        if(!desc) {
+          console.error('Invalid description:', url);
+        }
 
-          title = title.replace(/@(\w)/g, '@ $1');
+        title = title.replace(/@(\w)/g, '@ $1');
 
-           htmlcompressor(
-             (typeof desc === 'string')? desc : '',
-             function(err, stdout, stderr) {
-               if(stderr) {
-                 console.error('htmlcompressor error:', stderr.toString());
-               }
-               if(err) { throw err; }
+        htmlcompressor((typeof desc === 'string')? desc : '', function(err, stdout, stderr) {
+          if(stderr) {
+            console.error('htmlcompressor error:', stderr.toString());
+          }
+          if(err) { throw err; }
 
-               try {
-                 var cleaned = $('<div />').html(stdout.toString());
+          try {
+            var cleaned = $('<div />').html(stdout.toString());
 
-                 $.each(config.removing_tag, function(k,v) {
-                          cleaned.find(v).each(
-                            function(k, elm) { elm.parentNode.removeChild(elm); }); });
-                 $.each(config.removing_attribute, function(k,v) {
-                          cleaned.find('[' + v + ']').removeAttr(v); });
-                 cleaned.find('*').removeData();
+            $.each(config.removing_tag, function(k,v) {
+              cleaned.find(v).each(
+                function(k, elm) { elm.parentNode.removeChild(elm); }); });
+            $.each(config.removing_attribute, function(k,v) {
+              cleaned.find('[' + v + ']').removeAttr(v); });
+            cleaned.find('*').removeData();
 
-                 if(!v.text) { throw 'invalid tweet text'; }
-                 db.put(
-                   url, JSON.stringify(
-                     {
-                       title: title,
-                       description: v.text + (stdout? '<br /><br />' : '') +
-                         $('<div />').append(cleaned.clone()).html(),
-                       'url': url, author: v.author, date: v.date
-                     }), {}, function(err) { if(err) { throw err; } });
-               } catch(e) {
-                 db.put(
-                   url, JSON.stringify(
-                     {
-                       title: title,
-                       description: e + '<br /><br />' +
-                         v.text + (stdout? '<br /><br />' : '') + stdout.toString(),
-                       'url': url, author: v.author, date: v.date
-                     }), {}, function(err) { if(err) { throw err; } });
-               }
-             });
+            if(!v.text) { throw 'invalid tweet text'; }
+            db.put(url, JSON.stringify(
+              {
+                title: title,
+                description: v.text + (stdout? '<br /><br />' : '') +
+                  $('<div />').append(cleaned.clone()).html(),
+                'url': url, author: v.author, date: v.date
+              }), {}, function(err) { if(err) { throw err; } });
+          } catch(e) {
+            db.put(
+              url, JSON.stringify(
+                {
+                  title: title,
+                  description: e + '<br /><br />' +
+                    v.text + (stdout? '<br /><br />' : '') + stdout.toString(),
+                  'url': url, author: v.author, date: v.date
+                }), {}, function(err) { if(err) { throw err; } });
+          }
+        });
 
-           process.send({ type: 'item_generated', data: url });
-         }(msg.data[1], msg.data[2], msg.data[3]));
-        break;
+        process.send({ type: 'item_generated', data: url });
+      }(msg.data[1], msg.data[2], msg.data[3]));
+      break;
 
       case 'dummy': break;
 
       default:
-        throw 'unknown message type: ' + msg.type;
-      }
-    });
+      throw 'unknown message type: ' + msg.type;
+    }
+  });
 
   return ret;
 }
@@ -196,37 +190,35 @@ function generate_item(v) {
   if(next_executer >= config.executer) { next_executer = 0; }
 }
 
-process.on(
-  'message', function(msg) {
-    if(msg.data === undefined) { throw 'empty data in message: ' + msg.type; }
+process.on('message', function(msg) {
+  if(msg.data === undefined) { throw 'empty data in message: ' + msg.type; }
 
-    switch(msg.type) {
+  switch(msg.type) {
     case 'generate_item':
-      generate_item(msg.data);
-      break;
+    generate_item(msg.data);
+    break;
 
     case 'get_feed':
-      generate_feed(msg.data);
-      break;
+    generate_feed(msg.data);
+    break;
 
     case 'config':
-      config = msg.data;
-      db = new (require('leveldb').DB)();
-      db.open(
-        config.DB_FILE, { create_if_missing: true }, function(err) {
-          if(err) { throw err; }
-        });
-      executer[config.executer - 1] = undefined;
-      $.each(executer, function(k, v) {
-               executer[k] = create_child();
-               retry_failure_count[k] = 0;
-             });
-      $.each(executer, function(k, v) {
-               v.send({ type: 'config', data: config }); });
-      setInterval(process.send, config.check_frequency, { type: 'dummy' });
-      break;
+    config = msg.data;
+    db = new (require('leveldb').DB)();
+    db.open(config.DB_FILE, { create_if_missing: true }, function(err) {
+      if(err) { throw err; }
+    });
+    executer[config.executer - 1] = undefined;
+    $.each(executer, function(k, v) {
+      executer[k] = create_child();
+      retry_failure_count[k] = 0;
+    });
+    $.each(executer, function(k, v) {
+      v.send({ type: 'config', data: config }); });
+    setInterval(process.send, config.check_frequency, { type: 'dummy' });
+    break;
 
     default:
-      throw 'unknown message type: ' + msg.type;
-    }
-  });
+    throw 'unknown message type: ' + msg.type;
+  }
+});

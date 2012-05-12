@@ -141,51 +141,48 @@ function get_description(url, callback) {
               ''));
   }
   function oembed(req_url, oembed_callback) {
-    fetch_data(
-      function(buf) {
-        var data = null;
-        try { data = JSON.parse(buf.toString()); }
-        catch(e) {
-          error_callback('JSON parse error in oembed: ' + buf.toString());
-          return;
-        }
-        if(oembed_callback === undefined) { oembed_default_callback(data); }
-        else { oembed_callback(data); }
-      }, req_url);
+    fetch_data(function(buf) {
+      var data = null;
+      try { data = JSON.parse(buf.toString()); }
+      catch(e) {
+        error_callback('JSON parse error in oembed: ' + buf.toString());
+        return;
+      }
+      if(oembed_callback === undefined) { oembed_default_callback(data); }
+      else { oembed_callback(data); }
+    }, req_url);
   }
 
   function open_graph_body($) {
     var body = '';
-    $.each(
-      ['image', 'video', 'audio'], function(tag_idx, tag) {
-        $.each(
-          ['property', 'name'], function(attr_idx, attr) {
-            $('meta[' + attr + '="og:' + tag + '"]').each(
-              function(idx, elm) {
-                var opt = { src: $(elm).attr('content') }, i = $(elm).next();
-                for(; (new RegExp('og:' + tag + ':')).test(i.attr(attr)); i = i.next()) {
-                  var struct_prop = i.attr(attr).match(new RegExp('og:' + tag + ':(\\w+)'))[1];
-                  switch(struct_prop) {
-                  case 'width':
-                  case 'height':
-                    opt[struct_prop] = i.attr('content');
-                    break;
-                  }
-                }
-                body += $('<div />').append(
-                  $('<' + (tag === 'image'? 'img' : tag) + ' />').attr(opt)
-                ).html() + '<br />';
-              });
-          });
+    $.each(['image', 'video', 'audio'], function(tag_idx, tag) {
+      $.each(['property', 'name'], function(attr_idx, attr) {
+        $('meta[' + attr + '="og:' + tag + '"]').each(function(idx, elm) {
+          var opt = { src: $(elm).attr('content') }, i = $(elm).next();
+
+          for(; (new RegExp('og:' + tag + ':')).test(i.attr(attr)); i = i.next()) {
+            var struct_prop = i.attr(attr).match(new RegExp('og:' + tag + ':(\\w+)'))[1];
+            switch(struct_prop) {
+              case 'width':
+              case 'height':
+              opt[struct_prop] = i.attr('content');
+              break;
+            }
+          }
+
+          body += $('<div />').append(
+            $('<' + (tag === 'image'? 'img' : tag) + ' />').attr(opt)
+          ).html() + '<br />';
+        });
       });
+    });
     return body;
   }
   function run_selectors($, selectors) {
     var body = '';
-    $.each(
-      selectors, function(k, selector) {
-        if(!body) { $(selector).each(function(idx, elm) { body += $('<div />').append(elm).html(); }); }
-      });
+    $.each(selectors, function(k, selector) {
+      if(!body) { $(selector).each(function(idx, elm) { body += $('<div />').append(elm).html(); }); }
+    });
     return body;
   }
 
@@ -196,7 +193,7 @@ function get_description(url, callback) {
 
       if(!/html/i.test(cont_type)) {
         if(/image\/\w+/.test(cont_type)) {
-          callback(url, url.match(/\/([^\/]+)$/)[1], image_tag(url));
+          callback(url, '', image_tag(url));
         } else {
           error_callback('unknown content type: ' + cont_type);
         }
@@ -288,19 +285,46 @@ function get_description(url, callback) {
   var GALLERY_FILTER = {
     '^https?://photozou.jp/photo/\\w+/(\\d+)/(\\d+)$': function() {
       var id = url.match(/^http:\/\/photozou.jp\/photo\/\w+\/(\d+)\/(\d+)/)[2];
+      callback(
+        url, '', $('<div />').append(
+          $('<a />').attr('href', url.replace('show', 'photo_only')).append(
+            image_tag('http://photozou.jp/p/img/' + id))).html());
+    },
+
+    '^https?://yfrog\\.com/(\\w+)/?': function() {
+      var id = url.match(/^https?:\/\/yfrog\.com\/(\w+)\/?/)[1];
+      callback(
+        url, '', $('<div />').append(
+          $('<a />').attr('href', 'http://yfrog.com/z/' + id).append(
+            image_tag('http://yfrog.com/' + id + ':medium'))).html());
+    },
+
+    '^https?://instagr.am/p/[\\-\\w_]+/?$': function() {
+      var id = url.match(/^https?:\/\/instagr.am\/p\/([\-\w_]+)\/?$/)[1];
+      callback(url, '', image_tag('http://instagr.am/p/' + id + '/media/?size=l'));
+      /*
       run_jquery(function($) {
-                   callback(
-                     url, // url.replace('show', 'photo_only'),
-                     $('#media_description').text() || $('title').text(),
-                     $('#indivi_media').html()); // .replace(/\.v(\d+)/, '_org.v$1'));
-                 });
+        callback(url, $('.caption').text() || '', open_graph_body($));
+      });
+       */
+    },
+
+    '^https?://ow.ly/i/\\w+': function() {
+      var id = url.match(/^http:\/\/ow.ly\/i\/(\w+)/)[1];
+      callback(url, '', image_tag('http://static.ow.ly/photos/normal/' + id + '.jpg'));
+      /*
+      run_jquery(function($) {
+        var id = url.match(/^http:\/\/ow.ly\/i\/(\w+)/)[1];
+        callback(url, $('title').text(),
+                 image_tag('http://static.ow.ly/photos/original/' + id + '.jpg'));
+      });
+       */
     },
 
     '^https?://twitpic\\.com/(\\w+)(/full)?/?': function() {
       var id = url.match(/^https?:\/\/twitpic.com\/(\w+)(\/full)?\/?/)[1];
       callback(
-        url, '',
-        $('<div />').append(
+        url, '', $('<div />').append(
           $('<a />').attr('href', 'http://twitpic.com/' + id + '/full').append(
             image_tag('http://twitpic.com/show/large/' + id))).html());
       /*
@@ -330,6 +354,12 @@ function get_description(url, callback) {
         });
        */
     },
+
+    '^https?://movapic.com/pic/\\w+$': function() {
+      callback(url, '',
+               image_tag(url.replace(/http:\/\/movapic.com\/pic\/(\w+)/,
+                                     'http://image.movapic.com/pic/m_$1.jpeg'))); },
+    '^https?://gyazo.com/\\w+$': function() { callback(url, '', image_tag(url + '.png')); },
 
     '^https?://www.twitlonger.com/show/\\w+/?$': function() {
       run_jquery(function($) { callback(url, $('title').text(), $($('p').get(1)).html()); }); },
@@ -383,10 +413,7 @@ function get_description(url, callback) {
     '^https?://twitter.com/.+/status/\\d+': function() {
       if(/\/photo/.test(url)) {
         run_jquery(function($) {
-          callback(
-            url, $('.tweet-text').text() || '',
-            ($('.main-tweet').html() || '')
-            .replace(':small', '').replace(':thumb', ''));
+          callback(url, $('.tweet-text').text() || '',$('.main-tweet').html());
         }, url.replace('/twitter.com/', '/mobile.twitter.com/'));
       } else {
         oembed('http://api.twitter.com/1/statuses/oembed.json?' +
@@ -402,26 +429,10 @@ function get_description(url, callback) {
       oembed('http://www.flickr.com/services/oembed?' + $.param({ 'url': url, format: 'json' })); },
     '^https?://www.docodemo.jp/twil/view/': function() {
       oembed('http://www.docodemo.jp/twil/oembed.json?' + $.param({ 'url': url })); },
-    '^https?://instagr.am/p/[\\-\\w_]+/?$': function() {
-      run_jquery(function($) {
-        callback(url, $('.caption').text() || '', open_graph_body($));
-      }); },
-    '^https?://movapic.com/pic/\\w+$': function() {
-      callback(url, 'movapic.com', image_tag(
-        url.replace(
-                /http:\/\/movapic.com\/pic\/(\w+)/,
-          'http://image.movapic.com/pic/m_$1.jpeg'))); },
-    '^https?://gyazo.com/\\w+$': function() { callback(url, 'gyazo.com', image_tag(url + '.png')); },
     '^https?://\\w+.tuna.be/\\d+.html$': function() {
       run_jquery(function($) {
-                   callback(url, $('title').text(),
-                            $('.blog-message').html() || $('.photo').html());
-                 }); },
-    '^https?://ow.ly/i/\\w+': function() {
-      run_jquery(function($) {
-        var id = url.match(/^http:\/\/ow.ly\/i\/(\w+)/)[1];
         callback(url, $('title').text(),
-                 image_tag('http://static.ow.ly/photos/original/' + id + '.jpg'));
+                 $('.blog-message').html() || $('.photo').html());
       }); },
 
     '^https?://www.nicovideo.jp/watch/\\w+': function() {
@@ -536,41 +547,40 @@ function get_description(url, callback) {
           }()))
   {
     run_jquery(function($) {
-                 var section = '';
-                 $('.section').each(function(k,v) { section += $(v).html(); });
-                 callback(url, $('title').text(), section); }); }
+      var section = '';
+      $('.section').each(function(k,v) { section += $(v).html(); });
+      callback(url, $('title').text(), section); }); }
 
   else {
     if((function() {
-         var result = true;
+          var result = true;
           $.each(GALLERY_FILTER, function(k, v) {
-                  if((new RegExp(k, 'i')).test(url)) {
-                    v();
-                    result = false;
-                    return false; // break
-                  }
-                  return true; // continue
-                });
-         return result;
-       }()))
+            if((new RegExp(k, 'i')).test(url)) {
+              v();
+              result = false;
+              return false; // break
+            }
+            return true; // continue
+          });
+          return result;
+        }()))
     {
-      run_jquery(
-        function($) {
-          var oembed_url = $('link[rel="alternate"][type="text/json+oembed"]').attr('href');
-          if(oembed_url) {
-            oembed(oembed_url);
-            return;
-          }
+      run_jquery(function($) {
+        var oembed_url = $('link[rel="alternate"][type="text/json+oembed"]').attr('href');
+        if(oembed_url) {
+          oembed(oembed_url);
+          return;
+        }
 
-          var body = open_graph_body($);
-          if(!body) { body += run_selectors($, config.selectors); }
-          body += unescapeHTML(
-            $('meta[property="og:description"]').attr('content')
-              || $('meta[name="description"]').attr('content')
-              || '');
+        var body = open_graph_body($);
+        if(!body) { body += run_selectors($, config.selectors); }
+        body += unescapeHTML(
+          $('meta[property="og:description"]').attr('content')
+                            || $('meta[name="description"]').attr('content')
+                            || '');
 
-          callback(url, $('meta[property="og:title"]').attr('content') || $('title').text(), body);
-        });
+        callback(url, $('meta[property="og:title"]').attr('content') || $('title').text(), body);
+      });
     }
   }
 }
