@@ -351,38 +351,38 @@ process.on('uncaughtException', function (err) {
   }
 });
 
-process.on(
-  'message', function(msg) {
-    if(msg.data === undefined) { throw 'empty data in message: ' + msg.type; }
+process.on('message', function(msg) {
+  if(msg.data === undefined) { throw 'empty data in message: ' + msg.type; }
 
-    switch(msg.type) {
+  switch(msg.type) {
     case 'signin':
-      if(opt.oauth_token_secret) { throw 'already singed in'; }
-      signin(msg.data);
-      if(require('path').existsSync(QUEUE_FILENAME + '.gz')) {
-        fs.readFile(QUEUE_FILENAME + '.gz', function(err, b) {
-          zlib.gunzip(b, function(err, buf) {
-            if(err) { throw err; }
-            url_expander_queue = url_expander_queue.concat(JSON.parse(buf.toString()));
-          });
+    if(opt.oauth_token_secret) { throw 'already singed in'; }
+    signin(msg.data);
+    if(require('path').existsSync(QUEUE_FILENAME + '.gz')) {
+      fs.readFile(QUEUE_FILENAME + '.gz', function(err, b) {
+        zlib.gunzip(b, function(err, buf) {
+          if(err) { throw err; }
+          url_expander_queue = url_expander_queue.concat(JSON.parse(buf.toString()));
         });
-      }
-      break;
+      });
+    }
+    break;
 
     case 'fetch':
-      zlib.inflateRaw(new Buffer(msg.data, 'base64'), function(err, buf) {
-        if(err) { throw err; }
-        fetch(JSON.parse(buf.toString()));
-      });
-      break;
+    zlib.inflateRaw(new Buffer(msg.data, 'base64'), function(err, buf) {
+      if(err) { throw err; }
+      fetch(JSON.parse(buf.toString()));
+    });
+    break;
+
     case 'config':
-      config = msg.data;
-      setInterval(backup, config.backup_frequency);
-      setInterval(expand_url, config.check_frequency);
-      setInterval(process.send, config.check_frequency, { type: 'dummy' });
-      break;
+    config = msg.data;
+    setInterval(backup, config.backup_frequency);
+    setInterval(expand_url, config.check_frequency);
+    setInterval(process.send, config.check_frequency, { type: 'dummy', data: 'dummy' });
+    break;
 
     default:
-      throw 'unknown message type: ' + msg.type;
-    }
-  });
+    throw 'unknown message type: ' + msg.type;
+  }
+});

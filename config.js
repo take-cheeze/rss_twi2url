@@ -8,7 +8,7 @@ module.exports = {
 
   feed_item_max: 200,
   retry_max: 1,
-  executer: 1,
+  executer: 2,
   url_expander_number: 10,
 
   long_url_length: 30,
@@ -37,6 +37,7 @@ module.exports = {
     '#foto-body', // hatena photo
     '#q_back1', // nazolab
     '.EntryText',
+    '.section', // hatena diary
     '#main', '.main', '.mainmore', '.blogbody',
     '#content', '.content', '.caption',
     '.mainEntryBody',
@@ -99,18 +100,36 @@ module.exports = {
   ],
 
   exclude_filter: [
-    '/ux.nu/',
-    '/p.tl/',
-    // '\\.tumblr.com/',
     '^https?://twitter.com/.+/status/\\d+$',
     'twitlonger.com/',
-    '/dqnplus/',
+
+    /*
+    '/www.pixiv.net/member_illust.php',
     'theinterviews.jp/',
     'booklog.jp/',
+    '\\.tumblr.com/',
+    'nicovideo.jp/watch/',
+    'blog',
+    'ameblo.jp/',
+    'pic', 'photo',
+     */
+
+    'news',
+    'foursquare.com/',
+    '4sq.com/',
+    'shindanmaker.com/',
+    'wikipedia.org',
+    'stickam.jp/',
+    'ustream.tv/',
+
+    '/ux.nu/',
+    '/p.tl/',
+    '/dqnplus/',
     'ymnn.rdy.jp/',
     'book.akahoshitakuya.com/',
     'mediamarker.net/',
     'itunes.apple.com/',
+    's.installnow.jp/',
     'google.co.jp/search',
     'google.com/search',
     'slash.jp/',
@@ -123,24 +142,18 @@ module.exports = {
     'maps.google.co',
     'favstar.fm/',
     'toranoana.jp/',
-    '/www.pixiv.net/member_illust.php',
     'auctions.yahoo.co.jp/',
-    'shindanmaker.com/',
-    'news',
-    'foursquare.com/',
-    '4sq.com/',
     '/tou.ch/',
     'amazon.co',
     'youtube.com/',
-    // 'nicovideo.jp/watch/',
     'paper.li/',
-    'wikipedia.org',
     'http://homepage1.nifty.com/herumi/diary/',
     '/stream.ogg',
     'gohantabeyo.com/',
     'http://4gamer.net/',
     'twilog.org/',
     'naturum.co.jp/',
-    'cnn.co.jp/'
+    'cnn.co.jp/',
+    'radiolopolis.com/'
   ]
 };

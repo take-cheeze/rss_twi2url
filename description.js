@@ -13,7 +13,6 @@ consumer.USTREAM_KEY = process.env.USTREAM_KEY;
 var fs = require('fs');
 var request = require('request');
 var URL = require('url');
-var XMLHttpRequest = require("xmlhttprequest").XMLHttpRequest;
 var Iconv = require('iconv').Iconv;
 var zlib = require('zlib');
 
@@ -49,27 +48,51 @@ function escapeHTML(str) {
   return $('<div />').text(str).html();
 }
 
-function get_description(url, callback) {
-  function image_tag(v, width, height) {
-    if(!v) {
-      console.error('empty url in image tag:', url);
-      console.trace();
-      return 'empty url in image tag';
-    }
-    var ret = $('<img />').attr('src', v);
-    if(width) { ret.attr('width', width); }
-    if(height) { ret.attr('height', height); }
-    return $('<div />').append(ret).html();
+function image_tag(v, width, height) {
+  if(!v) {
+    return 'empty url in image tag';
   }
+  var ret = $('<img />').attr('src', v);
+  if(width) { ret.attr('width', width); }
+  if(height) { ret.attr('height', height); }
+  return $('<div />').append(ret).html();
+}
 
+function match_docs_filter(url) {
+  var result = false;
+  $.each(
+    [ 'docx?', 'xlsx?', 'pptx?', 'pages', 'ttf', 'psd', 'ai', 'tiff', 'dxf', 'svg', 'xps', 'pdf'],
+    function(k, v) {
+      if((new RegExp('^.+\\.' + v + '$', 'i')).test(url)) {
+        result = true;
+        return false;
+      }
+      return undefined;
+    });
+  return result;
+}
+
+function match_image_filter(url) {
+  var result = false;
+  $.each(['png', 'jpg', 'jpeg', 'gif'], function(k, v) {
+    if((new RegExp('^.+\\.' + v + '$', 'i')).test(url)) {
+      result = true;
+      return false;
+    }
+    return undefined;
+  });
+  return result;
+}
+
+function get_description(url, callback) {
   function retry() {
     retry_count[url] = retry_count[url]? retry_count[url] + 1 : 1;
     if(retry_count[url] > config.retry_max) {
       console.log('retry count exceeded:', url);
-      callback(url, '', 'retry count exceeded');
+      callback(url, 'retry count exceeded');
     } else { get_description(url, callback); }
   }
-  function error_callback(err) { callback(url, '', err); }
+  function error_callback(err) { callback(url, err); }
   function jquery_error_callback(jqXHR, textStatus, errorThrown) {
     if(/timed?out/i.test(textStatus)) { retry(); }
     else {
@@ -80,8 +103,9 @@ function get_description(url, callback) {
   }
 
   function fetch_data(cb, u) {
+    u = u || url;
     request.get(
-      { uri: u || url, encoding: null, followAllRedirects: true,
+      { uri: u, encoding: null, followAllRedirects: true,
         timeout: config.timeout, headers: {
           'accept-encoding': 'gzip,deflate',
           'user-agent': config.user_agent } },
@@ -105,7 +129,7 @@ function get_description(url, callback) {
         }
 
         if(!http_data || !http_data.toString) {
-          callback(url, '', 'invalid data');
+          error_callback('invalid data');
           return;
         }
 
@@ -118,9 +142,11 @@ function get_description(url, callback) {
         case 'gzip':
           zlib.gunzip(http_data, uncompress_callback);
           break;
+
         case 'deflate':
           zlib.inflate(http_data, uncompress_callback);
           break;
+
         default:
           uncompress_callback(false, http_data);
           break;
@@ -129,16 +155,16 @@ function get_description(url, callback) {
   }
 
   function oembed_default_callback(data) {
-    callback(url, data.title || '',
-             (data.description? data.description + '<br/>' : '') +
-             (data.image? image_tag(data.image, data.width, data.height) + '<br/>' :
-              data.thumbnail? image_tag(data.thumbnail, data.thumbnail_width, data.thumbnail_height) + '<br/>':
-              data.thumbnail_url? image_tag(data.thumbnail_url, data.thumbnail_width, data.thumbnail_height) + '<br/>':
-              '') +
-             (data.type === 'rich'? data.html + '<br/>' :
-              data.type === 'photo' && data.url
-              ? image_tag(data.url, data.width, data.height) + '<br/>' :
-              ''));
+    callback(
+      url, data.title || '',
+      (data.description? data.description + '<br/>' : '') +
+        (data.image? image_tag(data.image, data.width, data.height) + '<br/>' :
+         data.thumbnail? image_tag(data.thumbnail, data.thumbnail_width, data.thumbnail_height) + '<br/>':
+         data.thumbnail_url? image_tag(data.thumbnail_url, data.thumbnail_width, data.thumbnail_height) + '<br/>':
+         '') +
+        (data.type === 'rich'? data.html + '<br/>' :
+         data.type === 'photo' && data.url? image_tag(data.url, data.width, data.height) + '<br/>' :
+         ''));
   }
   function oembed(req_url, oembed_callback) {
     fetch_data(function(buf) {
@@ -193,7 +219,7 @@ function get_description(url, callback) {
 
       if(!/html/i.test(cont_type)) {
         if(/image\/\w+/.test(cont_type)) {
-          callback(url, '', image_tag(url));
+          callback(url, image_tag(url));
         } else {
           error_callback('unknown content type: ' + cont_type);
         }
@@ -286,7 +312,7 @@ function get_description(url, callback) {
     '^https?://photozou.jp/photo/\\w+/(\\d+)/(\\d+)$': function() {
       var id = url.match(/^http:\/\/photozou.jp\/photo\/\w+\/(\d+)\/(\d+)/)[2];
       callback(
-        url, '', $('<div />').append(
+        url, $('<div />').append(
           $('<a />').attr('href', url.replace('show', 'photo_only')).append(
             image_tag('http://photozou.jp/p/img/' + id))).html());
     },
@@ -294,14 +320,14 @@ function get_description(url, callback) {
     '^https?://yfrog\\.com/(\\w+)/?': function() {
       var id = url.match(/^https?:\/\/yfrog\.com\/(\w+)\/?/)[1];
       callback(
-        url, '', $('<div />').append(
+        url, $('<div />').append(
           $('<a />').attr('href', 'http://yfrog.com/z/' + id).append(
             image_tag('http://yfrog.com/' + id + ':medium'))).html());
     },
 
     '^https?://instagr.am/p/[\\-\\w_]+/?$': function() {
       var id = url.match(/^https?:\/\/instagr.am\/p\/([\-\w_]+)\/?$/)[1];
-      callback(url, '', image_tag('http://instagr.am/p/' + id + '/media/?size=l'));
+      callback(url, image_tag('http://instagr.am/p/' + id + '/media/?size=l'));
       /*
       run_jquery(function($) {
         callback(url, $('.caption').text() || '', open_graph_body($));
@@ -311,7 +337,7 @@ function get_description(url, callback) {
 
     '^https?://ow.ly/i/\\w+': function() {
       var id = url.match(/^http:\/\/ow.ly\/i\/(\w+)/)[1];
-      callback(url, '', image_tag('http://static.ow.ly/photos/normal/' + id + '.jpg'));
+      callback(url, image_tag('http://static.ow.ly/photos/normal/' + id + '.jpg'));
       /*
       run_jquery(function($) {
         var id = url.match(/^http:\/\/ow.ly\/i\/(\w+)/)[1];
@@ -324,7 +350,7 @@ function get_description(url, callback) {
     '^https?://twitpic\\.com/(\\w+)(/full)?/?': function() {
       var id = url.match(/^https?:\/\/twitpic.com\/(\w+)(\/full)?\/?/)[1];
       callback(
-        url, '', $('<div />').append(
+        url, $('<div />').append(
           $('<a />').attr('href', 'http://twitpic.com/' + id + '/full').append(
             image_tag('http://twitpic.com/show/large/' + id))).html());
       /*
@@ -344,7 +370,7 @@ function get_description(url, callback) {
 
     '^https?://p.twipple.jp/\\w+/?$': function() {
       var id = url.match(/^http:\/\/p.twipple.jp\/(\w+)\/?$/)[1];
-      callback(url, '', image_tag('http://p.twpl.jp/show/orig/' + id));
+      callback(url, image_tag('http://p.twpl.jp/show/orig/' + id));
       /*
       run_jquery(function($) {
           callback(
@@ -356,10 +382,10 @@ function get_description(url, callback) {
     },
 
     '^https?://movapic.com/pic/\\w+$': function() {
-      callback(url, '',
+      callback(url,
                image_tag(url.replace(/http:\/\/movapic.com\/pic\/(\w+)/,
                                      'http://image.movapic.com/pic/m_$1.jpeg'))); },
-    '^https?://gyazo.com/\\w+$': function() { callback(url, '', image_tag(url + '.png')); },
+    '^https?://gyazo.com/\\w+$': function() { callback(url, image_tag(url + '.png')); },
 
     '^https?://www.twitlonger.com/show/\\w+/?$': function() {
       run_jquery(function($) { callback(url, $('title').text(), $($('p').get(1)).html()); }); },
@@ -459,7 +485,7 @@ function get_description(url, callback) {
 
     '^https?://twitcasting.tv/\\w+/?$': function() {
       var id = url.match(/^http:\/\/twitcasting.tv\/(\w+)\/?$/)[1];
-      callback(url, '',
+      callback(url,
                '<video src="https?://twitcasting.tv/' + id + '/metastream.m3u8/?video=1"' +
                ' autoplay="true" controls="true"' +
                ' poster="https?://twitcasting.tv/' + id + '/thumbstream/liveshot" />');
@@ -467,7 +493,7 @@ function get_description(url, callback) {
 
     '^https?://www.twitvid.com/\\w+/?$': function() {
       var id = url.match(/^http:\/\/www.twitvid.com\/(\w+)\/?$/)[1];
-      callback(url, '',
+      callback(url,
                '<iframe title="Twitvid video player" class="twitvid-player" type="text/html" ' +
                'src="https?://www.twitvid.com/embed.php?' +
                $.param({guid: id, autoplay: 1}) + '" ' +
@@ -492,96 +518,52 @@ function get_description(url, callback) {
 
     '^https?://www.drawlr.com/d/\\w+/view/?$': function() {
       fetch_data(function(buf) {
-        callback(url, '', buf.toString().match(/var embed_code = '(.+)';/)[1]);
+        callback(url, buf.toString().match(/var embed_code = '(.+)';/)[1]);
       });
     },
   };
 
-  if((function() {
-       var result = false;
-       $.each(['png', 'jpg', 'jpeg', 'gif'], function(k, v) {
-                if((new RegExp('^.+\\.' + v + '$', 'i')).test(url)) {
-                  result = true;
-                  return false;
-                }
-                return undefined;
-              });
-       return result;
-     }())) { callback(url, url.match(/\/([^\/]+)$/)[1], image_tag(url)); }
-
-  else if((function() {
-            var result = false;
-            $.each([ 'docx?', 'xlsx?', 'pptx?', 'pages', 'ttf', 'psd', 'ai', 'tiff', 'dxf', 'svg', 'xps', 'pdf'],
-                   function(k, v) {
-                     if((new RegExp('^.+\\.' + v + '$', 'i')).test(url)) {
-                       result = true;
-                       return false;
-                     }
-                     return undefined;
-                   });
-            return result;
-          }()))
-  {
+  if(match_image_filter(url)) {
+    callback(url, url.match(/\/([^\/]+)$/)[1], image_tag(url));
+  }
+  else if(match_docs_filter(url)) {
     callback(url, url.match(/\/([^\/]+)$/)[1],
       $('<div />').append($('<iframe />').attr(
-                            { title: 'Google Docs Viewer',
-                              'class': 'google-docs-viewer',
-                              type: 'text/html',
-                              src: 'https://docs.google.com/viewer?' + $.param({'url': url, embedded: true}),
-                              width: '100%', height: '800'})).html()); }
-
-  else if((function() {
-            var result = false;
-            $.each([
-                       /^https?:\/\/d.hatena.ne.jp\/[\w\-_]+\/[\w\-_]+/,
-                       /^https?:\/\/[\w\-_]+.g.hatena.ne.jp\/[\w\-_]+\/[\w\-_]+/,
-                       /^https?:\/\/anond.hatelabo.jp\/\d+/
-                   ], function(k, v) {
-                     if(v.test(url)) {
-                       result = true;
-                       return false;
-                     }
-                     return undefined;
-                   });
-            return result;
-          }()))
-  {
-    run_jquery(function($) {
-      var section = '';
-      $('.section').each(function(k,v) { section += $(v).html(); });
-      callback(url, $('title').text(), section); }); }
+        { title: 'Google Docs Viewer',
+          'class': 'google-docs-viewer',
+          type: 'text/html',
+          src: 'https://docs.google.com/viewer?' + $.param({'url': url, embedded: true}),
+          width: '100%', height: '800'})).html());
+  }
 
   else {
-    if((function() {
-          var result = true;
-          $.each(GALLERY_FILTER, function(k, v) {
-            if((new RegExp(k, 'i')).test(url)) {
-              v();
-              result = false;
-              return false; // break
-            }
-            return true; // continue
-          });
-          return result;
-        }()))
-    {
-      run_jquery(function($) {
-        var oembed_url = $('link[rel="alternate"][type="text/json+oembed"]').attr('href');
-        if(oembed_url) {
-          oembed(oembed_url);
-          return;
-        }
+    var match_gallery_filter = false;
+    $.each(GALLERY_FILTER, function(k, v) {
+      if((new RegExp(k, 'i')).test(url)) {
+        v();
+        match_gallery_filter = true;
+        return false; // break
+      }
+      return undefined; // continue
+    });
+    if(match_gallery_filter) { return; }
 
-        var body = open_graph_body($);
-        if(!body) { body += run_selectors($, config.selectors); }
-        body += unescapeHTML(
-          $('meta[property="og:description"]').attr('content')
-                            || $('meta[name="description"]').attr('content')
-                            || '');
+    run_jquery(function($) {
+      var oembed_url = $('link[rel="alternate"][type="text/json+oembed"]').attr('href');
+      if(oembed_url) {
+        oembed(oembed_url);
+        return;
+      }
 
-        callback(url, $('meta[property="og:title"]').attr('content') || $('title').text(), body);
-      });
-    }
+      var body = open_graph_body($);
+      if(!body) { body += run_selectors($, config.selectors); }
+      body += unescapeHTML(
+        $('meta[property="og:description"]').attr('content')
+                          || $('meta[name="description"]').attr('content')
+                          || '');
+
+      callback(url, $('meta[property="og:title"]').attr('content') || $('title').text(), body);
+    });
   }
 }
 
@@ -591,19 +573,21 @@ process.on('message', function(msg) {
   switch(msg.type) {
     case 'get_description':
     if(retry_count.hasOwnProperty(msg.data.url)) { retry_count[msg.data.url] = 0; }
-    get_description(
-      msg.data.url, function(url, title, description) {
-                      delete retry_count[msg.data.url];
-                      process.send({type: 'got_description', data: [
-                        msg.data, require(__dirname + '/remove_utm_param')(url),
-                        title, description]});
-                    });
+    get_description(msg.data.url, function(url, title, description) {
+      if(description === undefined) {
+        description = title;
+        title = msg.data.text;
+      }
+      delete retry_count[msg.data.url];
+      process.send({type: 'got_description', data: [
+        msg.data, require(__dirname + '/remove_utm_param')(url),
+        title, description]});
+    });
     break;
 
     case 'config':
     config = msg.data;
-    setInterval(process.send, config.check_frequency,
-                { type: 'dummy', data: 'dummy' });
+    // setInterval(process.send, config.check_frequency, { type: 'dummy', data: 'dummy' });
     break;
 
     default:

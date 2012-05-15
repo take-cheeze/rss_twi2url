@@ -205,8 +205,10 @@ function start() {
   console.log('As user: ' + rss_twi2url.screen_name + ' (' + rss_twi2url.user_id + ')');
 
   backup();
-  var i = 0;
-  for(; i < config.executer; i++) { generate_item(); }
+  setTimeout(function() {
+    var i = 0;
+    for(; i < config.executer; i++) { generate_item(); }
+  }, config.item_generation_frequency);
 
   zlib.deflateRaw(new Buffer(JSON.stringify(rss_twi2url)), function(err, buf) {
     if(err) { throw err; }
