@@ -321,3 +321,7 @@ require('request')
 
   twitter_api.send({ type: 'signin', data: is_signed_in()? rss_twi2url : null });
 });
+
+process.on('uncaughtException', function (err) {
+  console.error(JSON.stringify(err));
+});

@@ -91,12 +91,15 @@ function create_child() {
 
   ret.on('exit', function(code, signal) {
     var idx = executer_index(ret);
+    executer[idx] = create_child();
+    console.log('restarting executer:', idx);
+
+    /*
     if(executer[idx].restart) {
-      executer[idx] = create_child();
-      console.log('restarting executer:', idx);
     } else {
       process.exit(code, signal);
     }
+     */
   });
 
   ret.on('message', function(msg) {
@@ -221,4 +224,8 @@ process.on('message', function(msg) {
     default:
     throw 'unknown message type: ' + msg.type;
   }
+});
+
+process.on('uncaughtException', function (err) {
+  console.error(JSON.stringify(err));
 });
