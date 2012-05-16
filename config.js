@@ -71,6 +71,7 @@ module.exports = {
     '#sub', '.side',
     '.tweetBtn1201',
     '.appstore',
+    'img[src^="http://stat.ameba.jp/blog/ucs/img/char/"]', // emoji
     '.content_footer'
   ],
 
@@ -102,13 +103,13 @@ module.exports = {
   exclude_filter: [
     '^https?://twitter.com/.+/status/\\d+$',
     'twitlonger.com/',
+    'theinterviews.jp/',
+    '/www.pixiv.net/member_illust.php',
 
     /*
-    '/www.pixiv.net/member_illust.php',
-    'theinterviews.jp/',
+    'nicovideo.jp/watch/',
     'booklog.jp/',
     '\\.tumblr.com/',
-    'nicovideo.jp/watch/',
     'blog',
     'ameblo.jp/',
     'pic', 'photo',
@@ -132,7 +133,7 @@ module.exports = {
     's.installnow.jp/',
     'google.co.jp/search',
     'google.com/search',
-    'slash.jp/',
+    'slashdot.jp/',
     'blogos.com/',
     'yaraon.blog109.fc2.com/',
     'jin115.com/',
