@@ -38,21 +38,6 @@ function generate_feed(items) {
       process.send({ type: 'feed', data: out.toString('base64') });
       is_generating_feed = false;
     });
-
-    // slow
-    /*
-    htmlcompressor(
-      feed.xml(), function(c_err, stdout, stderr) {
-        if(stderr) { console.error(stderr); }
-        if(c_err) { throw c_err; }
-
-        zlib.deflateRaw(
-          stdout, function(err, out) {
-            if(err) { throw err; }
-            process.send({ type: 'feed', data: out.toString('base64') });
-          });
-      });
-     */
   }
 
   if(len === 0) {

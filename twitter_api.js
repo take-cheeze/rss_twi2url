@@ -55,7 +55,6 @@ function get_json(url, callback) {
     function(err, res, data) {
       if(err) {
         if(/timed?out/i.test(err.code)) {
-          // console.log(JSON.stringify(err));
           retry();
           return;
         }
@@ -64,7 +63,6 @@ function get_json(url, callback) {
       } else if(res) {
         switch(res.statusCode) {
           case 500: case 502: case 503: case 504:
-          // console.log(JSON.stringify(res));
           retry();
           break;
 
@@ -88,7 +86,7 @@ function get_json(url, callback) {
               break;
             }
           } catch(e) {
-            console.error(JSON.stringify(e));
+            console.error(e);
           }
           break;
 
@@ -256,7 +254,7 @@ function signin(setting) {
     request.post(
       {url:'https://api.twitter.com/oauth/request_token', oauth: opt},
       function (e, r, body) {
-        if(e) { throw JSON.stringify(error); }
+        if(e) { throw e; }
 
         var tok = qs.parse(body);
         opt.token = tok.oauth_token;
@@ -272,7 +270,7 @@ function signin(setting) {
             request.post(
               {url:'https://api.twitter.com/oauth/access_token', 'oauth': opt},
               function (e, r, result) {
-                if(e) { throw JSON.stringify(error); }
+                if(e) { throw e; }
 
                 result = qs.parse(result);
                 opt.token = result.oauth_token;
@@ -284,7 +282,7 @@ function signin(setting) {
               });
           })
                  .listen(config.port)
-                 .on('clientError', function(e) { console.error(JSON.stringify(e)); });
+                 .on('clientError', function(e) { console.error(e); });
       });
   }
 }
@@ -346,8 +344,7 @@ process.on('uncaughtException', function (err) {
     return;
   }
   else {
-    console.error(JSON.stringify(err));
-    process.exit(1);
+    console.error(err);
   }
 });
 
