@@ -123,6 +123,7 @@ module.exports = {
     'stickam.jp/',
     'ustream.tv/',
 
+    'headlines.yahoo.co.jp/',
     'uranaitter.com/',
     '/ux.nu/',
     '/p.tl/',
