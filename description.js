@@ -486,16 +486,16 @@ function get_description(url, callback) {
     '^https?://twitcasting.tv/\\w+/?$': function() {
       var id = url.match(/^http:\/\/twitcasting.tv\/(\w+)\/?$/)[1];
       callback(url,
-               '<video src="https?://twitcasting.tv/' + id + '/metastream.m3u8/?video=1"' +
+               '<video src="http://twitcasting.tv/' + id + '/metastream.m3u8/?video=1"' +
                ' autoplay="true" controls="true"' +
-               ' poster="https?://twitcasting.tv/' + id + '/thumbstream/liveshot" />');
+               ' poster="http://twitcasting.tv/' + id + '/thumbstream/liveshot" />');
     },
 
     '^https?://www.twitvid.com/\\w+/?$': function() {
       var id = url.match(/^http:\/\/www.twitvid.com\/(\w+)\/?$/)[1];
       callback(url,
                '<iframe title="Twitvid video player" class="twitvid-player" type="text/html" ' +
-               'src="https?://www.twitvid.com/embed.php?' +
+               'src="http://www.twitvid.com/embed.php?' +
                $.param({guid: id, autoplay: 1}) + '" ' +
                'width="480" height="360" frameborder="0" />');
     },
