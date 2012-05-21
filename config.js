@@ -6,7 +6,7 @@ module.exports = {
   pathname: "",
   author: "Takeshi Watanabe",
 
-  feed_item_max: 200,
+  feed_item_max: 250,
   retry_max: 1,
   executer: 2,
   url_expander_number: 10,
@@ -123,6 +123,8 @@ module.exports = {
     'stickam.jp/',
     'ustream.tv/',
 
+    'twitter.sengokudroid.com/',
+    'seiga.nicovideo.jp/seiga/',
     'headlines.yahoo.co.jp/',
     'uranaitter.com/',
     '/ux.nu/',
