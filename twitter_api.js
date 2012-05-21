@@ -330,9 +330,10 @@ function expand_url() {
 
   var expander = new SingleUrlExpander(tweet.url);
   expander.on('expanded', function(orig, exp) {
-                        expand_cache[orig] = exp;
-                        send_url(exp);
-                      });
+    exp = decodeURI(exp);
+    expand_cache[orig] = exp;
+    send_url(exp);
+  });
   expander.expand();
 
   expand_url();
