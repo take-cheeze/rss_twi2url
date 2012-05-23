@@ -36,8 +36,10 @@ module.exports = {
     '.viewbody', // tinami
     '#foto-body', // hatena photo
     '#q_back1', // nazolab
+    '.kiji-column-main', // ura-akiba
     '.EntryText',
     '.section', // hatena diary
+    '.archive', // drawtwit
     '#main', '.main', '.mainmore', '.blogbody',
     '#content', '.content', '.caption',
     '.mainEntryBody',
@@ -71,7 +73,8 @@ module.exports = {
     '#sub', '.side',
     '.tweetBtn1201',
     '.appstore',
-    'img[src^="http://stat.ameba.jp/blog/ucs/img/char/"]', // emoji
+    'img[src^="http://stat.ameba.jp/blog/ucs/img/char/"]', // ameblo emoji
+    'img[src^="http://parts.blog.livedoor.jp/img/emoji/2/"]', // livedoor emoji
     '.content_footer'
   ],
 
@@ -123,6 +126,7 @@ module.exports = {
     'stickam.jp/',
     'ustream.tv/',
 
+    'imakoko-iphone.appspot.com/',
     'twitter.sengokudroid.com/',
     'seiga.nicovideo.jp/seiga/',
     'headlines.yahoo.co.jp/',
