@@ -11,7 +11,9 @@ var last_item_generation = Date.now();
 
 var config = require(__dirname + '/config.js');
 config.DB_FILE = process.cwd() + '/rss_twi2url.db';
-config.feed_url = 'http://' + config.hostname + ':' + config.port + '/' + config.pathname;
+config.feed_url = 'http://' + config.hostname
+                + (/\.herokuapp.com/.test(config.hostname)? '' : ':' + config.port)
+                + '/' + config.pathname;
 var JSON_FILE = process.cwd() + '/rss_twi2url.json';
 
 function match_exclude_filter(str) {
