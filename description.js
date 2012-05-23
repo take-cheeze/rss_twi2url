@@ -220,6 +220,9 @@ function get_description(url, callback) {
       if(!/html/i.test(cont_type)) {
         if(/image\/\w+/.test(cont_type)) {
           callback(url, image_tag(url));
+        } else if(/text\/plain/.test(cont_type)) {
+          callback(url, $('<div />').append(
+            $('<pre></pre>').html(data.toString('utf8'))).html());
         } else {
           error_callback('unknown content type: ' + cont_type);
         }
