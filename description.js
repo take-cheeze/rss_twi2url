@@ -134,8 +134,8 @@ function get_description(url, callback) {
         }
 
         function uncompress_callback(err, buffer) {
-          if(err) { throw err; }
-          cb(buffer, res);
+          if(err) { error_callback(err); }
+          else { cb(buffer, res); }
         }
 
         switch(res.headers['content-encoding']) {
@@ -230,8 +230,8 @@ function get_description(url, callback) {
       var encoding_regex = /encoding="?'?([\w_\-]+)"?'?\?/i;
       var ascii = data.toString('ascii');
       var enc =
-        encoding_regex.test(ascii)? ascii.match(encoding_regex)[1]:
         charset_regex.test(ascii)? ascii.match(charset_regex)[1]:
+        encoding_regex.test(ascii)? ascii.match(encoding_regex)[1]:
         charset_regex.test(cont_type)? cont_type.match(charset_regex)[1]:
         DEFAULT_ENCODING;
       enc = enc.toLowerCase();
@@ -262,49 +262,51 @@ function get_description(url, callback) {
         return;
       }
 
-      jsdom.env(
-        { 'html': html || '<html><body></body></html>',
-          features: DEFAULT_FEATURE },
-        function(err, window) {
-          if(err) {
-            error_callback(err);
-            return;
-          }
+      try {
+        jsdom.env(
+          { 'html': html || '<html><body></body></html>',
+            features: DEFAULT_FEATURE },
+          function(err, window) {
+            if(err) {
+              error_callback(err);
+              return;
+            }
 
-          var document = window.document;
+            var document = window.document;
 
-          Array.prototype.forEach.call(
-            document.getElementsByTagName('script'),
-            function(elm) { elm.parentNode.removeChild(elm); });
+            Array.prototype.forEach.call(
+              document.getElementsByTagName('script'),
+              function(elm) { elm.parentNode.removeChild(elm); });
 
-          try { eval(config.jquery_src); }
-          catch(e) { console.error('jQuery error:', e); }
+            try { eval(config.jquery_src); }
+            catch(e) { console.error('jQuery error:', e); }
 
-          if(!window.jQuery) {
-            error_callback('Cannot load jQuery');
-            return;
-          }
-          var $ = window.jQuery;
+            if(!window.jQuery) {
+              error_callback('Cannot load jQuery');
+              return;
+            }
+            var $ = window.jQuery;
 
-          $('a').each(
-            function(idx,elm) {
-              $(elm).attr('href', URL.resolve(target_url, $(elm).attr('href')));
-            });
-          $('img').each(
-            function(idx,elm) {
-              $(elm).attr('src', URL.resolve(target_url, $(elm).attr('src')));
-            });
+            $('a').each(
+              function(idx,elm) {
+                $(elm).attr('href', URL.resolve(target_url, $(elm).attr('href')));
+              });
+            $('img').each(
+              function(idx,elm) {
+                $(elm).attr('src', URL.resolve(target_url, $(elm).attr('src')));
+              });
 
-          switch(typeof cb) {
-          case 'function':
-            cb($, window); break;
-          case 'object':
-            callback(url, $('meta[property="og:title"]').attr('content') ||
-                     $('title').text(), run_selectors($, cb));
-            break;
-          default: throw 'unknown callback type';
-          }
-        });
+            switch(typeof cb) {
+              case 'function':
+              cb($, window); break;
+              case 'object':
+              callback(url, $('meta[property="og:title"]').attr('content') ||
+                       $('title').text(), run_selectors($, cb));
+              break;
+              default: throw 'unknown callback type';
+            }
+          });
+      } catch(html_parse_error) { error_callback(html_parse_error); }
     }, u);
   }
 
