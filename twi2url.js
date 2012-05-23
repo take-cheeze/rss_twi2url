@@ -32,6 +32,7 @@ if(require('path').existsSync(JSON_FILE + '.gz')) {
     rss_twi2url = JSON.parse(buf.toString());
 
     if(rss_twi2url.generating_items) {
+      console.log(rss_twi2url.generating_items);
       $.each(rss_twi2url.generating_items, function(k, v) {
         rss_twi2url.queued_urls.push(v);
       });
@@ -44,9 +45,9 @@ if(require('path').existsSync(JSON_FILE + '.gz')) {
     });
     rss_twi2url.queued_urls = filtered_queue;
 
-      // reduce feed size
-      while(rss_twi2url.last_urls.length > config.feed_item_max) {
-        rss_twi2url.last_urls.shift(); }
+    // reduce feed size
+    while(rss_twi2url.last_urls.length > config.feed_item_max) {
+      rss_twi2url.last_urls.shift(); }
   });
 }
 
