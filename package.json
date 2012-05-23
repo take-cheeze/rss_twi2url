@@ -4,8 +4,8 @@
   "private": true,
   "author": "Takeshi Watanabe",
   "engines": {
-    "node": ">= 0.6.14",
-    "npm": ">= 1.1.4"
+    "node": "0.6.18",
+    "npm": "1.1.21"
   },
   "dependencies": {
     "bufferstream": ">= 0.5.1",

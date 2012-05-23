@@ -28,7 +28,7 @@ function generate_feed(items) {
       title: config.title,
       'description': config.description,
       feed_url: 'http://' + config.hostname + ':' + config.port + '/',
-      site_url: 'http://' + config.hostname + ':' + config.port + '/' + config.pathname,
+      site_url: config.feed_url,
       author: config.author });
 
   is_generating_feed = true;
@@ -209,8 +209,4 @@ process.on('message', function(msg) {
     default:
     throw 'unknown message type: ' + msg.type;
   }
-});
-
-process.on('uncaughtException', function (err) {
-  console.error(JSON.stringify(err));
 });

@@ -250,7 +250,7 @@ function signin(setting) {
     opt.token_secret = setting.oauth_token_secret;
     process.send({ type: 'signed_in', data: setting });
   } else {
-    opt.callback = 'http://' + config.hostname + ':' + config.port + '/' + config.pathname + '/callback';
+    opt.callback = config.feed_url + '/callback';
     request.post(
       {url:'https://api.twitter.com/oauth/request_token', oauth: opt},
       function (e, r, body) {
@@ -261,11 +261,19 @@ function signin(setting) {
         opt.token_secret = tok.oauth_token_secret;
         delete opt.callback;
 
-        console.log('Visit: https://twitter.com/oauth/authorize?oauth_token=' + opt.token);
+        var authorize_url = 'https://twitter.com/oauth/authorize?oauth_token=' + opt.token;
+        console.log('Visit:', authorize_url);
+        console.log('Or:', config.feed_url);
 
         var server = null;
         server = require('http').createServer(
           function(req, res) {
+            if(!/\/callback/.test(req.url)) {
+              res.writeHead(302, {location: authorize_url});
+              res.end();
+              return;
+            }
+
             opt.verifier = qs.parse(req.url).oauth_verifier;
             request.post(
               {url:'https://api.twitter.com/oauth/access_token', 'oauth': opt},
@@ -276,6 +284,9 @@ function signin(setting) {
                 opt.token = result.oauth_token;
                 opt.token_secret = result.oauth_token_secret;
                 delete opt.verifier;
+
+                res.writeHead(302, {location: config.feed_url});
+                res.end();
 
                 if(server) { server.close(); }
                 process.send({ type: 'signed_in', data: result });

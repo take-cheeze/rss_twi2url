@@ -1,8 +1,8 @@
 module.exports = {
   title: "twi2url",
   description: "twitter 2 url",
-  hostname: "ubuntu.local",
-  port: 8090,
+  hostname: process.env.HOST || "ubuntu.local",
+  port: process.env.PORT || 8090,
   pathname: "",
   author: "Takeshi Watanabe",
 
