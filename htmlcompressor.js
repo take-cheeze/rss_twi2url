@@ -25,8 +25,9 @@
  - options is optional argument
  - callback type -> function(err, stdout, stderr) {}
 
- - to use this module download htmlcompressor-1.5.3.jar from
- -- http://code.google.com/p/htmlcompressor/downloads/detail?name=htmlcompressor-1.5.3.jar
+ - htmlcompressor-1.5.3.jar is developed by serg472@gmail.com and other people
+ - htmlcompressor-1.5.3.jar is available in
+ -- http://code.google.com/p/htmlcompressor/downloads/
  */
 
 module.exports = function(str, options, callback) {
