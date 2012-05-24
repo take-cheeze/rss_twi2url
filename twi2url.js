@@ -35,7 +35,7 @@ if(require('path').existsSync(JSON_FILE + '.gz')) {
     if(rss_twi2url.generating_items) {
       console.log(rss_twi2url.generating_items);
       $.each(rss_twi2url.generating_items, function(k, v) {
-        rss_twi2url.queued_urls.push(v);
+        rss_twi2url.queued_urls.unshift(v);
       });
     }
     rss_twi2url.generating_items = {};
@@ -87,7 +87,7 @@ function in_last_urls(url) {
 function is_queued(url) {
   var result = false;
   $.each(rss_twi2url.queued_urls, function(k, v) {
-           if(v.url === url) { result = true; } });
+    if(v.url === url) { result = true; } });
   return result;
 }
 
@@ -198,6 +198,10 @@ function start() {
       else { database.once('message', feed_handle); }
     }
     database.once('message', feed_handle);
+
+    $.each(rss_twi2url.generating_items, function(k, v) {
+      rss_twi2url.queued_urls.unshift(v);
+    });
   })
   .listen(config.port)
   .on('clientError', function(e) { console.error(e); });
