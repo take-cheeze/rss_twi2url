@@ -25,7 +25,8 @@
  - options is optional argument
  - callback type -> function(err, stdout, stderr) {}
 
- - htmlcompressor-1.5.3.jar is developed by serg472@gmail.com and other people
+ - htmlcompressor-1.5.3.jar is developed by serg472@gmail.com and other people.
+ - htmlcompressor-1.5.3.jar is redistributed under Apache License 2.0 .
  - htmlcompressor-1.5.3.jar is available in
  -- http://code.google.com/p/htmlcompressor/downloads/
  */
