@@ -222,7 +222,7 @@ function get_description(url, callback) {
           callback(url, image_tag(url));
         } else if(/text\/plain/.test(cont_type)) {
           callback(url, $('<div />').append(
-            $('<pre></pre>').html(data.toString('utf8'))).html());
+            $('<pre></pre>').text(data.toString('utf8'))).html());
         } else {
           error_callback('unknown content type: ' + cont_type);
         }
