@@ -126,6 +126,7 @@ module.exports = {
     'stickam.jp/',
     'ustream.tv/',
 
+    'bunsekikun.com/',
     'imakoko-iphone.appspot.com/',
     'twitter.sengokudroid.com/',
     'seiga.nicovideo.jp/seiga/',
