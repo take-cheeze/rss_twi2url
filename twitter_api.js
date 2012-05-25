@@ -190,7 +190,10 @@ function fetch(setting) {
         function list_fetch() {
           var list_info = data;
           var v = list_info.pop();
-          if(!v) { return; }
+          if(!v) {
+            fetch_lists();
+            return;
+          }
 
           fetch_page(
             'http://api.twitter.com/1/lists/statuses.json?' +
@@ -213,7 +216,6 @@ function fetch(setting) {
           var search_info = data;
           var v = search_info.pop();
           if(!v) {
-            fetch_lists();
             return;
           }
 
@@ -240,7 +242,7 @@ function fetch(setting) {
             }),
         'home_timeline',
         { page: 1, since_id: setting.since.home_timeline },
-        fetch_searches);
+        fetch_lists);
     });
 }
 
