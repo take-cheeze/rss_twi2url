@@ -190,8 +190,7 @@ function send_config() {
   $.each([twitter_api, database], function(k, v) {
     v.on('exit', function(code, signal) {
       if(code) {
-        v.kill();
-        if(signal) { console.error('with signal:', signal); }
+        if(signal) { console.error('exit with:', code, ', signal:', signal); }
         process.exit(code, signal);
       }
     });
