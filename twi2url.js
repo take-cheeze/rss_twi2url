@@ -247,6 +247,7 @@ start = function() {
         res.writeHead(503, header);
         res.end('feed generation timed out');
 
+        console.log('restarting database');
         database.kill();
         database = create_database();
         send_config();
