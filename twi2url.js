@@ -188,12 +188,6 @@ function is_signed_in() {
 
 function send_config() {
   $.each([twitter_api, database], function(k, v) {
-    v.on('exit', function(code, signal) {
-      if(code) {
-        if(signal) { console.error('exit with:', code, ', signal:', signal); }
-        process.exit(code, signal);
-      }
-    });
     v.send({ type: 'config', data: config });
   });
 }
