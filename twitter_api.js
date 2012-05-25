@@ -191,7 +191,7 @@ function fetch(setting) {
           var list_info = data;
           var v = list_info.pop();
           if(!v) {
-            fetch_lists();
+            fetch_searches();
             return;
           }
 
