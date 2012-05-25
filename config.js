@@ -8,7 +8,7 @@ module.exports = {
 
   feed_item_max: 250,
   retry_max: 1,
-  executer: 2,
+  executer: 1,
   url_expander_number: 10,
 
   long_url_length: 30,
