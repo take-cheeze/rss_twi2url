@@ -202,6 +202,7 @@ function start() {
     $.each(rss_twi2url.generating_items, function(k, v) {
       rss_twi2url.queued_urls.unshift(v);
     });
+    rss_twi2url.generating_items = {};
   })
   .listen(config.port)
   .on('clientError', function(e) { console.error(e); });
