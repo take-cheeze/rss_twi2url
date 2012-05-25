@@ -248,6 +248,9 @@ start = function() {
 
         console.log('restarting database');
         database.kill();
+        if(require('path').existsSync(config.DB_FILE + '/LOCK')) {
+          fs.unlinkSync(config.DB_FILE + '/LOCK');
+        }
         database = create_database();
         send_config();
       }, config.timeout);
