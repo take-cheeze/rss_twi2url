@@ -17,10 +17,10 @@ module.exports = {
   search_type: 'recent',
 
   fetch_frequency: 1000 * 60 * 20,
-  item_generation_frequency: 1000 * 0.3,
+  item_generation_frequency: 1000 * 0.5,
   backup_frequency: 1000 * 60,
   timeout: 1000 * 7.5,
-  check_frequency: 1000 * 30,
+  check_frequency: 1000 * 60,
   retry_failure_max: 1,
 
   user_agent: [
