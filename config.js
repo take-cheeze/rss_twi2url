@@ -6,7 +6,7 @@ module.exports = {
   pathname: "",
   author: "Takeshi Watanabe",
 
-  feed_item_max: 250,
+  feed_item_max: 300,
   retry_max: 1,
   executer: 1,
   url_expander_number: 10,
