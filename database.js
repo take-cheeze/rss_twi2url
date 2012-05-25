@@ -78,13 +78,6 @@ function create_child() {
     var idx = executer_index(ret);
     executer[idx] = create_child();
     console.log('restarting executer:', idx);
-
-    /*
-    if(executer[idx].restart) {
-    } else {
-      process.exit(code, signal);
-    }
-     */
   });
 
   ret.on('message', function(msg) {
