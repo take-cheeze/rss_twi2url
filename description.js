@@ -211,6 +211,16 @@ function get_description(url, callback) {
     });
     return body;
   }
+  function google_docs() {
+    callback(
+      url, url.match(/\/([^\/]+)$/)[1],
+      $('<div />').append($('<iframe />').attr(
+        { title: 'Google Docs Viewer',
+          'class': 'google-docs-viewer',
+          type: 'text/html',
+          src: 'https://docs.google.com/viewer?' + $.param({'url': url, embedded: true}),
+          width: '100%', height: '800'})).html());
+  }
 
   function run_jquery(cb, u) {
     var target_url = u || url;
@@ -223,6 +233,8 @@ function get_description(url, callback) {
         } else if(/text\/plain/.test(cont_type)) {
           callback(url, $('<div />').append(
             $('<pre></pre>').text(data.toString('utf8'))).html());
+        } else if(/application\/pdf/.test(cont_type)) {
+          google_docs();
         } else {
           error_callback('unknown content type: ' + cont_type);
         }
@@ -531,15 +543,7 @@ function get_description(url, callback) {
   if(match_image_filter(url)) {
     callback(url, url.match(/\/([^\/]+)$/)[1], image_tag(url));
   }
-  else if(match_docs_filter(url)) {
-    callback(url, url.match(/\/([^\/]+)$/)[1],
-      $('<div />').append($('<iframe />').attr(
-        { title: 'Google Docs Viewer',
-          'class': 'google-docs-viewer',
-          type: 'text/html',
-          src: 'https://docs.google.com/viewer?' + $.param({'url': url, embedded: true}),
-          width: '100%', height: '800'})).html());
-  }
+  else if(match_docs_filter(url)) { google_docs(); }
 
   else {
     var match_gallery_filter = false;
