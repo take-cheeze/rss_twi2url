@@ -189,17 +189,24 @@ process.on('message', function(msg) {
     db.open(config.DB_FILE, { create_if_missing: true }, function(err) {
       if(err) { throw err; }
     });
-    executer[config.executer - 1] = undefined;
-    $.each(executer, function(k, v) {
-      executer[k] = create_child();
-      retry_failure_count[k] = 0;
-    });
-    $.each(executer, function(k, v) {
-      v.send({ type: 'config', data: config }); });
-    setInterval(process.send, config.check_frequency, { type: 'dummy' });
+    if(executer.length !== config.executer) {
+      executer[config.executer - 1] = undefined;
+      $.each(executer, function(k, v) {
+        executer[k] = create_child();
+        retry_failure_count[k] = 0;
+      });
+      $.each(executer, function(k, v) {
+        v.send({ type: 'config', data: config }); });
+    }
     break;
 
     default:
     throw 'unknown message type: ' + msg.type;
   }
+});
+
+process.on('exit', function() {
+  $.each(executer, function(k, v) {
+    v.kill();
+  });
 });
