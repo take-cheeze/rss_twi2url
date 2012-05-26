@@ -35,6 +35,7 @@ module.exports = {
     '.articleText', '.subContents', // ameblo
     '.viewbody', // tinami
     '#foto-body', // hatena photo
+    '.foto_thumb', // hatena photo gallery
     '#q_back1', // nazolab
     '.kiji-column-main', // ura-akiba
     '.EntryText',
