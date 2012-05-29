@@ -80,7 +80,6 @@ module.exports = {
   ],
 
   removing_attribute: [
-    /*
     'pubdate',
     'onclick', 'onmouseover', 'onmouseout', 'illustrations',
     'by', 'cesar', 'onkeypress', 'onsubmit', 'onkeydown',
@@ -92,7 +91,6 @@ module.exports = {
     'aria-label', 'preview-title', 'columnid',
     'state', 'border_color', 'padding',
     'border_width', 'boder_type', 'onchange'
-     */
   ],
 
   url_expantion_exclude: [
@@ -109,6 +107,7 @@ module.exports = {
     'twitlonger.com/',
     'theinterviews.jp/',
     '/www.pixiv.net/member_illust.php',
+    'live.nicovideo.jp/watch/',
 
     /*
     'nicovideo.jp/watch/',
