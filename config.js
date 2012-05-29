@@ -17,7 +17,7 @@ module.exports = {
   search_type: 'recent',
 
   fetch_frequency: 1000 * 60 * 20,
-  item_generation_frequency: 1000 * 1,
+  item_generation_frequency: 1000 * 1.1,
   backup_frequency: 1000 * 60,
   timeout: 1000 * 7.5,
   check_frequency: 1000 * 60,
@@ -80,6 +80,7 @@ module.exports = {
   ],
 
   removing_attribute: [
+    /*
     'pubdate',
     'onclick', 'onmouseover', 'onmouseout', 'illustrations',
     'by', 'cesar', 'onkeypress', 'onsubmit', 'onkeydown',
@@ -91,6 +92,7 @@ module.exports = {
     'aria-label', 'preview-title', 'columnid',
     'state', 'border_color', 'padding',
     'border_width', 'boder_type', 'onchange'
+     */
   ],
 
   url_expantion_exclude: [
