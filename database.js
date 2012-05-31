@@ -27,7 +27,7 @@ function generate_feed(items) {
     {
       title: config.title,
       'description': config.description,
-      feed_url: 'http://' + config.hostname + ':' + config.port + '/',
+      feed_url: config.feed_url,
       site_url: config.feed_url,
       author: config.author });
 
