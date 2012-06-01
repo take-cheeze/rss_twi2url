@@ -110,6 +110,7 @@ module.exports = {
     'theinterviews.jp/',
     '/www.pixiv.net/member_illust.php',
     'live.nicovideo.jp/watch/',
+    'twitcmap.jp/',
 
     /*
     'nicovideo.jp/watch/',
