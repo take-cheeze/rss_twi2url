@@ -123,7 +123,7 @@ function get_description(url, callback) {
           }
           console.error('URL:', u);
           if(res) { console.error('Status Code:', res.statusCode); }
-          console.error('Error:', JSON.stringify(err));
+          console.error('Error:', err);
           error_callback('error fetching');
           return;
         }
