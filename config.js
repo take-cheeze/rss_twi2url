@@ -111,6 +111,7 @@ module.exports = {
     '/www.pixiv.net/member_illust.php',
     'live.nicovideo.jp/watch/',
     'twitcmap.jp/',
+    'mb4sq.jp/',
 
     /*
     'nicovideo.jp/watch/',
