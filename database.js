@@ -198,6 +198,7 @@ process.on('message', function(msg) {
       $.each(executer, function(k, v) {
         v.send({ type: 'config', data: config }); });
     }
+    setInterval(process.send, config.check_frequency, { type: 'dummy', data: '' });
     break;
 
     default:

@@ -390,6 +390,7 @@ process.on('message', function(msg) {
     config = msg.data;
     setInterval(backup, config.backup_frequency);
     setInterval(expand_url, config.check_frequency);
+    setInterval(process.send, config.check_frequency, { type: 'dummy', data: '' });
     break;
 
     default:

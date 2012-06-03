@@ -596,6 +596,7 @@ process.on('message', function(msg) {
 
     case 'config':
     config = msg.data;
+    setInterval(process.send, config.check_frequency, { type: 'dummy', data: '' });
     break;
 
     default:

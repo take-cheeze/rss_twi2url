@@ -246,7 +246,7 @@ start = function() {
           fs.unlinkSync(config.DB_FILE + '/LOCK');
         }
         database = create_database();
-        send_config();
+        database.send({ type: 'config', data: config });
       }, config.timeout);
 
     database.send({ type: 'get_feed', data: ary });
