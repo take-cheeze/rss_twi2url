@@ -41,6 +41,7 @@ module.exports = {
     '.EntryText',
     '.section', // hatena diary
     '.archive', // drawtwit
+    '.thread', // 2ch
     '#main', '.main', '.mainmore', '.blogbody',
     '#content', '.content', '.caption',
     '.mainEntryBody',
