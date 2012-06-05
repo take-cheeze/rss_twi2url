@@ -114,6 +114,7 @@ module.exports = {
     'twitcmap.jp/',
     'mb4sq.jp/',
     'animita.tv/',
+    'dw.sipo.jp/',
 
     /*
     'nicovideo.jp/watch/',
