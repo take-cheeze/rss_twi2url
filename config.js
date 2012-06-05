@@ -113,6 +113,7 @@ module.exports = {
     'live.nicovideo.jp/watch/',
     'twitcmap.jp/',
     'mb4sq.jp/',
+    'animita.tv/',
 
     /*
     'nicovideo.jp/watch/',
