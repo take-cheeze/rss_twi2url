@@ -118,6 +118,7 @@ module.exports = {
     'dw.sipo.jp/',
     'dmm.co.jp/digital/videoa/',
     'caribbeancom.com/',
+    'tenhou.net/',
 
     /*
     'nicovideo.jp/watch/',
