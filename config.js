@@ -116,6 +116,7 @@ module.exports = {
     'mb4sq.jp/',
     'animita.tv/',
     'dw.sipo.jp/',
+    'dmm.co.jp/digital/videoa/',
 
     /*
     'nicovideo.jp/watch/',
