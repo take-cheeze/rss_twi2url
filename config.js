@@ -42,6 +42,7 @@ module.exports = {
     '.section', // hatena diary
     '.archive', // drawtwit
     '.thread', // 2ch
+    '.thread_body', // nanbbs
     '#main', '.main', '.mainmore', '.blogbody',
     '#content', '.content', '.caption',
     '.mainEntryBody',
