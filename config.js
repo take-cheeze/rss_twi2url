@@ -117,6 +117,7 @@ module.exports = {
     'animita.tv/',
     'dw.sipo.jp/',
     'dmm.co.jp/digital/videoa/',
+    'caribbeancom.com/',
 
     /*
     'nicovideo.jp/watch/',
