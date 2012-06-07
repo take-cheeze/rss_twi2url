@@ -119,6 +119,7 @@ module.exports = {
     'dmm.co.jp/digital/videoa/',
     'caribbeancom.com/',
     'tenhou.net/',
+    'b.hatena.ne.jp/',
 
     /*
     'nicovideo.jp/watch/',
