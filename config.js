@@ -120,6 +120,7 @@ module.exports = {
     'caribbeancom.com/',
     'tenhou.net/',
     'b.hatena.ne.jp/',
+    'mogsnap.jp/',
 
     /*
     'nicovideo.jp/watch/',
