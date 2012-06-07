@@ -4,7 +4,7 @@
   "private": true,
   "author": "Takeshi Watanabe",
   "engines": {
-    "node": "0.6.17",
+    "node": "0.6.18",
     "npm": "1.1.9"
   },
   "dependencies": {
