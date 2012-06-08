@@ -121,6 +121,7 @@ module.exports = {
     'tenhou.net/',
     'b.hatena.ne.jp/',
     'mogsnap.jp/',
+    'miil.me/p/',
 
     /*
     'nicovideo.jp/watch/',
