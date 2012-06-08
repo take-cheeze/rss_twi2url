@@ -122,6 +122,7 @@ module.exports = {
     'b.hatena.ne.jp/',
     'mogsnap.jp/',
     'miil.me/p/',
+    'florian.hatenablog.jp/',
 
     /*
     'nicovideo.jp/watch/',
