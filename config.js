@@ -131,6 +131,7 @@ module.exports = {
     'blog',
     'ameblo.jp/',
     'pic', 'photo',
+    'youtube.com/',
      */
 
     'news',
@@ -170,7 +171,6 @@ module.exports = {
     'auctions.yahoo.co.jp/',
     '/tou.ch/',
     'amazon.co',
-    'youtube.com/',
     'paper.li/',
     'http://homepage1.nifty.com/herumi/diary/',
     '/stream.ogg',
