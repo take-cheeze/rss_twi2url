@@ -17,6 +17,7 @@ var config = {};
 var db = null;
 var retry_failure_count = [];
 var is_generating_feed = false;
+var executer = [], next_executer = 0;
 
 function generate_feed(items) {
   if(is_generating_feed) { return; }
@@ -37,6 +38,11 @@ function generate_feed(items) {
       if(err) { throw err; }
       process.send({ type: 'feed', data: out.toString('base64') });
       is_generating_feed = false;
+
+      $.each(executer, function(k, v) {
+        v.kill();
+        v.restart = true;
+      });
     });
   }
 
@@ -53,8 +59,6 @@ function generate_feed(items) {
     });
   });
 }
-
-var executer = [], next_executer = 0;
 
 function executer_index(exe) {
   var ret = -1;
