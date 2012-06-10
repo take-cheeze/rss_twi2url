@@ -123,6 +123,7 @@ module.exports = {
     'mogsnap.jp/',
     'miil.me/p/',
     'florian.hatenablog.jp/',
+    'av-adult-flash.com/',
 
     /*
     'nicovideo.jp/watch/',
