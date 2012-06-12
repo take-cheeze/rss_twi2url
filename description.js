@@ -213,8 +213,7 @@ function get_description(url, callback) {
   }
   function google_docs() {
     callback(
-      url, url.match(/\/([^\/]+)$/)[1],
-      $('<div />').append($('<iframe />').attr(
+      url, $('<div />').append($('<iframe />').attr(
         { title: 'Google Docs Viewer',
           'class': 'google-docs-viewer',
           type: 'text/html',
