@@ -124,6 +124,7 @@ module.exports = {
     'miil.me/p/',
     'florian.hatenablog.jp/',
     'av-adult-flash.com/',
+    'facebook.com/login.php',
 
     /*
     'nicovideo.jp/watch/',
