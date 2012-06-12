@@ -287,7 +287,7 @@ function signin(setting) {
                 opt.token_secret = result.oauth_token_secret;
                 delete opt.verifier;
 
-                res.writeHead(200);
+                res.writeHead(200, {'content-type': 'text/plain'});
                 res.end('Twitter OAuth Success!');
 
                 if(server) { server.close(); }
