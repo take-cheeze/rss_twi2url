@@ -228,6 +228,8 @@ start = function() {
                , 'url_expander_queue.length:', url_expander_queue_length, ','
                , 'generating_items.length:', count_map_element(rss_twi2url.generating_items), ','
                );
+    console.log('generating_items:');
+    console.log(rss_twi2url.generating_items);
 
     var gen_timeout = false;
     var gen_timeout_handle =
