@@ -126,6 +126,7 @@ module.exports = {
     'av-adult-flash.com/',
     'facebook.com/login.php',
     'nikkei.com/',
+    'melonbooks.co.jp/',
 
     /*
     'nicovideo.jp/watch/',
