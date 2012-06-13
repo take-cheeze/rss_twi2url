@@ -127,15 +127,15 @@ module.exports = {
     'facebook.com/login.php',
     'nikkei.com/',
     'melonbooks.co.jp/',
+    'nicovideo.jp/watch/',
+    '\\.tumblr.com/',
+    'booklog.jp/',
+    'youtube.com/',
 
     /*
-    'nicovideo.jp/watch/',
-    'booklog.jp/',
-    '\\.tumblr.com/',
     'blog',
     'ameblo.jp/',
     'pic', 'photo',
-    'youtube.com/',
      */
 
     'news',
