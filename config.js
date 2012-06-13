@@ -125,6 +125,7 @@ module.exports = {
     'florian.hatenablog.jp/',
     'av-adult-flash.com/',
     'facebook.com/login.php',
+    'nikkei.com/',
 
     /*
     'nicovideo.jp/watch/',
