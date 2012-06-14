@@ -133,6 +133,7 @@ module.exports = {
     'youtube.com/',
     's.twipple.jp/',
     'friendfeed.com/',
+    'qa-now.com/',
 
     /*
     'blog',
