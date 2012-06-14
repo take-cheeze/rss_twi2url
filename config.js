@@ -132,6 +132,7 @@ module.exports = {
     'booklog.jp/',
     'youtube.com/',
     's.twipple.jp/',
+    'friendfeed.com/',
 
     /*
     'blog',
