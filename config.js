@@ -131,11 +131,13 @@ module.exports = {
     '\\.tumblr.com/',
     'booklog.jp/',
     'youtube.com/',
+    's.twipple.jp/',
 
     /*
     'blog',
     'ameblo.jp/',
     'pic', 'photo',
+    'github.com/',
      */
 
     'news',
