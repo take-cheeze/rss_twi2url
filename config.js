@@ -131,6 +131,7 @@ module.exports = {
     '\\.tumblr.com/',
     'booklog.jp/',
     'youtube.com/',
+    'youtu.be/',
     's.twipple.jp/',
     'friendfeed.com/',
     'qa-now.com/',
