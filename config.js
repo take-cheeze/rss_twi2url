@@ -107,7 +107,6 @@ module.exports = {
   ],
 
   exclude_filter: [
-    '^https?://twitter.com/.+/status/\\d+$',
     'twitlonger.com/',
     'theinterviews.jp/',
     '/www.pixiv.net/member_illust.php',
@@ -137,6 +136,7 @@ module.exports = {
     'qa-now.com/',
 
     /*
+    '^https?://twitter.com/.+/status/\\d+$',
     'blog',
     'ameblo.jp/',
     'pic', 'photo',
