@@ -134,6 +134,7 @@ module.exports = {
     's.twipple.jp/',
     'friendfeed.com/',
     'qa-now.com/',
+    'db.netkeiba.com/',
 
     /*
     '^https?://twitter.com/.+/status/\\d+$',
