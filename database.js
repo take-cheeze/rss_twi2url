@@ -136,19 +136,21 @@ function create_child() {
             if(!v.text) { throw 'invalid tweet text'; }
             db.put(url, JSON.stringify(
               {
-                title: title,
-                description: v.text + (stdout? '<br /><br />' : '') +
-                  $('<div />').append(cleaned.clone()).html(),
-                'url': url, author: v.author, date: v.date
+                title: title, 'url': url, author: v.author, date: v.date,
+                description:
+                  'URL: ' + url + '<br />' +
+                  'Tweet: ' + v.text +
+                  (cleaned.html()? '<br /><br />' + cleaned.html() : '')
               }), {}, function(err) { if(err) { throw err; } });
           } catch(e) {
             db.put(
               url, JSON.stringify(
                 {
-                  title: title,
+                  title: title, 'url': url, author: v.author, date: v.date,
                   description: e + '<br /><br />' +
-                    v.text + (stdout? '<br /><br />' : '') + stdout.toString(),
-                  'url': url, author: v.author, date: v.date
+                    'URL: ' + url + '<br />' +
+                    'Tweet: ' + v.text +
+                    (stdout? '<br /><br />' + stdout.toString() : '')
                 }), {}, function(err) { if(err) { throw err; } });
           }
         });
