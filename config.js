@@ -136,6 +136,7 @@ module.exports = {
     'qa-now.com/',
     'db.netkeiba.com/',
     'bgm.tv/',
+    'sarupli.com/',
 
     /*
     '^https?://twitter.com/.+/status/\\d+$',

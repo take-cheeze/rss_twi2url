@@ -455,7 +455,7 @@ function get_description(url, callback) {
     '^https?://twitter.com/.+/status/\\d+': function() {
       if(/\/photo/.test(url)) {
         run_jquery(function($) {
-          callback(url, $('.tweet-text').text() || '',$('.main-tweet').html());
+          callback(url, $('.tweet-text').text() || '', $('.main-tweet').html());
         }, url.replace('/twitter.com/', '/mobile.twitter.com/'));
       } else {
         oembed('http://api.twitter.com/1/statuses/oembed.json?' +
