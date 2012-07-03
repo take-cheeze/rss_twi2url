@@ -137,6 +137,7 @@ module.exports = {
     'db.netkeiba.com/',
     'bgm.tv/',
     'sarupli.com/',
+    'pocket.co/',
 
     /*
     '^https?://twitter.com/.+/status/\\d+$',
