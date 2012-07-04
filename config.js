@@ -138,6 +138,7 @@ module.exports = {
     'bgm.tv/',
     'sarupli.com/',
     'pocket.co/',
+    'nico.ms/',
 
     /*
     '^https?://twitter.com/.+/status/\\d+$',
