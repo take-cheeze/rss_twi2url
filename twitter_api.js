@@ -20,17 +20,6 @@ process.on('exit', function() {
   backup();
 });
 
-console.log = function() {
-  process.send(
-    { type: 'log', data: Array.prototype.slice.call(arguments).join(' '),
-      left: url_expander_queue.length });
-};
-console.error = function() {
-  process.send(
-    { type: 'error', data: Array.prototype.slice.call(arguments).join(' '),
-      left: url_expander_queue.length });
-};
-
 var config = {}, consumer = {};
 try { consumer = require('./consumer'); } catch(e) {}
 consumer.CONSUMER_KEY = process.env.TWITTER_CONSUMER_KEY || consumer.CONSUMER_KEY;
@@ -369,7 +358,7 @@ process.on('message', function(msg) {
     case 'signin':
     if(opt.oauth_token_secret) { throw 'already singed in'; }
     signin(msg.data);
-    if(require('path').existsSync(QUEUE_FILENAME + '.gz')) {
+    if(fs.existsSync(QUEUE_FILENAME + '.gz')) {
       fs.readFile(QUEUE_FILENAME + '.gz', function(err, b) {
         zlib.gunzip(b, function(err, buf) {
           if(err) { throw err; }

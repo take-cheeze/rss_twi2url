@@ -1,12 +1,5 @@
 if(!process.send) { throw 'is not forked'; }
 
-console.log = function() {
-  process.send({ type: 'log', data: Array.prototype.slice.call(arguments).join(' ') });
-};
-console.error = function() {
-  process.send({ type: 'error', data: Array.prototype.slice.call(arguments).join(' ') });
-};
-
 var consumer = {};
 try { consumer = require('./consumer'); } catch(e) {}
 consumer.USTREAM_KEY = process.env.USTREAM_KEY;

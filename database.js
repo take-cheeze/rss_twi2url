@@ -1,12 +1,5 @@
 if(!process.send) { throw 'is not forked'; }
 
-console.log = function() {
-  process.send({ type: 'log', data: Array.prototype.slice.call(arguments).join(' ') });
-};
-console.error = function() {
-  process.send({ type: 'error', data: Array.prototype.slice.call(arguments).join(' ') });
-};
-
 var $ = require('jquery');
 var htmlcompressor = require(__dirname + '/htmlcompressor.js');
 var jsdom = require('jsdom');
@@ -191,18 +184,24 @@ process.on('message', function(msg) {
 
     case 'config':
     config = msg.data;
-    db = new (require('leveldb').DB)();
-    db.open(config.DB_FILE, { create_if_missing: true }, function(err) {
-      if(err) { throw err; }
-    });
+
+    require('leveldb').open(
+      config.DB_FILE, { create_if_missing: true },
+      function(err, d) {
+        if(err) { throw err; }
+        db = d;
+      });
+
     if(executer.length !== config.executer) {
       executer[config.executer - 1] = undefined;
       $.each(executer, function(k, v) {
         executer[k] = create_child();
         retry_failure_count[k] = 0;
       });
-      $.each(executer, function(k, v) {
-        v.send({ type: 'config', data: config }); });
+      setTimeout(function() {
+        $.each(executer, function(k, v) {
+          v.send({ type: 'config', data: config }); });
+      }, 30);
     }
     setInterval(process.send, config.check_frequency, { type: 'dummy', data: '' });
     break;

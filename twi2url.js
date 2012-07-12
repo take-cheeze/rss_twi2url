@@ -26,10 +26,10 @@ function match_exclude_filter(str) {
 }
 
 var rss_twi2url =
-  require('path').existsSync(JSON_FILE)
+  fs.existsSync(JSON_FILE)
   ? JSON.parse(fs.readFileSync(JSON_FILE, 'utf8'))
   : { last_urls: [], queued_urls: [], since: {}, generating_items: {} };
-if(require('path').existsSync(JSON_FILE + '.gz')) {
+if(fs.existsSync(JSON_FILE + '.gz')) {
   zlib.gunzip(fs.readFileSync(JSON_FILE + '.gz'), function(err, buf) {
     if(err) { throw err; }
     rss_twi2url = JSON.parse(buf.toString());
@@ -244,7 +244,7 @@ start = function() {
 
         console.log('restarting database');
         database.kill();
-        if(require('path').existsSync(config.DB_FILE + '/LOCK')) {
+        if(fs.existsSync(config.DB_FILE + '/LOCK')) {
           fs.unlinkSync(config.DB_FILE + '/LOCK');
         }
         database = create_database();
@@ -340,6 +340,8 @@ require('request')
   twitter_api = create_twitter_api();
   database = create_database();
 
-  send_config();
-  twitter_api.send({ type: 'signin', data: is_signed_in()? rss_twi2url : null });
+  setTimeout(function() {
+    send_config();
+    twitter_api.send({ type: 'signin', data: is_signed_in()? rss_twi2url : null });
+  }, 30);
 });
