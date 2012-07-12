@@ -13,7 +13,8 @@ module.exports = function(url) {
     });
     return URL.format(url_obj);
   } catch(e) {
-    console.log('remove utm param error:', e);
+    console.error('remove utm param error:', e);
+    console.error(url);
     return url;
   }
 };
