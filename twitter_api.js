@@ -241,7 +241,7 @@ function signin(setting) {
     opt.token_secret = setting.oauth_token_secret;
     process.send({ type: 'signed_in', data: setting });
   } else {
-    opt.callback = config.feed_url + '/callback';
+    opt.callback = config.feed_url + 'callback';
     request.post(
       {url:'https://api.twitter.com/oauth/request_token', oauth: opt},
       function (e, r, body) {
@@ -257,8 +257,8 @@ function signin(setting) {
         console.log('Or:', config.feed_url);
 
         var server = null;
-        server = require('http').createServer(
-          function(req, res) {
+        server =
+          require('http').createServer(function(req, res) {
             if(!/\/callback/.test(req.url)) {
               res.writeHead(302, {location: authorize_url});
               res.end();
@@ -283,8 +283,8 @@ function signin(setting) {
                 process.send({ type: 'signed_in', data: result });
               });
           })
-                 .listen(config.port)
-                 .on('clientError', function(e) { console.error(e); });
+          .listen(config.port)
+          .on('clientError', function(e) { console.error(e); });
       });
   }
 }

@@ -4,6 +4,7 @@ var $ = require('jquery');
 var htmlcompressor = require(__dirname + '/htmlcompressor.js');
 var jsdom = require('jsdom');
 var zlib = require('zlib');
+var qs = require('querystring');
 
 var document = jsdom.jsdom(), window = document.createWindow();
 var config = {};
@@ -18,8 +19,7 @@ function generate_feed(items) {
   var len = items.length, count = 0;
 
   var feed = new (require('rss'))(
-    {
-      title: config.title,
+    { title: config.title,
       'description': config.description,
       feed_url: config.feed_url,
       site_url: config.feed_url,
@@ -69,7 +69,7 @@ function executer_index(exe) {
 function create_child() {
   var ret = require('child_process')
     .fork(__dirname + '/description.js', [], { env: process.env });
-  ret.send({ type: 'config', data: config });
+  setTimeout(ret.send, 30, { type: 'config', data: config });
 
   ret.on('exit', function(code, signal) {
     var idx = executer_index(ret);
@@ -118,6 +118,11 @@ function create_child() {
 
           try {
             var cleaned = $('<div />').html(stdout.toString());
+
+            cleaned.find('img:not([istex])[src]').each(function() {
+              $(this).attr('src', confg.feed_url + 'image?' +
+                           sq.stringify({ 'url': $(this).attr('src') }));
+            });
 
             $.each(config.removing_tag, function(k,v) {
               cleaned.find(v).each(
@@ -215,4 +220,8 @@ process.on('exit', function() {
   $.each(executer, function(k, v) {
     v.kill();
   });
+});
+
+process.on('uncaughtException', function (err) {
+  console.error(err);
 });

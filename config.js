@@ -55,7 +55,7 @@ module.exports = {
     '#posts', '.Photo',
     '.Text',
     'pre', 'table',
-    '[istex="istex"]',
+    '[istex="true"]',
     'body:first-child'
   ],
 
