@@ -98,7 +98,6 @@ function expand_url() {
   expand_url();
 }
 
-/*
 process.on('uncaughtException', function (err) {
   if(/URI malformed/.test(err)) {
     console.log('uncaught error:', err);
@@ -107,10 +106,8 @@ process.on('uncaughtException', function (err) {
   else {
     console.error("Error:", err);
     console.trace();
-    process.exit(1);
   }
 });
- */
 
 function remove_utm_param(url) {
   try {
