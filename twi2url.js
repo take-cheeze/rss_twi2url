@@ -17,7 +17,6 @@ var
 
 var document = jsdom.jsdom(), window = document.createWindow();
 var db = null;
-var is_generating_feed = false;
 
 var last_item_generation = Date.now();
 
@@ -349,7 +348,7 @@ function start() {
       console.log('generating_items:');
       console.log(rss_twi2url.generating_items);
 
-      generate_feed(ary, send_data);
+      send_data(200, generate_feed(ary));
 
       $.each(rss_twi2url.generating_items, function(k, v) {
         rss_twi2url.queued_urls.unshift(v);
@@ -677,9 +676,7 @@ function signin(setting) {
   }
 }
 
-function generate_feed(items, cb) {
-  if(is_generating_feed) { return; }
-
+function generate_feed(items) {
   var len = items.length, count = 0;
 
   var feed = new (require('rss'))(
@@ -689,17 +686,17 @@ function generate_feed(items, cb) {
       site_url: config.feed_url,
       author: config.author });
 
-  is_generating_feed = true;
-
   if(len === 0) {
     cb(feed.xml());
     return;
   }
 
+  var ret;
   $.each(items, function(idx, key) {
     feed.item(JSON.parse(db.get(key)));
-    if(++count === len) { cb(feed.xml()); }
+    if(++count === len) { ret = feed.xml(); }
   });
+  return ret;
 }
 
 db = new (require('leveldb').DB);
