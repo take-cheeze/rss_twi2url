@@ -46,7 +46,88 @@ config.feed_url = 'http://' + config.hostname
 var JSON_FILE = process.cwd() + '/rss_twi2url.json';
 var QUEUE_FILENAME = process.cwd() + '/rss_twi2url_queue.json';
 
+function count_map_element(map) {
+  var ret = 0;
+  $.each(map, function(k, v) {
+    ret++;
+  });
+  return ret;
+}
+
+function match_exclude_filter(str) {
+  var result = false;
+  $.each(config.exclude_filter, function(k, v) {
+    if((new RegExp(v)).test(str)) { result = true; } });
+  return result;
+}
+
+var rss_twi2url =
+  fs.existsSync(JSON_FILE)
+  ? JSON.parse(fs.readFileSync(JSON_FILE, 'utf8'))
+  : { last_urls: [], queued_urls: [], since: {}, generating_items: {} };
+if(fs.existsSync(JSON_FILE + '.gz')) {
+  zlib.gunzip(fs.readFileSync(JSON_FILE + '.gz'), function(err, buf) {
+    if(err) { throw err; }
+    rss_twi2url = JSON.parse(buf.toString());
+
+    if(rss_twi2url.generating_items) {
+      console.log(rss_twi2url.generating_items);
+      $.each(rss_twi2url.generating_items, function(k, v) {
+        rss_twi2url.queued_urls.unshift(v);
+      });
+    }
+    rss_twi2url.generating_items = {};
+
+    var filtered_queue = [];
+    $.each(rss_twi2url.queued_urls, function(k, v) {
+      if(!match_exclude_filter(v.url)) { filtered_queue.push(v); }
+    });
+    rss_twi2url.queued_urls = filtered_queue;
+
+    // reduce feed size
+    while(rss_twi2url.last_urls.length > config.feed_item_max) {
+      rss_twi2url.last_urls.shift(); }
+  });
+}
+
 var expand_count = 0, expand_cache = {};
+
+function is_queued(url) {
+  var result = false;
+  $.each(rss_twi2url.queued_urls, function(k, v) {
+    if(v.url === url) { result = true; } });
+  return result;
+}
+
+function remove_utm_param(url) {
+  try {
+    var url_obj = URL.parse(url, true);
+    var removing_param = [];
+    $.each(url_obj.query, function(k, v) {
+      if(/utm_/i.test(k)) { removing_param.push(k); }
+    });
+    $.each(removing_param, function(idx, param) {
+      delete url_obj.query[param];
+    });
+    return URL.format(url_obj);
+  } catch(e) {
+    console.error('remove utm param error:', e);
+    console.error(url);
+    return url;
+  }
+}
+
+function expantion_exclude(url) {
+  var ret = false;
+  $.each(config.url_expantion_exclude, function(k, v) {
+    if((new RegExp(v)).test(url)) {
+      ret = true;
+      return false;
+    }
+    return undefined;
+  });
+  return ret;
+}
 
 function expand_url() {
   if(expand_count >= config.url_expander_number) {
@@ -109,60 +190,6 @@ process.on('uncaughtException', function (err) {
   }
 });
 
-function remove_utm_param(url) {
-  try {
-    var url_obj = URL.parse(url, true);
-    var removing_param = [];
-    $.each(url_obj.query, function(k, v) {
-      if(/utm_/i.test(k)) { removing_param.push(k); }
-    });
-    $.each(removing_param, function(idx, param) {
-      delete url_obj.query[param];
-    });
-    return URL.format(url_obj);
-  } catch(e) {
-    console.error('remove utm param error:', e);
-    console.error(url);
-    return url;
-  }
-}
-
-function match_exclude_filter(str) {
-  var result = false;
-  $.each(config.exclude_filter, function(k, v) {
-    if((new RegExp(v)).test(str)) { result = true; } });
-  return result;
-}
-
-var rss_twi2url =
-  fs.existsSync(JSON_FILE)
-  ? JSON.parse(fs.readFileSync(JSON_FILE, 'utf8'))
-  : { last_urls: [], queued_urls: [], since: {}, generating_items: {} };
-if(fs.existsSync(JSON_FILE + '.gz')) {
-  zlib.gunzip(fs.readFileSync(JSON_FILE + '.gz'), function(err, buf) {
-    if(err) { throw err; }
-    rss_twi2url = JSON.parse(buf.toString());
-
-    if(rss_twi2url.generating_items) {
-      console.log(rss_twi2url.generating_items);
-      $.each(rss_twi2url.generating_items, function(k, v) {
-        rss_twi2url.queued_urls.unshift(v);
-      });
-    }
-    rss_twi2url.generating_items = {};
-
-    var filtered_queue = [];
-    $.each(rss_twi2url.queued_urls, function(k, v) {
-      if(!match_exclude_filter(v.url)) { filtered_queue.push(v); }
-    });
-    rss_twi2url.queued_urls = filtered_queue;
-
-    // reduce feed size
-    while(rss_twi2url.last_urls.length > config.feed_item_max) {
-      rss_twi2url.last_urls.shift(); }
-  });
-}
-
 function backup() {
   zlib.gzip(new Buffer(JSON.stringify(rss_twi2url)), function(err, buf) {
     if(err) { throw err; }
@@ -184,96 +211,96 @@ function in_last_urls(url) {
     if(v === url) { result = true; } });
   return result;
 }
-function is_queued(url) {
-  var result = false;
-  $.each(rss_twi2url.queued_urls, function(k, v) {
-    if(v.url === url) { result = true; } });
-  return result;
-}
 
 function generate_item() {
-  while(rss_twi2url.queued_urls.length > 0) {
-    var v = rss_twi2url.queued_urls.shift();
-    if(! match_exclude_filter(v.url) &&
-       ! in_last_urls(v.url) &&
-       ! is_queued(v.url))
-    {
-      // console.log('start:', v.url);
-      setTimeout(get_description, config.item_generation_frequency, v.url,  function(url, title, desc) {
-        if(desc === undefined) {
-          desc = title;
-          title = v.text;
-        }
+  if(rss_twi2url.queued_urls.length === 0) { return; }
 
-        url = remove_utm_param(url);
-        if(/retry count exceeded/.test(desc)) {
-          // retry
-        }
+  var v = rss_twi2url.queued_urls.shift();
 
-        if(!title) {
-          console.error('Invalid title:', url);
-          title = v.text;
-        }
-        if(!desc) {
-          console.error('Invalid description:', url);
-        }
+  if(match_exclude_filter(v.url) ||
+         in_last_urls(v.url) ||
+     is_queued(v.url))
+  {
+    generate_item();
+    return;
+  }
 
-        title = title.replace(/@(\w)/g, '@ $1');
+  // console.log('start:', v.url);
+  get_description(v.url,  function(url, title, desc) {
+    if(desc === undefined) {
+      desc = title;
+      title = v.text;
+    }
 
-        htmlcompressor((typeof desc === 'string')? desc : '', function(err, stdout, stderr) {
-          if(stderr) {
-            console.error('htmlcompressor error:', stderr.toString());
-          }
-          if(err) { throw err; }
+    url = remove_utm_param(url);
 
-          try {
-            var cleaned = $('<div />').html(stdout.toString());
+    /*
+    if(/retry count exceeded/.test(desc)) {
+    }
+     */
 
-            cleaned.find('img:not([istex])[src]').each(function() {
-              $(this).attr('src', confg.feed_url + 'image?' +
-                           sq.stringify({ 'url': $(this).attr('src') }));
-            });
+    if(!title) {
+      console.error('Invalid title:', url);
+      title = v.text;
+    }
+    if(!desc) {
+      console.error('Invalid description:', url);
+    }
 
-            $.each(config.removing_tag, function(k,v) {
-              cleaned.find(v).each(
-                function(k, elm) { elm.parentNode.removeChild(elm); }); });
-            $.each(config.removing_attribute, function(k,v) {
-              cleaned.find('[' + v + ']').removeAttr(v); });
-            cleaned.find('*').removeData();
+    title = title.replace(/@(\w)/g, '@ $1');
 
-            if(!v.text) { throw 'invalid tweet text'; }
-            db.put(url, JSON.stringify(
-              {
-                title: title, 'url': url, author: v.author, date: v.date,
-                description:
-                'URL: ' + url + '<br />' +
-                  'Tweet: ' + v.text +
-                  (cleaned.html()? '<br /><br />' + cleaned.html() : '')
-              }));
-          } catch(e) {
-            db.put(url, JSON.stringify(
-              {
-                title: title, 'url': url, author: v.author, date: v.date,
-                description: e + '<br /><br />' +
-                  'URL: ' + url + '<br />' +
-                  'Tweet: ' + v.text +
-                  (stdout? '<br /><br />' + stdout.toString() : '')
-              }));
-          }
+    htmlcompressor((typeof desc === 'string')? desc : '', function(err, stdout, stderr) {
+      if(stderr) {
+        console.error('htmlcompressor error:', stderr.toString());
+      }
+      if(err) { throw err; }
+
+      try {
+        var cleaned = $('<div />').html(stdout.toString());
+
+        cleaned.find('img:not([istex])[src]').each(function() {
+          $(this).attr('src', confg.feed_url + 'image?' +
+                       sq.stringify({ 'url': $(this).attr('src') }));
         });
 
-        if(!in_last_urls(v.url))
-        { rss_twi2url.last_urls.push(v.url); }
+        $.each(config.removing_tag, function(k,v) {
+          cleaned.find(v).each(
+            function(k, elm) { elm.parentNode.removeChild(elm); }); });
+        $.each(config.removing_attribute, function(k,v) {
+          cleaned.find('[' + v + ']').removeAttr(v); });
+        cleaned.find('*').removeData();
 
-        delete rss_twi2url.generating_items[v.url];
+        if(!v.text) { throw 'invalid tweet text'; }
+        db.put(url, JSON.stringify(
+          {
+            title: title, 'url': url, author: v.author, date: v.date,
+            description:
+            'URL: ' + url + '<br />' +
+              'Tweet: ' + v.text +
+              (cleaned.html()? '<br /><br />' + cleaned.html() : '')
+          }));
+      } catch(e) {
+        db.put(url, JSON.stringify(
+          {
+            title: title, 'url': url, author: v.author, date: v.date,
+            description: e + '<br /><br />' +
+              'URL: ' + url + '<br />' +
+              'Tweet: ' + v.text +
+              (stdout? '<br /><br />' + stdout.toString() : '')
+          }));
+      }
+    });
 
-        setTimeout(generate_item, config.item_generation_frequency);
-      });
-      rss_twi2url.generating_items[v.url] = v;
-      last_item_generation = Date.now();
-      return;
-    }
-  }
+    if(!in_last_urls(v.url))
+    { rss_twi2url.last_urls.push(v.url); }
+
+    delete rss_twi2url.generating_items[v.url];
+
+    setTimeout(generate_item, config.item_generation_frequency);
+  });
+  rss_twi2url.generating_items[v.url] = v;
+  last_item_generation = Date.now();
+  return;
 }
 
 function start() {
@@ -281,8 +308,8 @@ function start() {
     var accept = req.headers['accept-encoding'] || '';
     var header = {'content-type': 'application/rss+xml'};
     header['content-encoding'] =
-                    /\bdeflate\b/.test(accept)? 'deflate':
-                    /\bgzip\b/.test(accept)? 'gzip':
+      /\bdeflate\b/.test(accept)? 'deflate':
+      /\bgzip\b/.test(accept)? 'gzip':
       false;
     if(!header['content-encoding']) {
       delete header['content-encoding']; }
@@ -327,13 +354,6 @@ function start() {
               ? rss_twi2url.last_urls.slice(rss_twi2url.last_urls.length - config.feed_item_max)
               : rss_twi2url.last_urls;
 
-      var count_map_element = function(map) {
-        var ret = 0;
-        $.each(map, function(k, v) {
-          ret++;
-        });
-        return ret;
-      }
       console.log('Request:', req.headers);
       console.log(
         'RSS requested:'
@@ -399,6 +419,69 @@ function is_signed_in() {
     if(! rss_twi2url[v]) { result = false; }
   });
   return result;
+}
+
+function signin(setting) {
+  if(fs.existsSync(QUEUE_FILENAME + '.gz')) {
+    fs.readFile(QUEUE_FILENAME + '.gz', function(err, b) {
+      zlib.gunzip(b, function(err, buf) {
+        if(err) { throw err; }
+        url_expander_queue = url_expander_queue.concat(JSON.parse(buf.toString()));
+      });
+    });
+  }
+
+  if(setting) {
+    opt.token = setting.oauth_token;
+    opt.token_secret = setting.oauth_token_secret;
+    signed_in(rss_twi2url);
+  } else {
+    opt.callback = config.feed_url + 'callback';
+    request.post(
+      {url:'https://api.twitter.com/oauth/request_token', oauth: opt},
+      function (e, r, body) {
+        if(e) { throw e; }
+
+        var tok = qs.parse(body);
+        opt.token = tok.oauth_token;
+        opt.token_secret = tok.oauth_token_secret;
+        delete opt.callback;
+
+        var authorize_url = 'https://twitter.com/oauth/authorize?oauth_token=' + opt.token;
+        console.log('Visit:', authorize_url);
+        console.log('Or:', config.feed_url);
+
+        var server = null;
+        server =
+          require('http').createServer(function(req, res) {
+            if(!/\/callback/.test(req.url)) {
+              res.writeHead(302, {location: authorize_url});
+              res.end();
+              return;
+            }
+
+            opt.verifier = qs.parse(req.url).oauth_verifier;
+            request.post(
+              {url:'https://api.twitter.com/oauth/access_token', 'oauth': opt},
+              function (e, r, result) {
+                if(e) { throw e; }
+
+                result = qs.parse(result);
+                opt.token = result.oauth_token;
+                opt.token_secret = result.oauth_token_secret;
+                delete opt.verifier;
+
+                res.writeHead(200, {'content-type': 'text/plain'});
+                res.end('Twitter OAuth Success!');
+
+                if(server) { server.close(); }
+                signed_in(result);
+              });
+          })
+          .listen(config.port)
+          .on('clientError', function(e) { console.error(e); });
+      });
+  }
 }
 
 request.get({uri: 'http://code.jquery.com/jquery-latest.min.js'}, function(e, r, body) {
@@ -495,18 +578,6 @@ function check_left_api(callback) {
     });
 }
 
-function expantion_exclude(url) {
-  var ret = false;
-  $.each(config.url_expantion_exclude, function(k, v) {
-    if((new RegExp(v)).test(url)) {
-      ret = true;
-      return false;
-    }
-    return undefined;
-  });
-  return ret;
-}
-
 function fetch_page(url, name, info, cb) {
   url += (info.page === 1 && info.since_id)
        ? '&' + $.param({since_id: info.since_id}) : '';
@@ -547,7 +618,7 @@ function fetch_page(url, name, info, cb) {
 function fetch() {
   if(!twitter_api_left) { return; }
 
-  var setting = rss_twi2url
+  var setting = rss_twi2url;
   function fetch_lists() {
     get_json(
       'http://api.twitter.com/1/lists/all.json?' +
@@ -612,69 +683,6 @@ function fetch() {
     });
 }
 
-function signin(setting) {
-  if(fs.existsSync(QUEUE_FILENAME + '.gz')) {
-    fs.readFile(QUEUE_FILENAME + '.gz', function(err, b) {
-      zlib.gunzip(b, function(err, buf) {
-        if(err) { throw err; }
-        url_expander_queue = url_expander_queue.concat(JSON.parse(buf.toString()));
-      });
-    });
-  }
-
-  if(setting) {
-    opt.token = setting.oauth_token;
-    opt.token_secret = setting.oauth_token_secret;
-    signed_in(rss_twi2url);
-  } else {
-    opt.callback = config.feed_url + 'callback';
-    request.post(
-      {url:'https://api.twitter.com/oauth/request_token', oauth: opt},
-      function (e, r, body) {
-        if(e) { throw e; }
-
-        var tok = qs.parse(body);
-        opt.token = tok.oauth_token;
-        opt.token_secret = tok.oauth_token_secret;
-        delete opt.callback;
-
-        var authorize_url = 'https://twitter.com/oauth/authorize?oauth_token=' + opt.token;
-        console.log('Visit:', authorize_url);
-        console.log('Or:', config.feed_url);
-
-        var server = null;
-        server =
-          require('http').createServer(function(req, res) {
-            if(!/\/callback/.test(req.url)) {
-              res.writeHead(302, {location: authorize_url});
-              res.end();
-              return;
-            }
-
-            opt.verifier = qs.parse(req.url).oauth_verifier;
-            request.post(
-              {url:'https://api.twitter.com/oauth/access_token', 'oauth': opt},
-              function (e, r, result) {
-                if(e) { throw e; }
-
-                result = qs.parse(result);
-                opt.token = result.oauth_token;
-                opt.token_secret = result.oauth_token_secret;
-                delete opt.verifier;
-
-                res.writeHead(200, {'content-type': 'text/plain'});
-                res.end('Twitter OAuth Success!');
-
-                if(server) { server.close(); }
-                signed_in(result);
-              });
-          })
-          .listen(config.port)
-          .on('clientError', function(e) { console.error(e); });
-      });
-  }
-}
-
 function generate_feed(items, cb) {
   var feed = new (require('rss'))(
     { title: config.title,
@@ -696,7 +704,7 @@ function generate_feed(items, cb) {
   });
 }
 
-db = new (require('leveldb').DB);
+db = new (require('leveldb').DB)();
 db.open(DB_FILE, { create_if_missing: true }, function(err) {
   if(err) { throw err; }
 });
