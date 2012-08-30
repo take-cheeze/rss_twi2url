@@ -702,9 +702,10 @@ function generate_feed(items, cb) {
   });
 }
 
-console.log(require('leveldb'));
-db = new require('leveldb').DB;
-db.open({ create_if_missing: true }, DB_FILE);
+db = new (require('leveldb').DB);
+db.open(DB_FILE, { create_if_missing: true }, function(err) {
+  if(err) { throw err; }
+});
 
 DEFAULT_FEATURE = {
   FetchExternalResources: false, // ['frame', 'css'],
