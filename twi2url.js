@@ -299,7 +299,7 @@ function start() {
       {
         case 'gzip': buf_stream.pipe(zlib.createGzip()).pipe(res);
         break;
-        case 'deflate': buf_stream.pipe(res);
+        case 'deflate': buf_stream.pipe(zlib.createDeflateRaw()).pipe(res);
         break;
         default: buf_stream.pipe(res);
         break;
@@ -348,7 +348,7 @@ function start() {
       console.log('generating_items:');
       console.log(rss_twi2url.generating_items);
 
-      send_data(200, generate_feed(ary));
+      generate_feed(ary, function(data) { send_data(200, data); });
 
       $.each(rss_twi2url.generating_items, function(k, v) {
         rss_twi2url.queued_urls.unshift(v);
@@ -366,12 +366,6 @@ function start() {
 
   console.log('twi2url started: ' + config.feed_url);
   console.log('As user: ' + rss_twi2url.screen_name + ' (' + rss_twi2url.user_id + ')');
-
-  setTimeout(function() {
-    var i = 0;
-    for(; i < config.executer; i++) { generate_item(); }
-  }, config.item_generation_frequency);
-
 
   backup();
   fetch();
@@ -445,8 +439,16 @@ function get_json(url, callback) {
           case 200:
           try {
             function uncompress_callback(err, buffer) {
-              if(err) { throw err; }
-              callback(JSON.parse(buffer.toString('utf8')));
+              if(err) { console.error(err); }
+              try {
+                callback(JSON.parse(buffer.toString('utf8')));
+              } catch(json_err) {
+                console.error(json_err);
+                console.error(buffer);
+                console.error(buffer.toString());
+
+                callback([]);
+              }
             }
             switch(res.headers['content-encoding']) {
               case 'gzip':
@@ -676,7 +678,7 @@ function signin(setting) {
   }
 }
 
-function generate_feed(items) {
+function generate_feed(items, cb) {
   var feed = new (require('rss'))(
     { title: config.title,
       'description': config.description,
@@ -684,10 +686,16 @@ function generate_feed(items) {
       site_url: config.feed_url,
       author: config.author });
 
+  if(items.length === 0) { cb(feed.xml()); }
+
+  var len = items.length, count = 0;
+
   $.each(items, function(idx, key) {
-    feed.item(JSON.parse(db.get(key)));
+    db.get(key, function(err, val) {
+      feed.item(JSON.parse(val));
+      if(++count >= len) { cb(feed.xml()); }
+    });
   });
-  return feed.xml();
 }
 
 db = new (require('leveldb').DB);
