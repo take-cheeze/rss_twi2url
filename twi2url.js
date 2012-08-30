@@ -246,23 +246,23 @@ function generate_item() {
             cleaned.find('*').removeData();
 
             if(!v.text) { throw 'invalid tweet text'; }
-            db.put({}, new Buffer(url), new Buffer(JSON.stringify(
+            db.put(url, JSON.stringify(
               {
                 title: title, 'url': url, author: v.author, date: v.date,
                 description:
                 'URL: ' + url + '<br />' +
                   'Tweet: ' + v.text +
                   (cleaned.html()? '<br /><br />' + cleaned.html() : '')
-              })));
+              }));
           } catch(e) {
-            db.put({}, new Buffer(url), new Buffer(JSON.stringify(
+            db.put(url, JSON.stringify(
               {
                 title: title, 'url': url, author: v.author, date: v.date,
                 description: e + '<br /><br />' +
                   'URL: ' + url + '<br />' +
                   'Tweet: ' + v.text +
                   (stdout? '<br /><br />' + stdout.toString() : '')
-              })));
+              }));
           }
         });
 
@@ -697,7 +697,7 @@ function generate_feed(items, cb) {
   }
 
   $.each(items, function(idx, key) {
-    feed.item(JSON.parse(db.get({}, new Buffer(key)).toString()));
+    feed.item(JSON.parse(db.get(key)));
     if(++count === len) { cb(feed.xml()); }
   });
 }
