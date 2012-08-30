@@ -394,7 +394,7 @@ function start() {
   setInterval(function() {
     expand_url();
 
-    if((count_map_element(rss_twi2url.generating_items) < config.executer) {
+    if(count_map_element(rss_twi2url.generating_items) < config.executer) {
       generate_item();
     }
   }, config.check_frequency);
