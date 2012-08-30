@@ -246,24 +246,23 @@ function generate_item() {
             cleaned.find('*').removeData();
 
             if(!v.text) { throw 'invalid tweet text'; }
-            db.put(url, JSON.stringify(
+            db.put({}, new Buffer(url), new Buffer(JSON.stringify(
               {
                 title: title, 'url': url, author: v.author, date: v.date,
                 description:
                 'URL: ' + url + '<br />' +
                   'Tweet: ' + v.text +
                   (cleaned.html()? '<br /><br />' + cleaned.html() : '')
-              }), {}, function(err) { if(err) { throw err; } });
+              })));
           } catch(e) {
-            db.put(
-              url, JSON.stringify(
-                {
-                  title: title, 'url': url, author: v.author, date: v.date,
-                  description: e + '<br /><br />' +
-                    'URL: ' + url + '<br />' +
-                    'Tweet: ' + v.text +
-                    (stdout? '<br /><br />' + stdout.toString() : '')
-                }), {}, function(err) { if(err) { throw err; } });
+            db.put({}, new Buffer(url), new Buffer(JSON.stringify(
+              {
+                title: title, 'url': url, author: v.author, date: v.date,
+                description: e + '<br /><br />' +
+                  'URL: ' + url + '<br />' +
+                  'Tweet: ' + v.text +
+                  (stdout? '<br /><br />' + stdout.toString() : '')
+              })));
           }
         });
 
@@ -698,20 +697,14 @@ function generate_feed(items, cb) {
   }
 
   $.each(items, function(idx, key) {
-    db.get(key, function(err, data) {
-      if(err) { throw err; }
-      if(data) { feed.item(JSON.parse(data)); }
-      if(++count === len) { cb(feed.xml()); }
-    });
+    feed.item(JSON.parse(db.get({}, new Buffer(key)).toString()));
+    if(++count === len) { cb(feed.xml()); }
   });
 }
 
-require('leveldb').open(
-  DB_FILE, { create_if_missing: true },
-  function(err, d) {
-    if(err) { throw err; }
-    db = d;
-  });
+console.log(require('leveldb'));
+db = new require('leveldb').DB;
+db.open({ create_if_missing: true }, DB_FILE);
 
 DEFAULT_FEATURE = {
   FetchExternalResources: false, // ['frame', 'css'],
