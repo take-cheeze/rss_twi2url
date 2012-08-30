@@ -692,7 +692,8 @@ function generate_feed(items, cb) {
 
   $.each(items, function(idx, key) {
     db.get(key, function(err, val) {
-      feed.item(JSON.parse(val));
+      if(err) { console.error('db.get error:', err); }
+      else { feed.item(JSON.parse(val)); }
       if(++count >= len) { cb(feed.xml()); }
     });
   });
