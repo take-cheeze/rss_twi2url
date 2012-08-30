@@ -204,6 +204,11 @@ function generate_item() {
     {
       // console.log('start:', v.url);
       setTimeout(get_description, config.item_generation_frequency, v.url,  function(url, title, desc) {
+        if(desc === undefined) {
+          desc = title;
+          title = v.text;
+        }
+
         url = remove_utm_param(url);
         if(/retry count exceeded/.test(desc)) {
           // retry
@@ -267,7 +272,7 @@ function generate_item() {
 
         delete rss_twi2url.generating_items[v.url];
 
-        generate_item();
+        setTimeout(generate_item, config.item_generation_frequency);
       });
       rss_twi2url.generating_items[v.url] = v;
       last_item_generation = Date.now();
