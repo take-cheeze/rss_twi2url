@@ -677,8 +677,6 @@ function signin(setting) {
 }
 
 function generate_feed(items) {
-  var len = items.length, count = 0;
-
   var feed = new (require('rss'))(
     { title: config.title,
       'description': config.description,
@@ -686,17 +684,10 @@ function generate_feed(items) {
       site_url: config.feed_url,
       author: config.author });
 
-  if(len === 0) {
-    cb(feed.xml());
-    return;
-  }
-
-  var ret;
   $.each(items, function(idx, key) {
     feed.item(JSON.parse(db.get(key)));
-    if(++count === len) { ret = feed.xml(); }
   });
-  return ret;
+  return feed.xml();
 }
 
 db = new (require('leveldb').DB);
