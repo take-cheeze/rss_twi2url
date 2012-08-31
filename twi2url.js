@@ -413,6 +413,11 @@ function is_signed_in() {
   var check = [
     'oauth_token', 'oauth_token_secret',
     'user_id', 'screen_name'];
+
+  $.each(check, function(k,v) {
+    rss_twi2url[v] = process.env[v] || null;
+  });
+
   var result = true;
   $.each(check, function(k, v) {
     if(! rss_twi2url[v]) { result = false; }
@@ -474,6 +479,9 @@ function signin(setting) {
                 res.end('Twitter OAuth Success!');
 
                 if(server) { server.close(); }
+
+                console.log('Twitter OAuth result.');
+                console.log(result);
                 signed_in(result);
               });
           })
