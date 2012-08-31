@@ -238,6 +238,8 @@ function create_executer(i) {
   setTimeout(function() {
     child.send({ type: 'config', data: config });
   }, 30);
+
+  return child;
 }
 
 function get_description(url, cb) {
