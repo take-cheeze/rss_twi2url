@@ -595,8 +595,9 @@ process.on('message', function(m) {
           if(a2) { a2 = cleaned.html(); }
           else { a1 = cleaned.html(); }
         } catch(e) {
-          if(a2) { a2 = stdout? stdout.toString() : ''; }
-          else { a1 = stdout? stdout.toString() : ''; }
+          var result = 'Error: ' + e + '<br /><br />' + (stdout? stdout.toString() : '');
+          if(a2) { a2 = result; }
+          else { a1 = result; }
         }
         process.send({type: 'got_description', data: [m.data, a0, a1, a2]});
       });

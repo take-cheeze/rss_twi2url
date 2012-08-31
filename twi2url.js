@@ -286,8 +286,7 @@ function generate_item() {
     db.put(url, JSON.stringify(
       {
         title: title, 'url': url, author: v.author, date: v.date,
-        description: e + '<br /><br />' +
-          'URL: ' + url + '<br />' +
+        description: 'URL: ' + url + '<br />' +
           'Tweet: ' + v.text +
           (desc? '<br /><br />' + desc : '')
       }));
