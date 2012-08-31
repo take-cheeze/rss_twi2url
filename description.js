@@ -573,6 +573,9 @@ process.on('message', function(m) {
 
   switch(m.type) {
     case 'get_description':
+    document = jsdom.jsdom();
+    window = document.createWindow();
+
     get_description(m.data, function(a0, a1, a2) {
       var desc = a2 || a1;
 
