@@ -9,11 +9,9 @@ var
   , qs = require('querystring')
   , request = require('request')
   , jsdom = require('jsdom')
-  , htmlcompressor = require('./htmlcompressor')
   , fork = require('child_process').fork
 ;
 
-var document = jsdom.jsdom(), window = document.createWindow();
 var db = null;
 var last_item_generation = Date.now();
 var consumer = {};
@@ -275,11 +273,6 @@ function generate_item() {
 
     url = remove_utm_param(url);
 
-    /*
-    if(/retry count exceeded/.test(desc)) {
-    }
-     */
-
     if(!title) {
       console.error('Invalid title:', url);
       title = v.text;
@@ -290,49 +283,14 @@ function generate_item() {
 
     title = title.replace(/@(\w)/g, '@ $1');
 
-    htmlcompressor((typeof desc === 'string')? desc : '', function(err, stdout, stderr) {
-      if(stderr) {
-        console.error('htmlcompressor error:', stderr.toString());
-      }
-      if(err) { throw err; }
-
-      try {
-        var cleaned = $('<div />').html(stdout.toString());
-
-        /*
-        cleaned.find('img:not([istex])[src]').each(function() {
-          $(this).attr('src', config.feed_url + 'image?' +
-                       sq.stringify({ 'url': $(this).attr('src') }));
-        });
-         */
-
-        $.each(config.removing_tag, function(k,v) {
-          cleaned.find(v).each(
-            function(k, elm) { elm.parentNode.removeChild(elm); }); });
-        $.each(config.removing_attribute, function(k,v) {
-          cleaned.find('[' + v + ']').removeAttr(v); });
-        cleaned.find('*').removeData();
-
-        if(!v.text) { throw 'invalid tweet text'; }
-        db.put(url, JSON.stringify(
-          {
-            title: title, 'url': url, author: v.author, date: v.date,
-            description:
-            'URL: ' + url + '<br />' +
-              'Tweet: ' + v.text +
-              (cleaned.html()? '<br /><br />' + cleaned.html() : '')
-          }));
-      } catch(e) {
-        db.put(url, JSON.stringify(
-          {
-            title: title, 'url': url, author: v.author, date: v.date,
-            description: e + '<br /><br />' +
-              'URL: ' + url + '<br />' +
-              'Tweet: ' + v.text +
-              (stdout? '<br /><br />' + stdout.toString() : '')
-          }));
-      }
-    });
+    db.put(url, JSON.stringify(
+      {
+        title: title, 'url': url, author: v.author, date: v.date,
+        description: e + '<br /><br />' +
+          'URL: ' + url + '<br />' +
+          'Tweet: ' + v.text +
+          (desc? '<br /><br />' + desc : '')
+      }));
 
     if(!in_last_urls(v.url))
     { rss_twi2url.last_urls.push(v.url); }
@@ -611,8 +569,6 @@ function start() {
         rss_twi2url.queued_urls.unshift(v);
       });
       rss_twi2url.generating_items = {};
-      document = jsdom.jsdom();
-      window = document.createWindow();
     } else {
       console.log('not rss request:', req.url);
       res.writeHead(404, {'content-type': 'plain'});

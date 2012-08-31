@@ -7,9 +7,12 @@ var
   , zlib = require('zlib')
   , jsdom = require('jsdom')
   , request = require('request')
+  , htmlcompressor = require('./htmlcompressor')
 ;
 
 var config = null;
+
+var document = jsdom.jsdom(), window = document.createWindow();
 
 DEFAULT_FEATURE = {
   FetchExternalResources: false, // ['frame', 'css'],
@@ -357,7 +360,7 @@ function get_description(url, callback) {
       callback(
         url, $('<div />').append(
           $('<a />').attr('href', 'http://twitpic.com/' + id + '/full').append(
-            image_tag('http://twitpic.com/show/large/' + id))).html());
+            image_tag('http://twitpic.com/show/full/' + id))).html());
       /*
       fetch_data(
         function(buf) {
@@ -571,7 +574,32 @@ process.on('message', function(m) {
   switch(m.type) {
     case 'get_description':
     get_description(m.data, function(a0, a1, a2) {
-      process.send({type: 'got_description', data: [m.data, a0, a1, a2]});
+      var desc = a2 || a1;
+
+      htmlcompressor((typeof desc === 'string')? desc : '', function(err, stdout, stderr) {
+        if(stderr) {
+          console.error('htmlcompressor error:', stderr.toString());
+        }
+        if(err) { throw err; }
+
+        try {
+          var cleaned = $('<div />').html(stdout.toString());
+
+          $.each(config.removing_tag, function(k,v) {
+            cleaned.find(v).each(
+              function(k, elm) { elm.parentNode.removeChild(elm); }); });
+          $.each(config.removing_attribute, function(k,v) {
+            cleaned.find('[' + v + ']').removeAttr(v); });
+          cleaned.find('*').removeData();
+
+          if(a2) { a2 = cleaned.html(); }
+          else { a1 = cleaned.html(); }
+        } catch(e) {
+          if(a2) { a2 = stdout? stdout.toString() : ''; }
+          else { a1 = stdout? stdout.toString() : ''; }
+        }
+        process.send({type: 'got_description', data: [m.data, a0, a1, a2]});
+      });
     });
     break;
 
