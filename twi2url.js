@@ -47,9 +47,7 @@ var QUEUE_FILENAME = process.cwd() + '/rss_twi2url_queue.json';
 
 function count_map_element(map) {
   var ret = 0;
-  $.each(map, function(k, v) {
-    ret++;
-  });
+  $.each(map, function(k, v) { ret++; });
   return ret;
 }
 
@@ -217,7 +215,7 @@ function generate_item() {
   var v = rss_twi2url.queued_urls.shift();
 
   if(match_exclude_filter(v.url) ||
-         in_last_urls(v.url) ||
+     in_last_urls(v.url) ||
      is_queued(v.url))
   {
     generate_item();
@@ -296,7 +294,9 @@ function generate_item() {
 
     delete rss_twi2url.generating_items[v.url];
 
-    setTimeout(generate_item, config.item_generation_frequency);
+    if(count_map_element(rss_twi2url.generating_items) < config.executer) {
+      setTimeout(generate_item, config.item_generation_frequency);
+    }
   });
   rss_twi2url.generating_items[v.url] = v;
   last_item_generation = Date.now();
@@ -403,9 +403,7 @@ function start() {
 function signed_in(d) {
   console.log('Authorized!');
   $.each(['oauth_token', 'oauth_token_secret', 'user_id', 'screen_name'],
-         function(k,v) {
-           rss_twi2url[v] = d[v];
-         });
+         function(k,v) { rss_twi2url[v] = d[v]; });
   start();
 }
 
@@ -790,7 +788,7 @@ function get_description(url, callback) {
       error_callback(textStatus);
     }
   }
-  
+
   var document = jsdom.jsdom(), window = document.createWindow();
   function unescapeHTML(str) {
     try { return $('<div />').html(str).text(); }
