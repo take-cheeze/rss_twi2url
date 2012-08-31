@@ -15,7 +15,6 @@ var
   , htmlcompressor = require('./htmlcompressor')
 ;
 
-var document = jsdom.jsdom(), window = document.createWindow();
 var db = null;
 
 var last_item_generation = Date.now();
@@ -256,6 +255,7 @@ function generate_item() {
       if(err) { throw err; }
 
       try {
+        var document = jsdom.jsdom(), window = document.createWindow();
         var cleaned = $('<div />').html(stdout.toString());
 
         cleaned.find('img:not([istex])[src]').each(function() {
@@ -737,14 +737,6 @@ var iconv_cache = {
   'utf8': true, 'utf-8': true
 };
 
-function unescapeHTML(str) {
-  try { return $('<div />').html(str).text(); }
-  catch(e) { return str; }
-}
-function escapeHTML(str) {
-  return $('<div />').text(str).html();
-}
-
 function image_tag(v, width, height) {
   if(!v) {
     return 'empty url in image tag';
@@ -797,6 +789,12 @@ function get_description(url, callback) {
       console.error(JSON.stringify([jqXHR, textStatus, errorThrown]));
       error_callback(textStatus);
     }
+  }
+  
+  var document = jsdom.jsdom(), window = document.createWindow();
+  function unescapeHTML(str) {
+    try { return $('<div />').html(str).text(); }
+    catch(e) { return str; }
   }
 
   function fetch_data(cb, u) {
