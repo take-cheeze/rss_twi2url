@@ -216,6 +216,7 @@ function create_executer(i) {
     if(code) { console.log('code:', code); }
     if(signal) { console.log('signal', signal); }
 
+    console.log('restarting executer:', i);
     executer[i] = create_executer(i);
   });
   child.on('message', function(m) {
@@ -568,6 +569,8 @@ function start() {
         rss_twi2url.queued_urls.unshift(v);
       });
       rss_twi2url.generating_items = {};
+
+      $.each(executer, function(k, v) { v.kill(); });
     } else {
       console.log('not rss request:', req.url);
       res.writeHead(404, {'content-type': 'plain'});
