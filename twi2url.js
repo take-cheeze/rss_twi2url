@@ -15,6 +15,8 @@ var
   , htmlcompressor = require('./htmlcompressor')
 ;
 
+var document = jsdom.jsdom(), window = document.createWindow();
+
 var db = null;
 
 var last_item_generation = Date.now();
@@ -253,7 +255,6 @@ function generate_item() {
       if(err) { throw err; }
 
       try {
-        var document = jsdom.jsdom(), window = document.createWindow();
         var cleaned = $('<div />').html(stdout.toString());
 
         cleaned.find('img:not([istex])[src]').each(function() {
@@ -371,6 +372,8 @@ function start() {
         rss_twi2url.queued_urls.unshift(v);
       });
       rss_twi2url.generating_items = {};
+      document = jsdom.jsdom();
+      window = document.createWindow();
     } else {
       console.log('not rss request:', req.url);
       res.writeHead(404, {'content-type': 'plain'});
@@ -789,7 +792,6 @@ function get_description(url, callback) {
     }
   }
 
-  var document = jsdom.jsdom(), window = document.createWindow();
   function unescapeHTML(str) {
     try { return $('<div />').html(str).text(); }
     catch(e) { return str; }
