@@ -39,8 +39,10 @@ var config = require('./config');
 config.feed_url = 'http://' + config.hostname
                 + (/\.herokuapp.com/.test(config.hostname)? '' : ':' + config.port)
                 + '/' + config.pathname;
-config.executer = require('os').cpus().length;
-if(config.executer !== 1) { config.executer--; }
+if(!config.executer) {
+  config.executer = require('os').cpus().length;
+  if(config.executer !== 1) { config.executer--; }
+}
 
 var url_expander_queue = [];
 if(fs.existsSync(QUEUE_FILE + '.gz')) {
