@@ -9,7 +9,6 @@ var
   , qs = require('querystring')
   , request = require('request')
   , jsdom = require('jsdom')
-  , SingleUrlExpander = require('url-expander').SingleUrlExpander
   , htmlcompressor = require('./htmlcompressor')
   , fork = require('child_process').fork
 ;
@@ -170,27 +169,14 @@ function expand_url() {
     return;
   }
 
-  var expander = new SingleUrlExpander(tweet.url);
-  expander.on('expanded', function(orig, exp) {
-    exp = decodeURI(exp);
-    expand_cache[orig] = exp;
-    send_url(exp);
+  request.head({url: tweet.url, followAllRedirects: true }, function(err, res) {
+    var result = err? tweet.url : res.request.href;
+    expand_cache[tweet.url] = result;
+    send_url(result);
   });
-  expander.expand();
 
   expand_url();
 }
-
-process.on('uncaughtException', function (err) {
-  if(/URI malformed/.test(err)) {
-    console.log('uncaught error:', err);
-    return;
-  }
-  else {
-    console.error("Error:", err);
-    process.exit(1);
-  }
-});
 
 function backup() {
   zlib.gzip(new Buffer(JSON.stringify(rss_twi2url)), function(err, buf) {
@@ -237,8 +223,10 @@ function create_executer(i) {
 
     switch(m.type) {
       case 'got_description':
-      executer_cb[m.data[0]](m.data[1], m.data[2], m.data[3]);
-      delete executer_cb[m.data[0]];
+      if(executer_cb.hasOwnProperty(m.data[0])) {
+        executer_cb[m.data[0]](m.data[1], m.data[2], m.data[3]);
+        delete executer_cb[m.data[0]];
+      }
       break;
 
       default:
@@ -277,7 +265,7 @@ function generate_item() {
 
   // console.log('start:', v.url);
   get_description(v.url,  function(url, title, desc) {
-    if(desc === undefined) {
+    if(!desc) {
       desc = title;
       title = v.text;
     }
@@ -371,7 +359,7 @@ function generate_feed(items, cb) {
 
   $.each(items, function(idx, key) {
     db.get(key, function(err, val) {
-      if(err) { console.error('db.get error:', err); }
+      if(err || !val) { console.error('db.get error:', err); }
       else { feed.item(JSON.parse(val)); }
       if(++count >= len) { cb(feed.xml()); }
     });
@@ -645,7 +633,7 @@ function start() {
   setInterval(function() {
     expand_url();
 
-    if(count_map_element(rss_twi2url.generating_items) < config.executer) {
+    while(count_map_element(rss_twi2url.generating_items) < config.executer) {
       generate_item();
     }
   }, config.check_frequency);
