@@ -656,6 +656,8 @@ function start() {
     }
   }, config.check_frequency);
 
+  console.log('CPU number(executer number):', config.executer);
+
   var i = 0;
   for(; i < config.executer; ++i) {
     executer.push(create_executer(i));
