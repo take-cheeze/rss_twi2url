@@ -8,7 +8,7 @@ module.exports = {
 
   feed_item_max: 300,
   retry_max: 1,
-  url_expander_number: 10,
+  url_expander_number: 5,
 
   long_url_length: 30,
   tweet_max: 200,
