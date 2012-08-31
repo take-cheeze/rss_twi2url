@@ -11,13 +11,12 @@ var
   , jsdom = require('jsdom')
   , SingleUrlExpander = require('url-expander').SingleUrlExpander
   , htmlcompressor = require('./htmlcompressor')
-  , fork = require('child_process')
+  , fork = require('child_process').fork
 ;
 
 var document = jsdom.jsdom(), window = document.createWindow();
 var db = null;
 var last_item_generation = Date.now();
-var url_expander_queue = [];
 var consumer = {};
 
 try { consumer = require('./consumer'); }
@@ -35,13 +34,21 @@ var twitter_api_left = true;
 
 var DB_FILE = process.cwd() + '/rss_twi2url.db';
 var JSON_FILE = process.cwd() + '/rss_twi2url.json';
-var QUEUE_FILENAME = process.cwd() + '/rss_twi2url_queue.json';
+var QUEUE_FILE = process.cwd() + '/rss_twi2url_queue.json';
 
 var config = require('./config');
 config.feed_url = 'http://' + config.hostname
                 + (/\.herokuapp.com/.test(config.hostname)? '' : ':' + config.port)
                 + '/' + config.pathname;
 config.executer = require('os').cpus().length;
+
+var url_expander_queue = [];
+if(fs.existsSync(QUEUE_FILE + '.gz')) {
+  zlib.gunzip(fs.readFileSync(QUEUE_FILE + '.gz'), function(err, buf) {
+    if(err) { throw err; }
+    url_expander_queue = url_expander_queue.concat(JSON.parse(buf.toString()));
+  });
+}
 
 function count_map_element(map) {
   var ret = 0;
@@ -181,7 +188,7 @@ process.on('uncaughtException', function (err) {
   }
   else {
     console.error("Error:", err);
-    console.trace();
+    process.exit(1);
   }
 });
 
@@ -193,7 +200,7 @@ function backup() {
 
   zlib.gzip(new Buffer(JSON.stringify(url_expander_queue)), function(err, buf) {
     if(err) { throw err; }
-    fs.writeFileSync(QUEUE_FILENAME + '.gz', buf);
+    fs.writeFileSync(QUEUE_FILE + '.gz', buf);
   });
 }
 process.on('exit', function() {
@@ -209,6 +216,10 @@ function in_last_urls(url) {
 
 var executer_cb = {};
 var executer = [], current_executer = 0;
+
+process.on('exit', function() {
+  $.each(executer, function(k,v) { v.kill(); });
+});
 
 function create_executer(i) {
   var child = fork(__dirname + '/description.js', [],
@@ -226,8 +237,8 @@ function create_executer(i) {
 
     switch(m.type) {
       case 'got_description':
-      executer_cb[m_.data[0]](m.data[1], m.data[2], m.data[3]);
-      delete executer_cb[m_.data[0]];
+      executer_cb[m.data[0]](m.data[1], m.data[2], m.data[3]);
+      delete executer_cb[m.data[0]];
       break;
 
       default:
@@ -587,24 +598,7 @@ function start() {
       buf_stream.end(buf);
     }
 
-    if(/\/image/.test(req.url)) {
-      var img_url = qs.parse(req.url).url;
-      if(!img_cache.get(img_url)) {
-        request.get(
-          { 'url': img_url, encoding: null, timeout: config.timeout,
-            headers: { 'accept-encoding': 'gzip,deflate' } },
-          function(err, res, data) {
-            var ret = {};
-            if(err) {
-              ret.type = 'text/plain';
-            }
-            img_cache.put(img_url, ret, config.fetch_frequency);
-          });
-      }
-      var c = img_cache.get(img_url);
-      header['content-type'] = c.type;
-      send_data(c.status, c.data);
-    } else if(req.url === '/') {
+    if(req.url === '/') {
       var ary = (rss_twi2url.last_urls.length > config.feed_item_max)
               ? rss_twi2url.last_urls.slice(rss_twi2url.last_urls.length - config.feed_item_max)
               : rss_twi2url.last_urls;
@@ -677,7 +671,7 @@ function is_signed_in() {
     'user_id', 'screen_name'];
 
   $.each(check, function(k,v) {
-    rss_twi2url[v] = process.env[v] || null;
+    if(process.env[v]) { rss_twi2url[v] = process.env[v] || null; }
   });
 
   var result = true;
@@ -688,15 +682,6 @@ function is_signed_in() {
 }
 
 function signin(setting) {
-  if(fs.existsSync(QUEUE_FILENAME + '.gz')) {
-    fs.readFile(QUEUE_FILENAME + '.gz', function(err, b) {
-      zlib.gunzip(b, function(err, buf) {
-        if(err) { throw err; }
-        url_expander_queue = url_expander_queue.concat(JSON.parse(buf.toString()));
-      });
-    });
-  }
-
   if(setting) {
     opt.token = setting.oauth_token;
     opt.token_secret = setting.oauth_token_secret;

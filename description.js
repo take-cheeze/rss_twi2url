@@ -6,6 +6,7 @@ var
   , Iconv = require('iconv').Iconv
   , zlib = require('zlib')
   , jsdom = require('jsdom')
+  , request = require('request')
 ;
 
 var config = null;
