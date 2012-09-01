@@ -549,7 +549,7 @@ function get_description(url, callback) {
     if(match_gallery_filter) { return; }
 
     run_jquery(function($) {
-      callback(url, $('#rdb-article-title'), $('#rdb-article-body'));
+      callback(url, $('#rdb-article-title').text(), $('#rdb-article-body').html());
     }, 'http://www.readability.com/m?url=' + encodeURIComponent(url));
   }
 }
