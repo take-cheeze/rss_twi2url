@@ -549,21 +549,8 @@ function get_description(url, callback) {
     if(match_gallery_filter) { return; }
 
     run_jquery(function($) {
-      var oembed_url = $('link[rel="alternate"][type="text/json+oembed"]').attr('href');
-      if(oembed_url) {
-        oembed(oembed_url);
-        return;
-      }
-
-      var body = open_graph_body($);
-      if(!body) { body += run_selectors($, config.selectors); }
-      body += unescapeHTML(
-        $('meta[property="og:description"]').attr('content')
-                          || $('meta[name="description"]').attr('content')
-                          || '');
-
-      callback(url, $('meta[property="og:title"]').attr('content') || $('title').text(), body);
-    });
+      callback(url, $('#rdb-article-title'), $('#rdb-article-body'));
+    }, 'http://www.readability.com/m?url=' + encodeURIComponent(url));
   }
 }
 
@@ -585,23 +572,12 @@ process.on('message', function(m) {
         }
         if(err) { throw err; }
 
-        try {
-          var cleaned = $('<div />').html(stdout.toString());
+        var cleaned = $('<div />').html(stdout.toString());
+        cleaned.find('*').removeData();
 
-          $.each(config.removing_tag, function(k,v) {
-            cleaned.find(v).each(
-              function(k, elm) { elm.parentNode.removeChild(elm); }); });
-          $.each(config.removing_attribute, function(k,v) {
-            cleaned.find('[' + v + ']').removeAttr(v); });
-          cleaned.find('*').removeData();
+        if(a2) { a2 = cleaned.html(); }
+        else { a1 = cleaned.html(); }
 
-          if(a2) { a2 = cleaned.html(); }
-          else { a1 = cleaned.html(); }
-        } catch(e) {
-          var result = 'Error: ' + e + '<br /><br />' + (stdout? stdout.toString() : '');
-          if(a2) { a2 = result; }
-          else { a1 = result; }
-        }
         process.send({type: 'got_description', data: [m.data, a0, a1, a2]});
       });
     });

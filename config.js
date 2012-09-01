@@ -19,7 +19,7 @@ module.exports = {
   fetch_frequency: 1000 * 60 * 20,
   item_generation_frequency: 1000 * 1.1,
   backup_frequency: 1000 * 60,
-  timeout: 1000 * 7.5,
+  timeout: 1000 * 10,
   check_frequency: 1000 * 60,
   retry_failure_max: 1,
 
@@ -28,74 +28,6 @@ module.exports = {
     'RSS twi2url ( https://github.com/take-cheeze/rss_twi2url )',
     'by take-cheeze( takechi101010@gmail.com )'
   ].join(),
-
-  selectors: [
-    'article', '.article', '.article-body',
-    '.POST_BODY', '.post', // exblog
-    '.articleText', '.subContents', // ameblo
-    '.viewbody', // tinami
-    '#foto-body', // hatena photo
-    '.foto_thumb', // hatena photo gallery
-    '#q_back1', // nazolab
-    '.kiji-column-main', // ura-akiba
-    '.EntryText',
-    '.section', // hatena diary
-    '.archive', // drawtwit
-    '.thread', // 2ch
-    '.thread_body', // nanbbs
-    '#main', '.main', '.mainmore', '.blogbody',
-    '#content', '.content', '.caption',
-    '.mainEntryBody',
-    '.entry-content', // hatenablog
-    '.entry_text', '.entry-text',
-    '.entry_body', '.entry-body',
-    '.ently_text', '.ently-text',
-    '.ently_body', '.ently-body',
-    '.entry', '#entry', '.body',
-    '#posts', '.Photo',
-    '.Text',
-    'pre', 'table',
-    '[istex="true"]',
-    'body:first-child'
-  ],
-
-  removing_tag: [
-    'link', 'script', 'dl', 'object', 'style', 'input',
-    'frameset', 'frame', 'noframes', 'title', 'form',
-    'embed', 'meta',
-    '#comment', '.comment_area', '.comment', '#comments-list',
-    '.comments', '#comment-form', '#comment_post', '#comment_preview',
-    '#comment_form_table',
-    '.entryInfoList',
-    '.notes', '.note', '#menu',
-    '#imageBox',
-    '#more-from',
-    '#post-tabs', '.post-meta',
-    '.related-articles',
-    '.pagenav-outer',
-    '#sub', '.side',
-    '.tweetBtn1201',
-    '.appstore',
-    'img[src^="http://stat.ameba.jp/blog/ucs/img/char/"]', // ameblo emoji
-    'img[src^="http://parts.blog.livedoor.jp/img/emoji/2/"]', // livedoor emoji
-    '.content_footer'
-  ],
-
-  removing_attribute: [
-    /*
-    'pubdate',
-    'onclick', 'onmouseover', 'onmouseout', 'illustrations',
-    'by', 'cesar', 'onkeypress', 'onsubmit', 'onkeydown',
-    'onblur', 'onfocus', 'onkeyup', 'role',
-    'columnguid', 'rodrez',
-    'preview-capable-text', 'more-text',
-    'metrics-loc', 'num-items', 'rating-software',
-    'parental-rating', 'adam-id', 'preview-artist',
-    'aria-label', 'preview-title', 'columnid',
-    'state', 'border_color', 'padding',
-    'border_width', 'boder_type', 'onchange'
-     */
-  ],
 
   url_expantion_exclude: [
     'twitpic.com/',
