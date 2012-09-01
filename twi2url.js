@@ -8,12 +8,10 @@ var
   , zlib = require('zlib')
   , qs = require('querystring')
   , request = require('request')
-  , jsdom = require('jsdom')
   , fork = require('child_process').fork
 ;
 
 var db = null;
-var last_item_generation = Date.now();
 var consumer = {};
 
 try { consumer = require('./consumer'); }
@@ -59,7 +57,11 @@ function count_map_element(map) {
 function match_exclude_filter(str) {
   var result = false;
   $.each(config.exclude_filter, function(k, v) {
-    if((new RegExp(v)).test(str)) { result = true; } });
+    if((new RegExp(v)).test(str)) {
+      result = true;
+      return false;
+    } else { return undefined; }
+  });
   return result;
 }
 
@@ -97,7 +99,11 @@ var expand_count = 0, expand_cache = {};
 function is_queued(url) {
   var result = false;
   $.each(rss_twi2url.queued_urls, function(k, v) {
-    if(v.url === url) { result = true; } });
+    if(v.url === url) {
+      result = true;
+      return false;
+    } else { return undefined; }
+  });
   return result;
 }
 
@@ -125,8 +131,7 @@ function expantion_exclude(url) {
     if((new RegExp(v)).test(url)) {
       ret = true;
       return false;
-    }
-    return undefined;
+    } else { return undefined; }
   });
   return ret;
 }
@@ -197,7 +202,11 @@ process.on('exit', function() {
 function in_last_urls(url) {
   var result = false;
   $.each(rss_twi2url.last_urls, function(k, v) {
-    if(v === url) { result = true; } });
+    if(v === url) {
+      result = true;
+      return false;
+    } else { return undefined; }
+  });
   return result;
 }
 
@@ -214,7 +223,7 @@ function create_executer(i) {
   child.on('exit', function(code, signal) {
     console.log('exit of executer:', i);
     if(code) { console.log('code:', code); }
-    if(signal) { console.log('signal', signal); }
+    if(signal) { console.log('signal:', signal); }
 
     console.log('restarting executer:', i);
     executer[i] = create_executer(i);
@@ -302,7 +311,6 @@ function generate_item() {
     }
   });
   rss_twi2url.generating_items[v.url] = v;
-  last_item_generation = Date.now();
   return;
 }
 
