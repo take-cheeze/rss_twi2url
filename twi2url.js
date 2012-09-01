@@ -571,6 +571,8 @@ function start() {
       rss_twi2url.generating_items = {};
 
       $.each(executer, function(k, v) { v.kill(); });
+      executer_cb = {};
+      current_executer = 0;
     } else {
       console.log('not rss request:', req.url);
       res.writeHead(404, {'content-type': 'plain'});
