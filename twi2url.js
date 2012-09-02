@@ -570,7 +570,7 @@ function start() {
       );
 
       var feed = new RSS(
-        { title: config.title,
+        { title: config.title + ' : photos',
           'description': config.description,
           feed_url: config.feed_url + '/photo.rss',
           site_url: config.feed_url,
