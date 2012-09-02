@@ -72,8 +72,8 @@ module.exports = {
     'pocket.co/',
     'nico.ms/',
 
-    /*
     '^https?://twitter.com/.+/status/\\d+$',
+    /*
     'blog',
     'ameblo.jp/',
     'pic', 'photo',
