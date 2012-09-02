@@ -294,8 +294,6 @@ function generate_item() {
       console.error('Invalid description:', url);
     }
 
-    title = title.replace(/@(\w)/g, '@ $1');
-
     db.put(url, JSON.stringify(
       {
         title: title, 'url': url, author: v.author, date: v.date,
@@ -439,7 +437,7 @@ function fetch_page(url, name, info, cb) {
       $.each(tweet.entities.urls, function(k, v) {
         url_expander_queue.push(
           { 'url': v.expanded_url || v.url, author: author_str,
-            date: tweet.created_at, text: tweet.text });
+            date: tweet.created_at, text: tweet.text.replace(/@(\w)/g, '@ $1') });
       });
     });
 
