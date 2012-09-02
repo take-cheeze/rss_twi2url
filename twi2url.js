@@ -559,8 +559,8 @@ function start() {
     }
 
     if(req.url === '/photo.rss') {
-      var photos = (rss_twi2url.photos.length > config.feed_item_max)
-              ? rss_twi2url.photos.slice(rss_twi2url.photos.length - config.feed_item_max)
+      var photos = (rss_twi2url.photos.length > config.photo_feed_item_max)
+              ? rss_twi2url.photos.slice(rss_twi2url.photos.length - config.photo_feed_item_max)
               : rss_twi2url.photos;
 
       console.log('Request:', req.headers);
