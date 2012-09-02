@@ -59,7 +59,7 @@ var photo_filter = {
     var id = url.match(/https?:\/\/img.ly\/(\w+)$/)[1];
     return $('<div />').append(
       $('<a />').attr('href', 'http://img.ly/images/' + id + '/full').append(
-        image_tag('http://img.ly/show/full/' + id)));
+        image_tag('http://img.ly/show/full/' + id))).html();
   },
 
   '^https?://ow.ly/i/\\w+': function(url) {
