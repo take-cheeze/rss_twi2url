@@ -9,6 +9,8 @@ var
   , qs = require('querystring')
   , request = require('request')
   , fork = require('child_process').fork
+  , photo_module = require('./photo')
+  , RSS = require('rss')
 ;
 
 var db = null;
@@ -65,10 +67,10 @@ function match_exclude_filter(str) {
   return result;
 }
 
-var rss_twi2url =
-  fs.existsSync(JSON_FILE)
-  ? JSON.parse(fs.readFileSync(JSON_FILE, 'utf8'))
-  : { last_urls: [], queued_urls: [], since: {}, generating_items: {} };
+var rss_twi2url
+      = fs.existsSync(JSON_FILE)
+      ? JSON.parse(fs.readFileSync(JSON_FILE, 'utf8'))
+      : { last_urls: [], queued_urls: [], since: {}, generating_items: {}, photos: [] };
 if(fs.existsSync(JSON_FILE + '.gz')) {
   zlib.gunzip(fs.readFileSync(JSON_FILE + '.gz'), function(err, buf) {
     if(err) { throw err; }
@@ -91,6 +93,8 @@ if(fs.existsSync(JSON_FILE + '.gz')) {
     // reduce feed size
     while(rss_twi2url.last_urls.length > config.feed_item_max) {
       rss_twi2url.last_urls.shift(); }
+    while(rss_twi2url.photos.length > config.feed_item_max) {
+      rss_twi2url.photos.shift(); }
   });
 }
 
@@ -148,11 +152,10 @@ function expand_url() {
   }
 
   function send_url(result) {
-    tweet.url = result;
-    if(!/\/t\.co\//.test(result) && !match_exclude_filter(tweet.url)) {
-      tweet.url = remove_utm_param(tweet.url);
-      if(!is_queued(tweet.url)) {
-        rss_twi2url.queued_urls.push(tweet); }
+    tweet.url = remove_utm_param(result);
+    if(!/\/t\.co\//.test(result) && !match_exclude_filter(result) && !is_queued(result)) {
+      if(photo_module.is_photo(result)) { rss_twi2url.photos.push(tweet); }
+      else { rss_twi2url.queued_urls.push(tweet); }
     }
 
     expand_count--;
@@ -315,7 +318,7 @@ function generate_item() {
 }
 
 function generate_feed(items, cb) {
-  var feed = new (require('rss'))(
+  var feed = new RSS(
     { title: config.title,
       'description': config.description,
       feed_url: config.feed_url,
@@ -555,7 +558,33 @@ function start() {
       buf_stream.end(buf);
     }
 
-    if(req.url === '/') {
+    if(req.url === '/photo.rss') {
+      var photos = (rss_twi2url.photos.length > config.feed_item_max)
+              ? rss_twi2url.photos.slice(rss_twi2url.photos.length - config.feed_item_max)
+              : rss_twi2url.photos;
+
+      console.log('Request:', req.headers);
+      console.log(
+        'RSS requested:'
+      , 'photos.length:', rss_twi2url.photos.length, ','
+      );
+
+      var feed = new RSS(
+        { title: config.title,
+          'description': config.description,
+          feed_url: config.feed_url + '/photo.rss',
+          site_url: config.feed_url,
+          author: config.author });
+
+      $.each(photos, function(k,v) {
+        feed.item({
+          title: v.text, description: photo_module.photo_tag(v.url),
+          url: v.url, author: v.author, date: v.date
+        });
+      });
+
+      send_data(200, feed.xml());
+    } else if(req.url === '/') {
       var ary = (rss_twi2url.last_urls.length > config.feed_item_max)
               ? rss_twi2url.last_urls.slice(rss_twi2url.last_urls.length - config.feed_item_max)
               : rss_twi2url.last_urls;
@@ -585,7 +614,6 @@ function start() {
       console.log('not rss request:', req.url);
       res.writeHead(404, {'content-type': 'plain'});
       res.end(config.title + '(by ' + config.author + ') : ' + config.description);
-      return;
     }
   })
   .listen(config.port)
