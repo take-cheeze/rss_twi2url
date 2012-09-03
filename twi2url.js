@@ -93,7 +93,7 @@ if(fs.existsSync(JSON_FILE + '.gz')) {
     // reduce feed size
     while(rss_twi2url.last_urls.length > config.feed_item_max) {
       rss_twi2url.last_urls.shift(); }
-    while(rss_twi2url.photos.length > config.feed_item_max) {
+    while(rss_twi2url.photos.length > config.photo_feed_item_max) {
       rss_twi2url.photos.shift(); }
   });
 }
@@ -313,6 +313,7 @@ function generate_item() {
       generate_item();
     }
   });
+
   rss_twi2url.generating_items[v.url] = v;
   return;
 }
@@ -634,7 +635,7 @@ function start() {
   setInterval(function() {
     expand_url();
 
-    while(count_map_element(rss_twi2url.generating_items) < config.executer) {
+    if(count_map_element(rss_twi2url.generating_items) < config.executer) {
       generate_item();
     }
   }, config.check_frequency);
