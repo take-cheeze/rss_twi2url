@@ -626,7 +626,9 @@ function start() {
   fetch();
   expand_url();
 
-  setInterval(backup, config.backup_frequency);
+  if(! /\.herokuapp.com/.test(confg.host)) {
+    setInterval(backup, config.backup_frequency);
+  }
   setInterval(fetch, config.fetch_frequency);
 
   setInterval(function() {
