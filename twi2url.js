@@ -310,7 +310,7 @@ function generate_item() {
     delete rss_twi2url.generating_items[v.url];
 
     if(count_map_element(rss_twi2url.generating_items) < config.executer) {
-      generate_item();
+      setTimeout(generate_item, config.item_generation_frequency);
     }
   });
 
