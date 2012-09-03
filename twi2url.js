@@ -111,6 +111,17 @@ function is_queued(url) {
   return result;
 }
 
+function in_photo_stack(url) {
+  var result = false;
+  $.each(rss_twi2url.photos, function(k, v) {
+    if(v.url === url) {
+      result = true;
+      return false;
+    } else { return undefined; }
+  });
+  return result;
+}
+
 function remove_utm_param(url) {
   try {
     var url_obj = URL.parse(url, true);
@@ -153,7 +164,11 @@ function expand_url() {
 
   function send_url(result) {
     tweet.url = remove_utm_param(result);
-    if(!/\/t\.co\//.test(result) && !match_exclude_filter(result) && !is_queued(result)) {
+    if(!/\/t\.co\//.test(result) && !match_exclude_filter(result)
+                                 && !is_queued(result)
+                                 && !in_photo_stack(result)
+      )
+    {
       if(photo_module.is_photo(result)) { rss_twi2url.photos.push(tweet); }
       else { rss_twi2url.queued_urls.push(tweet); }
     }
