@@ -6,7 +6,7 @@ var
   , $ = require('jquery')
   , URL = require('url')
   , zlib = require('zlib')
-  , qs = require('querystring')
+  , querystring = require('querystring')
   , request = require('request')
   , fork = require('child_process').fork
   , photo_module = require('./photo')
@@ -354,15 +354,15 @@ function generate_feed(items, cb) {
   });
 }
 
-function get_json(url, callback) {
+function get_json(url, q, callback) {
   function retry() {
     console.log('retrying:', url);
-    setTimeout(get_json, config.item_generation_frequency, url, callback);
+    setTimeout(get_json, config.item_generation_frequency, url, q, callback);
   }
 
   request.get(
     { 'url': url, 'oauth': opt, encoding: null,
-      timeout: config.timeout, pool: false,
+      timeout: config.timeout, pool: false, qs: q,
       headers: { 'accept-encoding': 'gzip,deflate' } },
     function(err, res, data) {
       if(err) {
@@ -426,7 +426,7 @@ function check_left_api(callback) {
   if(!twitter_api_left) { return; }
 
   get_json(
-    'https://api.twitter.com/1/account/rate_limit_status.json',
+    'https://api.twitter.com/1/account/rate_limit_status.json', {},
     function(data) {
       console.log('api left:', data.remaining_hits);
 
@@ -443,11 +443,8 @@ function check_left_api(callback) {
     });
 }
 
-function fetch_page(url, name, info, cb) {
-  url += (info.page === 1 && info.since_id)
-       ? '&' + $.param({since_id: info.since_id}) : '';
-
-  get_json(url + '&' + $.param({page: info.page}), function(data) {
+function fetch_page(url, qs, name, cb, next_since_id) {
+  get_json(url, qs, function(data) {
     url_expander_queue = url_expander_queue.concat(data);
     data = data.results || data;
 
@@ -462,20 +459,20 @@ function fetch_page(url, name, info, cb) {
       });
     });
 
-    if(info.page === 1) {
-      info.next_since_id = data.length > 0
-                         ? data[0].id_str : info.since_id; }
+    if(qs.page === 1) {
+      next_since_id = data.length > 0? data[0].id_str : qs.since_id; }
 
     if(
-      (!info.since_id) || (data.length === 0) ||
-        (data[data.length - 1].id_str === info.since_id)
+      (!qs.since_id) || (data.length === 0) ||
+        (data[data.length - 1].id_str === qs.since_id)
     ) {
-      console.log('next since id of', name, ':', info.next_since_id);
-      rss_twi2url.since[name] = info.next_since_id;
+      console.log('next since id of', name, ':', next_since_id);
+      rss_twi2url.since[name] = next_since_id;
       if(typeof cb === 'function') { cb(); }
     } else {
-      info.page++;
-      setTimeout(fetch_page, config.item_generation_frequency, url, name, info, cb);
+      qs.page++;
+      setTimeout(fetch_page, config.item_generation_frequency,
+                 url, qs, name, cb, next_since_id);
     }
   });
 }
@@ -486,8 +483,7 @@ function fetch() {
   var setting = rss_twi2url;
   function fetch_lists() {
     get_json(
-      'https://api.twitter.com/1/lists/all.json?' +
-        $.param({user_id: setting.user_id}),
+      'https://api.twitter.com/1/lists/all.json', { user_id: setting.user_id },
       function(data) {
         function list_fetch() {
           var list_info = data;
@@ -498,12 +494,11 @@ function fetch() {
           }
 
           fetch_page(
-            'https://api.twitter.com/1/lists/statuses.json?' +
-              $.param(
-                { include_entities: true, include_rts: true,
-                  list_id: v.id_str, per_page: config.tweet_max
-                }), v.full_name,
-            { page: 1, since_id: setting.since[v.full_name] },
+            'https://api.twitter.com/1/lists/statuses.json',
+            { include_entities: true, include_rts: true,
+              list_id: v.id_str, per_page: config.tweet_max,
+              page: 1, since_id: setting.since[v.full_name]
+            }, v.full_name,
             list_fetch);
         }
         list_fetch();
@@ -522,12 +517,11 @@ function fetch() {
           }
 
           fetch_page(
-            'http://search.twitter.com/search.json?' +
-              $.param(
-                { include_entities: true, rpp: config.search_max,
-                  q: v.query, result_type: config.search_type
-                }), v.name,
-            { page: 1, since_id: setting.since[v.name] },
+            'http://search.twitter.com/search.json',
+            { include_entities: true, rpp: config.search_max,
+              q: v.query, result_type: config.search_type,
+              page: 1, since_id: setting.since[v.name]
+            }, v.name,
             search_fetch);
         }
         search_fetch();
@@ -537,13 +531,11 @@ function fetch() {
   check_left_api(
     function() {
       fetch_page(
-        'https://api.twitter.com/1/statuses/home_timeline.json?' +
-          $.param(
-            { count: config.tweet_max, exclude_replies: false,
-              include_entities: true, include_rts: true
-            }),
-        'home_timeline',
-        { page: 1, since_id: setting.since.home_timeline },
+        'https://api.twitter.com/1/statuses/home_timeline.json',
+        { count: config.tweet_max, exclude_replies: false,
+          include_entities: true, include_rts: true,
+          page: 1, since_id: setting.since.home_timeline
+        }, 'home_timeline',
         fetch_lists);
     });
 }
@@ -701,7 +693,7 @@ function signin(setting) {
       function (e, r, body) {
         if(e) { throw e; }
 
-        var tok = qs.parse(body);
+        var tok = querystring.parse(body);
         opt.token = tok.oauth_token;
         opt.token_secret = tok.oauth_token_secret;
         delete opt.callback;
@@ -719,13 +711,13 @@ function signin(setting) {
               return;
             }
 
-            opt.verifier = qs.parse(req.url).oauth_verifier;
+            opt.verifier = querystring.parse(req.url).oauth_verifier;
             request.post(
               {url:'https://api.twitter.com/oauth/access_token', 'oauth': opt},
               function (e, r, result) {
                 if(e) { throw e; }
 
-                result = qs.parse(result);
+                result = querystring.parse(result);
                 opt.token = result.oauth_token;
                 opt.token_secret = result.oauth_token_secret;
                 delete opt.verifier;
