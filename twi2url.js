@@ -413,6 +413,7 @@ function get_json(url, callback) {
           default:
           console.error("Error fetching json from twitter:", res.statusCode);
           console.error('URL: ' + url);
+          console.error('OAuth Param; ', oauth);
           break;
         }
       }
