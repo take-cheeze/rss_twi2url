@@ -364,7 +364,8 @@ function get_json(url, q, callback) {
     { 'url': url + '?' + querystring.stringify(q),
       'oauth': opt, encoding: null,
       timeout: config.timeout, pool: false, qs: q,
-      headers: { 'accept-encoding': 'gzip,deflate' } },
+      headers: { 'accept-encoding': 'gzip,deflate',
+                 'user-agent': config.user_agent } },
     function(err, res, data) {
       if(err) {
         if(/timed?out/i.test(err.code)) {
