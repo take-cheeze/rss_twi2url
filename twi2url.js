@@ -424,7 +424,7 @@ function check_left_api(callback) {
   if(!twitter_api_left) { return; }
 
   get_json(
-    'http://api.twitter.com/1/account/rate_limit_status.json',
+    'https://api.twitter.com/1/account/rate_limit_status.json',
     function(data) {
       console.log('api left:', data.remaining_hits);
 
@@ -484,7 +484,7 @@ function fetch() {
   var setting = rss_twi2url;
   function fetch_lists() {
     get_json(
-      'http://api.twitter.com/1/lists/all.json?' +
+      'https://api.twitter.com/1/lists/all.json?' +
         $.param({user_id: setting.user_id}),
       function(data) {
         function list_fetch() {
@@ -496,7 +496,7 @@ function fetch() {
           }
 
           fetch_page(
-            'http://api.twitter.com/1/lists/statuses.json?' +
+            'https://api.twitter.com/1/lists/statuses.json?' +
               $.param(
                 { include_entities: true, include_rts: true,
                   list_id: v.id_str, per_page: config.tweet_max
@@ -510,7 +510,7 @@ function fetch() {
 
   function fetch_searches() {
     get_json(
-      'http://api.twitter.com/1/saved_searches.json',
+      'https://api.twitter.com/1/saved_searches.json',
       function(data) {
         function search_fetch() {
           var search_info = data;
@@ -535,7 +535,7 @@ function fetch() {
   check_left_api(
     function() {
       fetch_page(
-        'http://api.twitter.com/1/statuses/home_timeline.json?' +
+        'https://api.twitter.com/1/statuses/home_timeline.json?' +
           $.param(
             { count: config.tweet_max, exclude_replies: false,
               include_entities: true, include_rts: true
