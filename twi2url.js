@@ -363,7 +363,7 @@ function get_json(url, q, callback) {
   request.get(
     { 'url': url + '?' + querystring.stringify(q),
       'oauth': opt, encoding: null,
-      timeout: config.timeout, pool: false, qs: q,
+      timeout: config.timeout, qs: q,
       headers: { 'accept-encoding': 'gzip,deflate',
                  'user-agent': config.user_agent } },
     function(err, res, data) {
