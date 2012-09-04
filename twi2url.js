@@ -511,7 +511,7 @@ function fetch() {
 
   function fetch_searches() {
     get_json(
-      'https://api.twitter.com/1/saved_searches.json',
+      'https://api.twitter.com/1/saved_searches.json', {},
       function(data) {
         function search_fetch() {
           var search_info = data;
