@@ -374,6 +374,7 @@ function get_json(url, callback) {
         console.error('URL: ' + url);
       } else if(res) {
         switch(res.statusCode) {
+          case 400:
           case 500: case 502: case 503: case 504:
           retry();
           break;
