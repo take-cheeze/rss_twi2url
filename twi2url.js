@@ -361,7 +361,8 @@ function get_json(url, q, callback) {
   }
 
   request.get(
-    { 'url': url, 'oauth': opt, encoding: null,
+    { 'url': url + '?' + querystring.stringify(q),
+      'oauth': opt, encoding: null,
       timeout: config.timeout, pool: false, qs: q,
       headers: { 'accept-encoding': 'gzip,deflate' } },
     function(err, res, data) {
@@ -413,9 +414,10 @@ function get_json(url, q, callback) {
 
           default:
           console.error("Error fetching json from twitter:", res.statusCode);
-          console.error('URL:', url);
-          console.error('OAuth Param:', opt);
-          console.error('Data:', data);
+          console.error('url:', url);
+          console.error('oauth param:', opt);
+          console.error('query string:', q);
+          console.error('data:', data);
           break;
         }
       }
@@ -444,6 +446,8 @@ function check_left_api(callback) {
 }
 
 function fetch_page(url, qs, name, cb, next_since_id) {
+  if(!qs.since_id) { delete qs.since_id; }
+
   get_json(url, qs, function(data) {
     url_expander_queue = url_expander_queue.concat(data);
     data = data.results || data;
@@ -459,8 +463,7 @@ function fetch_page(url, qs, name, cb, next_since_id) {
       });
     });
 
-    if(qs.page === 1) {
-      next_since_id = data.length > 0? data[0].id_str : qs.since_id; }
+    if(!next_since_id) { next_since_id = data.length > 0? data[0].id_str : qs.since_id; }
 
     if(
       (!qs.since_id) || (data.length === 0) ||
