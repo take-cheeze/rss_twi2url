@@ -194,7 +194,7 @@ function expand_url() {
   }
 
   request.head(
-    {url: tweet.url, timeout: config.timeout, followAllRedirects: true },
+    {url: tweet.url, timeout: config.timeout, pool: false, followAllRedirects: true },
     function(err, res) {
       var result = err? tweet.url : res.request.href;
       expand_cache[tweet.url] = result;
@@ -362,7 +362,7 @@ function get_json(url, callback) {
 
   request.get(
     { 'url': url, 'oauth': opt, encoding: null,
-      timeout: config.timeout,
+      timeout: config.timeout, pool: false,
       headers: { 'accept-encoding': 'gzip,deflate' } },
     function(err, res, data) {
       if(err) {
@@ -374,7 +374,6 @@ function get_json(url, callback) {
         console.error('URL: ' + url);
       } else if(res) {
         switch(res.statusCode) {
-          case 400:
           case 500: case 502: case 503: case 504:
           retry();
           break;
@@ -413,8 +412,8 @@ function get_json(url, callback) {
 
           default:
           console.error("Error fetching json from twitter:", res.statusCode);
-          console.error('URL: ' + url);
-          console.error('OAuth Param; ', opt);
+          console.error('URL:', url);
+          console.error('OAuth Param:', opt);
           break;
         }
       }
