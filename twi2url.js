@@ -371,7 +371,8 @@ function get_json(url, callback) {
           return;
         }
         console.error("Error fetching json from twitter:", err);
-        console.error('URL: ' + url);
+        console.error('URL:', url);
+        console.error('Data:', data);
       } else if(res) {
         switch(res.statusCode) {
           case 500: case 502: case 503: case 504:
@@ -414,6 +415,7 @@ function get_json(url, callback) {
           console.error("Error fetching json from twitter:", res.statusCode);
           console.error('URL:', url);
           console.error('OAuth Param:', opt);
+          console.error('Data:', data);
           break;
         }
       }
