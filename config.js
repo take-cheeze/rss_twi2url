@@ -9,7 +9,7 @@ module.exports = {
   feed_item_max: 300,
   photo_feed_item_max: 500,
   retry_max: 1,
-  url_expander_number: 2,
+  url_expander_number: 5,
   executer: 1,
 
   long_url_length: 30,

@@ -517,6 +517,7 @@ function fetch() {
           var search_info = data;
           var v = search_info.pop();
           if(!v) {
+            expand_url();
             return;
           }
 
@@ -639,7 +640,6 @@ function start() {
 
   backup();
   fetch();
-  expand_url();
 
   if(! /\.herokuapp.com/.test(config.hostname)) {
     setInterval(backup, config.backup_frequency);
@@ -647,8 +647,6 @@ function start() {
   setInterval(fetch, config.fetch_frequency);
 
   setInterval(function() {
-    expand_url();
-
     if(count_map_element(rss_twi2url.generating_items) < config.executer) {
       generate_item();
     }
