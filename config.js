@@ -17,7 +17,7 @@ module.exports = {
   search_max: 100,
   search_type: 'recent',
 
-  fetch_frequency: 1000 * 60 * 20,
+  fetch_frequency: 1000 * 60 * 15,
   item_generation_frequency: 1000 * 1.1,
   backup_frequency: 1000 * 60,
   timeout: 1000 * 10,
