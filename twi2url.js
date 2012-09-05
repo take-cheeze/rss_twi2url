@@ -361,7 +361,7 @@ function get_json(url, q, callback) {
   }
 
   request.get(
-    { 'url': url + '?' + querystring.stringify(q),
+    { 'url': url + ((count_map_element(q) > 0)? '?' + querystring.stringify(q) : ''),
       'oauth': opt, encoding: null,
       timeout: config.timeout, qs: q,
       headers: { 'accept-encoding': 'gzip,deflate',
