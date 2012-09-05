@@ -194,7 +194,7 @@ function expand_url() {
   }
 
   request.head(
-    { url: tweet.url, timeout: config.timeout, pool: false, followAllRedirects: true },
+    { url: tweet.url, timeout: config.timeout, followAllRedirects: true },
     function(err, res) {
       var result = err? tweet.url : res.request.href;
       expand_cache[tweet.url] = result;
