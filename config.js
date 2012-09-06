@@ -11,6 +11,7 @@ module.exports = {
   retry_max: 1,
   url_expander_number: 5,
   executer: 1,
+  first_fetching_page_number: 3,
 
   long_url_length: 30,
   tweet_max: 200,

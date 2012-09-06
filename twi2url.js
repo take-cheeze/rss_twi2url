@@ -464,8 +464,8 @@ function fetch_page(url, qs, name, cb, next_since_id) {
     if(!next_since_id) { next_since_id = data.length > 0? data[0].id_str : qs.since_id; }
 
     if(
-      (!qs.since_id) || (data.length === 0) ||
-        (data[data.length - 1].id_str === qs.since_id)
+      ((!qs.since_id) && (config.first_fetching_page_number >= qs.page)) ||
+        (data.length === 0) || (data[data.length - 1].id_str === qs.since_id)
     ) {
       console.log('next since id of', name, ':', next_since_id);
       rss_twi2url.since[name] = next_since_id;
