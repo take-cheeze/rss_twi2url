@@ -364,6 +364,32 @@ function get_json(url, q, callback) {
       headers: { 'accept-encoding': 'gzip,deflate',
                  'user-agent': config.user_agent } },
     function(err, res, data) {
+      function uncompress_callback(err, buffer) {
+        if(err) {
+          console.error('uncompress error:', err);
+          callback([]);
+          return;
+        }
+        try {
+          if(res.statusCode === 200) {
+            callback(JSON.parse(buffer.toString('utf8')));
+            return;
+          }
+        } catch(other_err) {
+          console.error('error:', other_err);
+          console.error('data:', buffer.toString('utf8'));
+
+          callback([]);
+          return;
+        }
+
+        console.error("Error fetching json from twitter:", res.statusCode);
+        console.error('url:', url);
+        console.error('oauth param:', opt);
+        console.error('query string:', q);
+        console.error('data:', buffer.toString('utf8'));
+      }
+
       if(err) {
         if(/timed?out/i.test(err.code)) {
           retry();
@@ -378,20 +404,8 @@ function get_json(url, q, callback) {
           retry();
           break;
 
-          case 200:
-          try {
-            function uncompress_callback(err, buffer) {
-              if(err) { console.error(err); }
-              try {
-                callback(JSON.parse(buffer.toString('utf8')));
-              } catch(json_err) {
-                console.error(json_err);
-                console.error(buffer);
-                console.error(buffer.toString());
-
-                callback([]);
-              }
-            }
+          default:
+          if(data) {
             switch(res.headers['content-encoding']) {
               case 'gzip':
               zlib.gunzip(data, uncompress_callback);
@@ -402,20 +416,10 @@ function get_json(url, q, callback) {
               break;
 
               default:
-              callback(JSON.parse(data.toString('utf8')));
+              callback(false, data);
               break;
             }
-          } catch(e) {
-            console.error(e);
-          }
-          break;
-
-          default:
-          console.error("Error fetching json from twitter:", res.statusCode);
-          console.error('url:', url);
-          console.error('oauth param:', opt);
-          console.error('query string:', q);
-          console.error('data:', data);
+          } else { uncompress_callback("no data sent", undefined); }
           break;
         }
       }
