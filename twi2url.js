@@ -34,8 +34,9 @@ var JSON_FILE = process.cwd() + '/rss_twi2url.json';
 var QUEUE_FILE = process.cwd() + '/rss_twi2url_queue.json';
 
 var config = require('./config');
+var is_on_heroku = /\/herokuapp.com/.test(config.host);
 config.feed_url = 'http://' + config.hostname
-                + (/\.herokuapp.com/.test(config.hostname)? '' : ':' + config.port)
+                + (is_on_heroku? '' : ':' + config.port)
                 + '/' + config.pathname;
 if(!config.executer) {
   config.executer = require('os').cpus().length;
@@ -552,7 +553,7 @@ function start() {
   backup();
   fetch();
 
-  if(! /\.herokuapp.com/.test(config.hostname)) {
+  if(! is_on_heroku) {
     setInterval(backup, config.backup_frequency);
   }
   setInterval(fetch, config.fetch_frequency);
@@ -597,10 +598,10 @@ function is_signed_in() {
 }
 
 var authorize_url = false;
-function signin(setting) {
-  if(setting) {
-    opt.token = setting.oauth_token;
-    opt.token_secret = setting.oauth_token_secret;
+function signin() {
+  if(is_signed_in()) {
+    opt.token = rss_twi2url.oauth_token;
+    opt.token_secret = rss_twi2url.oauth_token_secret;
     signed_in(rss_twi2url);
   } else {
     opt.callback = config.feed_url + 'callback';
@@ -626,7 +627,7 @@ request.get({uri: 'http://code.jquery.com/jquery-latest.min.js'}, function(e, r,
   if(e) { throw e; }
   config.jquery_src = body;
 
-  signin(is_signed_in()? rss_twi2url : null);
+  signin();
 });
 
 // prepare database
@@ -641,7 +642,7 @@ var app = express();
 app.use(express.compress());
 
 app.get('/callback', function(req, res) {
-  if(is_signed_in()) {
+  if(is_signed_in() && !authorize_url) {
     res.set('content-type', 'text/plain').send('Already signed in.');
     return;
   }
@@ -667,7 +668,7 @@ app.get('/callback', function(req, res) {
 });
 
 app.get('/', function(req, res) {
-  if(!is_signed_in() && authorize_url) {
+  if(!is_signed_in() || authorize_url) {
     res.redirect(authorize_url);
     return;
   }
@@ -703,7 +704,7 @@ app.get('/', function(req, res) {
 });
 
 app.get('/photo.rss', function(req, res) {
-  if(!is_signed_in() && authorize_url) {
+  if(!is_signed_in() || authorize_url) {
     res.redirect(authorize_url);
     return;
   }

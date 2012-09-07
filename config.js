@@ -7,7 +7,7 @@ module.exports = {
   author: "Takeshi Watanabe",
 
   feed_item_max: 300,
-  photo_feed_item_max: 500,
+  photo_feed_item_max: 750,
   retry_max: 1,
   url_expander_number: 5,
   executer: 1,
