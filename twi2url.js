@@ -359,7 +359,7 @@ function get_json(url, q, callback) {
 
   request.get(
     { 'url': url + ((count_map_element(q) > 0)? '?' + querystring.stringify(q) : ''),
-      'oauth': opt, encoding: null,
+      oauth: opt, encoding: null,
       timeout: config.timeout, qs: q,
       headers: { 'accept-encoding': 'gzip,deflate',
                  'user-agent': config.user_agent } },
@@ -547,95 +547,6 @@ function fetch() {
 }
 
 function start() {
-  require('http').createServer(function(req, res) {
-    var accept = req.headers['accept-encoding'] || '';
-    var header = {'content-type': 'application/rss+xml'};
-    header['content-encoding'] =
-      /\bdeflate\b/.test(accept)? 'deflate':
-      /\bgzip\b/.test(accept)? 'gzip':
-      false;
-    if(!header['content-encoding']) {
-      delete header['content-encoding']; }
-
-    function send_data(status, buf) {
-      console.log('Sending with:', header.hasOwnProperty('content-encoding')
-                                 ? header['content-encoding'] : 'plain');
-      var buf_stream = new BufferStream();
-      switch(header.hasOwnProperty('content-encoding')
-            ? header['content-encoding'] : false)
-      {
-        case 'gzip': buf_stream.pipe(zlib.createGzip()).pipe(res);
-        break;
-        case 'deflate': buf_stream.pipe(zlib.createDeflateRaw()).pipe(res);
-        break;
-        default: buf_stream.pipe(res);
-        break;
-      }
-      res.writeHead(status, header);
-      buf_stream.end(buf);
-    }
-
-    if(req.url === '/photo.rss') {
-      var photos = (rss_twi2url.photos.length > config.photo_feed_item_max)
-              ? rss_twi2url.photos.slice(rss_twi2url.photos.length - config.photo_feed_item_max)
-              : rss_twi2url.photos;
-
-      console.log('Request:', req.headers);
-      console.log(
-        'RSS requested:'
-      , 'photos.length:', rss_twi2url.photos.length, ','
-      );
-
-      var feed = new RSS(
-        { title: config.title + ' : photos',
-          'description': config.description,
-          feed_url: config.feed_url + '/photo.rss',
-          site_url: config.feed_url,
-          author: config.author });
-
-      $.each(photos, function(k,v) {
-        feed.item({
-          title: v.text, description: photo_module.photo_tag(v.url),
-          url: v.url, author: v.author, date: v.date
-        });
-      });
-
-      send_data(200, feed.xml());
-    } else if(req.url === '/') {
-      var ary = (rss_twi2url.last_urls.length > config.feed_item_max)
-              ? rss_twi2url.last_urls.slice(rss_twi2url.last_urls.length - config.feed_item_max)
-              : rss_twi2url.last_urls;
-
-      console.log('Request:', req.headers);
-      console.log(
-        'RSS requested:'
-      , 'queued_urls.length:', rss_twi2url.queued_urls.length, ','
-      , 'last_urls.length:', rss_twi2url.last_urls.length, ','
-      , 'url_expander_queue.length:', url_expander_queue.length, ','
-      , 'generating_items.length:', count_map_element(rss_twi2url.generating_items), ','
-      );
-      console.log('generating_items:');
-      console.log(rss_twi2url.generating_items);
-
-      generate_feed(ary, function(data) { send_data(200, data); });
-
-      $.each(rss_twi2url.generating_items, function(k, v) {
-        rss_twi2url.queued_urls.unshift(v);
-      });
-      rss_twi2url.generating_items = {};
-
-      $.each(executer, function(k, v) { v.kill(); });
-      executer_cb = {};
-      current_executer = 0;
-    } else {
-      console.log('not rss request:', req.url);
-      res.writeHead(404, {'content-type': 'plain'});
-      res.end(config.title + '(by ' + config.author + ') : ' + config.description);
-    }
-  })
-  .listen(config.port)
-  .on('clientError', function(e) { console.error(e); });
-
   console.log('twi2url started: ' + config.feed_url);
   console.log('As user: ' + rss_twi2url.screen_name + ' (' + rss_twi2url.user_id + ')');
 
@@ -684,6 +595,7 @@ function is_signed_in() {
   return result;
 }
 
+var authorize_url = false;
 function signin(setting) {
   if(setting) {
     opt.token = setting.oauth_token;
@@ -701,46 +613,14 @@ function signin(setting) {
         opt.token_secret = tok.oauth_token_secret;
         delete opt.callback;
 
-        var authorize_url = 'https://twitter.com/oauth/authorize?oauth_token=' + opt.token;
+        authorize_url = 'https://twitter.com/oauth/authorize?oauth_token=' + opt.token;
         console.log('Visit:', authorize_url);
         console.log('Or:', config.feed_url);
-
-        var server = null;
-        server =
-          require('http').createServer(function(req, res) {
-            if(!/\/callback/.test(req.url)) {
-              res.writeHead(302, {location: authorize_url});
-              res.end();
-              return;
-            }
-
-            opt.verifier = querystring.parse(req.url).oauth_verifier;
-            request.post(
-              {url:'https://api.twitter.com/oauth/access_token', 'oauth': opt},
-              function (e, r, result) {
-                if(e) { throw e; }
-
-                result = querystring.parse(result);
-                opt.token = result.oauth_token;
-                opt.token_secret = result.oauth_token_secret;
-                delete opt.verifier;
-
-                res.writeHead(200, {'content-type': 'text/plain'});
-                res.end('Twitter OAuth Success!');
-
-                if(server) { server.close(); }
-
-                console.log('Twitter OAuth result.');
-                console.log(result);
-                signed_in(result);
-              });
-          })
-          .listen(config.port)
-          .on('clientError', function(e) { console.error(e); });
       });
   }
 }
 
+// load jQuery
 request.get({uri: 'http://code.jquery.com/jquery-latest.min.js'}, function(e, r, body) {
   if(e) { throw e; }
   config.jquery_src = body;
@@ -748,7 +628,111 @@ request.get({uri: 'http://code.jquery.com/jquery-latest.min.js'}, function(e, r,
   signin(is_signed_in()? rss_twi2url : null);
 });
 
+// prepare database
 db = new (require('leveldb').DB)();
 db.open(DB_FILE, { create_if_missing: true }, function(err) {
   if(err) { throw err; }
 });
+
+// run web server
+var express = require('express');
+var app = express();
+app.use(express.compress());
+
+app.get('/callback', function(req, res) {
+  if(is_signed_in()) {
+    res.set('content-type', 'text/plain').send('Already signed in.');
+    return;
+  }
+
+  opt.verifier = req.query.oauth_verifier;
+  authorize_url = false;
+  request.post(
+    { url:'https://api.twitter.com/oauth/access_token', oauth: opt},
+    function (e, r, result) {
+      if(e) { throw e; }
+
+      result = querystring.parse(result);
+      opt.token = result.oauth_token;
+      opt.token_secret = result.oauth_token_secret;
+      delete opt.verifier;
+
+      res.set('content-type', 'text/plain').send('Twitter OAuth Success!');
+
+      console.log('Twitter OAuth result.');
+      console.log(result);
+      signed_in(result);
+    });
+});
+
+app.get('/', function(req, res) {
+  if(!is_signed_in() && authorize_url) {
+    res.redirect(authorize_url);
+    return;
+  }
+
+  var ary = (rss_twi2url.last_urls.length > config.feed_item_max)
+          ? rss_twi2url.last_urls.slice(rss_twi2url.last_urls.length - config.feed_item_max)
+          : rss_twi2url.last_urls;
+
+  console.log('Request:', req.headers);
+  console.log(
+    'RSS requested:'
+  , 'queued_urls.length:', rss_twi2url.queued_urls.length, ','
+  , 'last_urls.length:', rss_twi2url.last_urls.length, ','
+  , 'url_expander_queue.length:', url_expander_queue.length, ','
+  , 'generating_items.length:', count_map_element(rss_twi2url.generating_items), ','
+  );
+  console.log('generating_items:');
+  console.log(rss_twi2url.generating_items);
+
+  generate_feed(ary, function(data) {
+    res.set('content-type', 'application/rss+xml');
+    res.send(data);
+  });
+
+  $.each(rss_twi2url.generating_items, function(k, v) {
+    rss_twi2url.queued_urls.unshift(v);
+  });
+  rss_twi2url.generating_items = {};
+
+  $.each(executer, function(k, v) { v.kill(); });
+  executer_cb = {};
+  current_executer = 0;
+});
+
+app.get('/photo.rss', function(req, res) {
+  if(!is_signed_in() && authorize_url) {
+    res.redirect(authorize_url);
+    return;
+  }
+
+  var photos = (rss_twi2url.photos.length > config.photo_feed_item_max)
+             ? rss_twi2url.photos.slice(rss_twi2url.photos.length - config.photo_feed_item_max)
+             : rss_twi2url.photos;
+
+  console.log('Request:', req.headers);
+  console.log(
+    'RSS requested:'
+  , 'photos.length:', rss_twi2url.photos.length, ','
+  );
+
+  var feed = new RSS(
+    { title: config.title + ' : photos',
+      'description': config.description,
+      feed_url: config.feed_url + '/photo.rss',
+      site_url: config.feed_url,
+      author: config.author });
+
+  $.each(photos, function(k,v) {
+    feed.item({
+      title: v.text, description: photo_module.photo_tag(v.url),
+      url: v.url, author: v.author, date: v.date
+    });
+  });
+
+  res.set('content-type', 'application/rss+xml');
+  res.send(feed.xml());
+});
+
+app.listen(config.port);
