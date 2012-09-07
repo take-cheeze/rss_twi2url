@@ -34,7 +34,7 @@ var JSON_FILE = process.cwd() + '/rss_twi2url.json';
 var QUEUE_FILE = process.cwd() + '/rss_twi2url_queue.json';
 
 var config = require('./config');
-var is_on_heroku = /\/herokuapp.com/.test(config.host);
+var is_on_heroku = /\.herokuapp\.com\//.test(config.host);
 config.feed_url = 'http://' + config.hostname
                 + (is_on_heroku? '' : ':' + config.port)
                 + '/' + config.pathname;
@@ -576,6 +576,7 @@ function start() {
 
 function signed_in(d) {
   console.log('Authorized!');
+  console.log('URL:', config.feed_url);
   $.each(['oauth_token', 'oauth_token_secret', 'user_id', 'screen_name'],
          function(k,v) { rss_twi2url[v] = d[v]; });
   start();
