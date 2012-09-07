@@ -3,7 +3,6 @@ module.exports = {
   description: "twitter 2 url",
   hostname: process.env.HOST || "ubuntu.local",
   port: process.env.PORT || 8090,
-  pathname: "",
   author: "Takeshi Watanabe",
 
   feed_item_max: 300,

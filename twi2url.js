@@ -34,10 +34,9 @@ var JSON_FILE = process.cwd() + '/rss_twi2url.json';
 var QUEUE_FILE = process.cwd() + '/rss_twi2url_queue.json';
 
 var config = require('./config');
-var is_on_heroku = /\.herokuapp\.com\//.test(config.host);
+var is_on_heroku = /\.herokuapp\.com/.test(config.host);
 config.feed_url = 'http://' + config.hostname
-                + (is_on_heroku? '' : ':' + config.port)
-                + '/' + config.pathname;
+                + (is_on_heroku? '' : (':' + config.port)) + '/';
 if(!config.executer) {
   config.executer = require('os').cpus().length;
   if(config.executer !== 1) { config.executer--; }
