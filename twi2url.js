@@ -639,7 +639,13 @@ db.open(DB_FILE, { create_if_missing: true }, function(err) {
 // run web server
 var express = require('express');
 var app = express();
-app.use(express.compress());
+app.use(express.compress({
+  filter: function(req, res) {
+    return (/json|text|javascript/.test(res.getHeader('Content-Type')))
+        || (/application\/rss\+xml/.test(res.getHeader('Content-Type')));
+  }
+
+}));
 
 app.get('/callback', function(req, res) {
   if(is_signed_in() && !authorize_url) {
