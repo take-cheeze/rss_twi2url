@@ -6,6 +6,9 @@ module.exports = function(url, cb, timeout) {
       path: (parsed_url.pathname || '') + (parsed_url.search || ''),
       method: 'HEAD'
     }, function(res) {
+         res.on('error', function(e) { cb(url); });
+         res.socket.on('error', function(e) { cb(url); });
+
          res.on('end', function(chunk) {
            cb((res.headers &&
                res.headers.location &&
