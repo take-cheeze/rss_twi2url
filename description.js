@@ -44,12 +44,15 @@ function image_tag(v, width, height) {
   return $('<div />').append(ret).html();
 }
 
-function match_docs_filter(url) {
+function match_docs_filter(mime) {
   var result = false;
   $.each(
-    [ 'docx?', 'xlsx?', 'pptx?', 'pages', 'ttf', 'psd', 'ai', 'tiff', 'dxf', 'svg', 'xps', 'pdf'],
+      [ 'application/msworddoc', 'application/vnd.ms-excel', 'vnd.ms-powerpoint',
+        'application/vnd.apple.pages', 'application/x-font-ttf', 'image/x-photoshop',
+        'application/postscript', 'image/tiff', 'application/dxf',
+        'image/svg', 'application/vnd.ms-xpsdocument', 'application/pdf'],
     function(k, v) {
-      if((new RegExp('^.+\\.' + v + '$', 'i')).test(url)) {
+      if((new RegExp('^.+\\.' + v + '$', 'i')).test(mime)) {
         result = true;
         return false;
       }
@@ -58,10 +61,10 @@ function match_docs_filter(url) {
   return result;
 }
 
-function match_image_filter(url) {
+function match_image_filter(mime) {
   var result = false;
-  $.each(['png', 'jpg', 'jpeg', 'gif'], function(k, v) {
-    if((new RegExp('^.+\\.' + v + '$', 'i')).test(url)) {
+  $.each(['image/png', 'image/jpeg', 'image/gif'], function(k, v) {
+    if((new RegExp('^.+\\.' + v + '$', 'i')).test(mime)) {
       result = true;
       return false;
     }
@@ -71,14 +74,20 @@ function match_image_filter(url) {
 }
 
 function get_description(url, callback) {
+  function error_callback(err) { callback(url, err); }
+  var retry_cb = false;
   function retry() {
+    if(retry_cb) {
+      retry_cb();
+      return;
+    }
     retry_count[url] = retry_count[url]? retry_count[url] + 1 : 1;
     if(retry_count[url] > config.retry_max) {
       console.log('retry count exceeded:', url);
-      callback(url, 'retry count exceeded');
-    } else { get_description(url, callback); }
+      error_callback(url, 'retry count exceeded');
+    } else { setTimeout(get_description,
+                        config.item_generation_frequency, url, callback); }
   }
-  function error_callback(err) { callback(url, err); }
   function jquery_error_callback(jqXHR, textStatus, errorThrown) {
     if(/timed?out/i.test(textStatus)) { retry(); }
     else {
@@ -436,27 +445,41 @@ function get_description(url, callback) {
     },
   };
 
-  if(match_image_filter(url)) {
-    callback(url, url.match(/\/([^\/]+)$/)[1], image_tag(url));
-  }
-  else if(match_docs_filter(url)) { google_docs(); }
+  request.head(url, function(e, res, body) {
+    e = e || (res.statusCode !== 200);
+    var mime = res.headers['content-type'];
 
-  else {
-    var match_gallery_filter = false;
-    $.each(GALLERY_FILTER, function(k, v) {
-      if((new RegExp(k, 'i')).test(url)) {
-        v();
-        match_gallery_filter = true;
-        return false; // break
-      }
-      return undefined; // continue
-    });
-    if(match_gallery_filter) { return; }
+    if(!e && match_image_filter(mime)) { callback(url, image_tag(url)); }
+    else if(!e && match_docs_filter(mime)) { google_docs(); }
+    else {
+      var match_gallery_filter = false;
+      $.each(GALLERY_FILTER, function(k, v) {
+        if((new RegExp(k, 'i')).test(url)) {
+          v();
+          match_gallery_filter = true;
+          return false; // break
+        }
+        return undefined; // continue
+      });
+      if(match_gallery_filter) { return; }
 
-    run_jquery(function($) {
-      callback(url, $('#rdb-article-title').text(), $('#rdb-article-content').html());
-    }, 'http://www.readability.com/m?url=' + encodeURIComponent(url));
-  }
+      // mobilizer
+      retry_cb = function() {
+        retry_cb = function() {
+          retry_cb = false;
+          run_jquery(function($) {
+            callback(url, $('title').text(), $('body').html());
+          }, 'http://www.google.com/gwt/x?u=' + encodeURIComponent(url));
+        };
+        run_jquery(function($) {
+          callback(url, $('title').text(), $('#story').html());
+        }, 'http://www.instapaper.com/m?u=' + encodeURIComponent(url));
+      };
+      run_jquery(function($) {
+        callback(url, $('#rdb-article-title').text(), $('#rdb-article-content').html());
+      }, 'http://www.readability.com/m?url=' + encodeURIComponent(url));
+    }
+  });
 }
 
 process.on('message', function(m) {
