@@ -489,6 +489,11 @@ function fetch_page(url, qs, name, cb, next_since_id) {
 }
 
 function fetch() {
+  $.each(rss_twi2url.generating_items, function(k, v) {
+    rss_twi2url.queued_urls.unshift(v);
+  });
+  rss_twi2url.generating_items = {};
+
   executer.forEach(function(v) { v.kill(); });
   executer_cb = {};
   current_executer = 0;
@@ -707,11 +712,6 @@ app.get('/', function(req, res) {
     res.set('content-type', 'application/rss+xml');
     res.send(data);
   });
-
-  $.each(rss_twi2url.generating_items, function(k, v) {
-    rss_twi2url.queued_urls.unshift(v);
-  });
-  rss_twi2url.generating_items = {};
 });
 
 app.get('/photo.rss', function(req, res) {
