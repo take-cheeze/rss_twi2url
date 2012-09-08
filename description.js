@@ -463,9 +463,8 @@ function get_description(url, callback) {
 
       // mobilizer
       run_jquery(function($, window) {
-        var document = window.document;
-        callback(url, $('title').html(), window.readability.grabArticle(document.body));
-      }, url);
+        callback(url, $('#rdb-article-title').html(), $('#rdb-article-content').html());
+      }, 'http://www.readability.com/m?url=' + encodeURIComponent(url));
     }
   });
 }
