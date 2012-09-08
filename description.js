@@ -479,7 +479,7 @@ function get_description(url, callback) {
             callback(url, $('title').text(), $('#story').html());
             retry_cb = false;
           }
-        }, 'http://www.readability.com/m?url=' + encodeURIComponent(url));
+        }, 'http://www.instapaper.com/m?u=' + encodeURIComponent(url));
       };
       run_jquery(function($) {
         if($('#rdb-article-content').length === 0) { retry_cb(); }
@@ -487,7 +487,7 @@ function get_description(url, callback) {
           callback(url, $('#rdb-article-title').text(), $('#rdb-article-content').html());
           retry_cb = false;
         }
-      }, 'http://www.instapaper.com/m?u=' + encodeURIComponent(url));
+      }, 'http://www.readability.com/m?url=' + encodeURIComponent(url));
     }
   });
 }
