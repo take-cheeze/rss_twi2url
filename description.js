@@ -312,8 +312,6 @@ function get_description(url, callback) {
               function(idx,elm) {
                 $(elm).attr('src', URL.resolve(target_url, $(elm).attr('src')));
               });
-            $.detach('iframe');
-            $.detach('script');
 
             switch(typeof cb) {
               case 'function':
