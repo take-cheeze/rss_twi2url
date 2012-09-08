@@ -257,6 +257,9 @@ function create_executer(i) {
       }
       break;
 
+      case 'log': console.log(m.data.join(' ')); break;
+      case 'error': console.error(m.data.join(' ')); break;
+
       default:
       throw 'unknown message type';
     }

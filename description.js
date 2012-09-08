@@ -12,6 +12,14 @@ var
 
 var config = null;
 
+console.log = function() {
+  process.sned({ type: 'log', data: Array.prototype.slice.call(arguments)});
+}
+
+console.error = function() {
+  process.sned({ type: 'error', data: Array.prototype.slice.call(arguments)});
+}
+
 var document = jsdom.jsdom(), window = document.createWindow();
 
 jsdom.defaultDocumentFeatures = {
@@ -474,6 +482,7 @@ function get_description(url, callback) {
           }, 'http://www.google.com/gwt/x?u=' + encodeURIComponent(url));
         };
         run_jquery(function($) {
+          console.log($('#story'));
           if($('#story').length === 0) { retry_cb(); }
           else  {
             callback(url, $('title').text(), $('#story').html());
@@ -482,6 +491,7 @@ function get_description(url, callback) {
         }, 'http://www.instapaper.com/m?u=' + encodeURIComponent(url));
       };
       run_jquery(function($) {
+        onsole.log($('#rdb-article-content'));
         if($('#rdb-article-content').length === 0) { retry_cb(); }
         else {
           callback(url, $('#rdb-article-title').text(), $('#rdb-article-content').html());
