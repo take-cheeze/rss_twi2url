@@ -476,17 +476,17 @@ function get_description(url, callback) {
           }, 'http://www.google.com/gwt/x?u=' + encodeURIComponent(url));
         };
         run_jquery(function($) {
-          if($('#rdb-article-content').length === 0) { retry_cb(); }
-          else {
-            callback(url, $('#rdb-article-title').text(), $('#rdb-article-content').html());
+          if($('#story').length === 0) { retry_cb(); }
+          else  {
+            callback(url, $('title').text(), $('#story').html());
             retry_cb = false;
           }
         }, 'http://www.readability.com/m?url=' + encodeURIComponent(url));
       };
       run_jquery(function($) {
-        if($('#story').length === 0) { retry_cb(); }
-        else  {
-          callback(url, $('title').text(), $('#story').html());
+        if($('#rdb-article-content').length === 0) { retry_cb(); }
+        else {
+          callback(url, $('#rdb-article-title').text(), $('#rdb-article-content').html());
           retry_cb = false;
         }
       }, 'http://www.instapaper.com/m?u=' + encodeURIComponent(url));
