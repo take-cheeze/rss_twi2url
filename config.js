@@ -9,7 +9,7 @@ module.exports = {
   photo_feed_item_max: 750,
   retry_max: 1,
   url_expander_number: 5,
-  executer: 1,
+  executer: 2,
   first_fetching_page_number: 2,
 
   long_url_length: 30,
@@ -20,7 +20,7 @@ module.exports = {
   fetch_frequency: 1000 * 60 * 15,
   item_generation_frequency: 1000 * 1.1,
   backup_frequency: 1000 * 60,
-  timeout: 1000 * 8,
+  timeout: 1000 * 20,
   check_frequency: 1000 * 30,
   retry_failure_max: 1,
 
