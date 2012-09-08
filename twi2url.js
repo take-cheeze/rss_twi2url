@@ -483,6 +483,10 @@ function fetch_page(url, qs, name, cb, next_since_id) {
 }
 
 function fetch() {
+  $.each(executer, function(k, v) { v.kill(); });
+  executer_cb = {};
+  current_executer = 0;
+
   if(!twitter_api_left) { return; }
 
   var setting = rss_twi2url;
@@ -702,10 +706,6 @@ app.get('/', function(req, res) {
     rss_twi2url.queued_urls.unshift(v);
   });
   rss_twi2url.generating_items = {};
-
-  $.each(executer, function(k, v) { v.kill(); });
-  executer_cb = {};
-  current_executer = 0;
 });
 
 app.get('/photo.rss', function(req, res) {
