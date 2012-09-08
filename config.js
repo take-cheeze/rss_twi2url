@@ -21,7 +21,7 @@ module.exports = {
   item_generation_frequency: 1000 * 1.1,
   backup_frequency: 1000 * 60,
   timeout: 1000 * 10,
-  check_frequency: 1000 * 60,
+  check_frequency: 1000 * 30,
   retry_failure_max: 1,
 
   user_agent: [

@@ -14,13 +14,12 @@ var config = null;
 
 var document = jsdom.jsdom(), window = document.createWindow();
 
-DEFAULT_FEATURE = {
+jsdom.defaultDocumentFeatures = {
   FetchExternalResources: false, // ['frame', 'css'],
   ProcessExternalResources: false,
   MutationEvents: false,
   QuerySelector: false
 };
-jsdom.defaultDocumentFeatures = DEFAULT_FEATURE;
 var DEFAULT_ENCODING = 'utf8';
 $.support.cors = true;
 
@@ -310,6 +309,8 @@ function get_description(url, callback) {
               function(idx,elm) {
                 $(elm).attr('src', URL.resolve(target_url, $(elm).attr('src')));
               });
+            $.detach('iframe');
+            $.detach('script');
 
             switch(typeof cb) {
               case 'function':
@@ -447,7 +448,7 @@ function get_description(url, callback) {
 
   request.head(url, function(e, res, body) {
     e = e || (res.statusCode !== 200);
-    var mime = res.headers['content-type'];
+    var mime = res? res.headers['content-type'] : '';
 
     if(!e && match_image_filter(mime)) { callback(url, image_tag(url)); }
     else if(!e && match_docs_filter(mime)) { google_docs(); }
@@ -472,10 +473,12 @@ function get_description(url, callback) {
           }, 'http://www.google.com/gwt/x?u=' + encodeURIComponent(url));
         };
         run_jquery(function($) {
+          retry_cb = false;
           callback(url, $('title').text(), $('#story').html());
         }, 'http://www.instapaper.com/m?u=' + encodeURIComponent(url));
       };
       run_jquery(function($) {
+        retry_cb = false;
         callback(url, $('#rdb-article-title').text(), $('#rdb-article-content').html());
       }, 'http://www.readability.com/m?url=' + encodeURIComponent(url));
     }
