@@ -628,12 +628,17 @@ function signin() {
   }
 }
 
-// load jQuery
-request.get({uri: 'http://code.jquery.com/jquery-latest.min.js'}, function(e, r, body) {
+// load jQuery and readability.js
+request.get({uri: 'http://code.jquery.com/jquery-latest.min.js'}, function(e, r, jquery) {
   if(e) { throw e; }
-  config.jquery_src = body;
+  config.jquery_src = jquery;
 
-  signin();
+  request.get({uri: 'http://code.jquery.com/jquery-latest.min.js'}, function(e, r, readability) {
+    if(e) { throw e; }
+    config.readability_src = readability;
+
+    signin();
+  });
 });
 
 // prepare database

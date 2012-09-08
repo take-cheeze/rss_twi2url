@@ -11,14 +11,12 @@ var
 ;
 
 var config = null;
-
 console.log = function() {
-  process.sned({ type: 'log', data: Array.prototype.slice.call(arguments)});
-}
-
+  process.send({ type: 'log', data: Array.prototype.slice.call(arguments)});
+};
 console.error = function() {
-  process.sned({ type: 'error', data: Array.prototype.slice.call(arguments)});
-}
+  process.send({ type: 'error', data: Array.prototype.slice.call(arguments)});
+};
 
 var document = jsdom.jsdom(), window = document.createWindow();
 
@@ -290,6 +288,7 @@ function get_description(url, callback) {
       try {
         jsdom.env(
           { 'html': html || '<html><body></body></html>',
+            src: [config.jquery_src, config.readability_src],
             features: DEFAULT_FEATURE },
           function(err, window) {
             if(err) {
@@ -299,17 +298,6 @@ function get_description(url, callback) {
 
             var document = window.document;
 
-            Array.prototype.forEach.call(
-              document.getElementsByTagName('script'),
-              function(elm) { elm.parentNode.removeChild(elm); });
-
-            try { eval(config.jquery_src); }
-            catch(e) { console.error('jQuery error:', e); }
-
-            if(!window.jQuery) {
-              error_callback('Cannot load jQuery');
-              return;
-            }
             var $ = window.jQuery;
 
             $('a').each(
@@ -474,30 +462,10 @@ function get_description(url, callback) {
       if(match_gallery_filter) { return; }
 
       // mobilizer
-      retry_cb = function() {
-        retry_cb = function() {
-          retry_cb = false;
-          run_jquery(function($) {
-            callback(url, $('title').text(), $('body').html());
-          }, 'http://www.google.com/gwt/x?u=' + encodeURIComponent(url));
-        };
-        run_jquery(function($) {
-          console.log($('#story'));
-          if($('#story').length === 0) { retry_cb(); }
-          else  {
-            callback(url, $('title').text(), $('#story').html());
-            retry_cb = false;
-          }
-        }, 'http://www.instapaper.com/m?u=' + encodeURIComponent(url));
-      };
-      run_jquery(function($) {
-        onsole.log($('#rdb-article-content'));
-        if($('#rdb-article-content').length === 0) { retry_cb(); }
-        else {
-          callback(url, $('#rdb-article-title').text(), $('#rdb-article-content').html());
-          retry_cb = false;
-        }
-      }, 'http://www.readability.com/m?url=' + encodeURIComponent(url));
+      run_jquery(function($, window) {
+        var document = window.document;
+        callback(url, $('title').html(), window.readability.grabArticle());
+      }, url);
     }
   });
 }
