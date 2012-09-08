@@ -312,7 +312,6 @@ function generate_item() {
     }
     if(!desc) {
       console.error('Invalid description:', url);
-      console.log(title);
     }
 
     db.put(url, JSON.stringify(
