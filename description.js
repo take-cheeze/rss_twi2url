@@ -76,12 +76,15 @@ function get_description(url, callback) {
   function error_callback(err) { callback(url, err); }
   var retry_cb = false;
   function retry() {
-    if(retry_cb) {
-      retry_cb();
-      return;
-    }
     retry_count[url] = retry_count[url]? retry_count[url] + 1 : 1;
     if(retry_count[url] > config.retry_max) {
+      delete retry_count[url];
+
+      if(retry_cb) {
+        retry_cb();
+        return;
+      }
+
       console.log('retry count exceeded:', url);
       error_callback(url, 'retry count exceeded');
     } else { setTimeout(get_description,
