@@ -13,6 +13,8 @@ var
   , RSS = require('rss')
 ;
 
+var CHILD_PROCESS_WAIT = 30;
+
 var db = null;
 var consumer = {};
 
@@ -58,7 +60,7 @@ function count_map_element(map) {
 
 function match_exclude_filter(str) {
   var result = false;
-  $.each(config.exclude_filter, function(k, v) {
+  config.exclude_filter.forEach(function(v) {
     if((new RegExp(v)).test(str)) {
       result = true;
       return false;
@@ -85,7 +87,7 @@ if(fs.existsSync(JSON_FILE + '.gz')) {
     rss_twi2url.generating_items = {};
 
     var filtered_queue = [];
-    $.each(rss_twi2url.queued_urls, function(k, v) {
+    rss_twi2url.queued_urls.forEach(function(v) {
       if(!match_exclude_filter(v.url)) { filtered_queue.push(v); }
     });
     rss_twi2url.queued_urls = filtered_queue;
@@ -102,7 +104,7 @@ var expand_count = 0, expand_cache = {};
 
 function is_queued(url) {
   var result = false;
-  $.each(rss_twi2url.queued_urls, function(k, v) {
+  rss_twi2url.queued_urls.forEach(function(v) {
     if(v.url === url) {
       result = true;
       return false;
@@ -113,7 +115,7 @@ function is_queued(url) {
 
 function in_photo_stack(url) {
   var result = false;
-  $.each(rss_twi2url.photos, function(k, v) {
+  rss_twi2url.photos.forEach(function(v) {
     if(v.url === url) {
       result = true;
       return false;
@@ -129,7 +131,7 @@ function remove_utm_param(url) {
     $.each(url_obj.query, function(k, v) {
       if(/utm_/i.test(k)) { removing_param.push(k); }
     });
-    $.each(removing_param, function(idx, param) {
+    removing_param.forEach(function(param) {
       delete url_obj.query[param];
     });
     return URL.format(url_obj);
@@ -142,7 +144,7 @@ function remove_utm_param(url) {
 
 function expantion_exclude(url) {
   var ret = false;
-  $.each(config.url_expantion_exclude, function(k, v) {
+  config.url_expantion_exclude.forEach(function(v) {
     if((new RegExp(v)).test(url)) {
       ret = true;
       return false;
@@ -218,7 +220,7 @@ process.on('exit', function() {
 
 function in_last_urls(url) {
   var result = false;
-  $.each(rss_twi2url.last_urls, function(k, v) {
+  rss_twi2url.last_urls.forEach(function(v) {
     if(v === url) {
       result = true;
       return false;
@@ -231,7 +233,7 @@ var executer_cb = {};
 var executer = [], current_executer = 0;
 
 process.on('exit', function() {
-  $.each(executer, function(k,v) { v.kill(); });
+  executer.forEach(function(v) { v.kill(); });
 });
 
 function create_executer(i) {
@@ -267,7 +269,8 @@ function create_executer(i) {
 
   setTimeout(function() {
     child.send({ type: 'config', data: config });
-  }, 30);
+    setTimeout(generate_item, CHILD_PROCESS_WAIT);
+  }, CHILD_PROCESS_WAIT);
 
   return child;
 }
@@ -309,6 +312,7 @@ function generate_item() {
     }
     if(!desc) {
       console.error('Invalid description:', url);
+      console.log(title);
     }
 
     db.put(url, JSON.stringify(
@@ -345,7 +349,7 @@ function generate_feed(items, cb) {
 
   var len = items.length, count = 0;
 
-  $.each(items, function(idx, key) {
+  items.forEach(function(key) {
     db.get(key, function(err, val) {
       if(err || !val) { console.error('db.get error:', err); }
       else { feed.item(JSON.parse(val)); }
@@ -457,11 +461,11 @@ function fetch_page(url, qs, name, cb, next_since_id) {
     url_expander_queue = url_expander_queue.concat(data);
     data = data.results || data;
 
-    $.each(data, function(tweet_idx, tweet) {
+    data.forEach(function(tweet) {
       var user_name = tweet.from_user_name || tweet.user.name;
       var screen_name = tweet.from_user || tweet.user.screen_name;
       var author_str = user_name + ' ( @' + screen_name + ' ) / ' + name;
-      $.each(tweet.entities.urls, function(k, v) {
+      tweet.entities.urls.forEach(function(v) {
         url_expander_queue.push(
           { 'url': v.expanded_url || v.url, author: author_str,
             date: tweet.created_at, text: tweet.text.replace(/@(\w)/g, '@ $1') });
@@ -486,7 +490,7 @@ function fetch_page(url, qs, name, cb, next_since_id) {
 }
 
 function fetch() {
-  $.each(executer, function(k, v) { v.kill(); });
+  executer.forEach(function(v) { v.kill(); });
   executer_cb = {};
   current_executer = 0;
 
@@ -582,8 +586,8 @@ function start() {
 
 function signed_in(d) {
   console.log('Authorized!');
-  $.each(['oauth_token', 'oauth_token_secret', 'user_id', 'screen_name'],
-         function(k,v) { rss_twi2url[v] = d[v]; });
+  ['oauth_token', 'oauth_token_secret', 'user_id', 'screen_name']
+  .forEach(function(v) { rss_twi2url[v] = d[v]; });
   start();
 }
 
@@ -592,12 +596,12 @@ function is_signed_in() {
     'oauth_token', 'oauth_token_secret',
     'user_id', 'screen_name'];
 
-  $.each(check, function(k,v) {
+  check.forEach(function(v) {
     if(process.env[v]) { rss_twi2url[v] = process.env[v] || null; }
   });
 
   var result = true;
-  $.each(check, function(k, v) {
+  check.forEach(function(v) {
     if(! rss_twi2url[v]) { result = false; }
   });
   return result;
@@ -628,17 +632,12 @@ function signin() {
   }
 }
 
-// load jQuery and readability.js
+// load jQuery
 request.get({uri: 'http://code.jquery.com/jquery-latest.min.js'}, function(e, r, jquery) {
   if(e) { throw e; }
   config.jquery_src = jquery;
 
-  request.get({uri: 'http://code.jquery.com/jquery-latest.min.js'}, function(e, r, readability) {
-    if(e) { throw e; }
-    config.readability_src = readability;
-
-    signin();
-  });
+  signin();
 });
 
 // prepare database
@@ -739,7 +738,7 @@ app.get('/photo.rss', function(req, res) {
       site_url: config.feed_url,
       author: config.author });
 
-  $.each(photos, function(k,v) {
+  photos.forEach(function(v) {
     feed.item({
       title: v.text, description: photo_module.photo_tag(v.url),
       url: v.url, author: v.author, date: v.date

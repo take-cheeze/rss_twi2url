@@ -12,7 +12,7 @@ var
 
 var config = null;
 console.log = function() {
-  process.send({ type: 'log', data: Array.prototype.slice.call(arguments)});
+  process.send({ type: 'log', data: Array.prototype.slice.call(arguments) });
 };
 console.error = function() {
   process.send({ type: 'error', data: Array.prototype.slice.call(arguments)});
@@ -20,12 +20,13 @@ console.error = function() {
 
 var document = jsdom.jsdom(), window = document.createWindow();
 
-jsdom.defaultDocumentFeatures = {
+var DEFAULT_FEATURE = {
   FetchExternalResources: false, // ['frame', 'css'],
   ProcessExternalResources: false,
   MutationEvents: false,
   QuerySelector: false
 };
+jsdom.defaultDocumentFeatures = DEFAULT_FEATURE;
 var DEFAULT_ENCODING = 'utf8';
 $.support.cors = true;
 
@@ -51,12 +52,12 @@ function image_tag(v, width, height) {
 
 function match_docs_filter(mime) {
   var result = false;
-  $.each(
-      [ 'application/msworddoc', 'application/vnd.ms-excel', 'vnd.ms-powerpoint',
-        'application/vnd.apple.pages', 'application/x-font-ttf', 'image/x-photoshop',
-        'application/postscript', 'image/tiff', 'application/dxf',
-        'image/svg', 'application/vnd.ms-xpsdocument', 'application/pdf'],
-    function(k, v) {
+  [ 'application/msworddoc', 'application/vnd.ms-excel', 'vnd.ms-powerpoint',
+    'application/vnd.apple.pages', 'application/x-font-ttf', 'image/x-photoshop',
+    'application/postscript', 'image/tiff', 'application/dxf',
+    'image/svg', 'application/vnd.ms-xpsdocument', 'application/pdf']
+  .forEach(
+    function(v) {
       if((new RegExp('^.+\\.' + v + '$', 'i')).test(mime)) {
         result = true;
         return false;
@@ -68,7 +69,7 @@ function match_docs_filter(mime) {
 
 function match_image_filter(mime) {
   var result = false;
-  $.each(['image/png', 'image/jpeg', 'image/gif'], function(k, v) {
+  ['image/png', 'image/jpeg', 'image/gif'].forEach(function(v) {
     if((new RegExp('^.+\\.' + v + '$', 'i')).test(mime)) {
       result = true;
       return false;
@@ -79,7 +80,12 @@ function match_image_filter(mime) {
 }
 
 function get_description(url, callback) {
-  function error_callback(err) { callback(url, err); }
+  function error_callback(err) {
+    console.error('Error:', JSON.stringify(err), ':', url);
+    console.trace();
+    callback(url, err);
+  }
+
   var retry_cb = false;
   function retry() {
     retry_count[url] = retry_count[url]? retry_count[url] + 1 : 1;
@@ -92,17 +98,9 @@ function get_description(url, callback) {
       }
 
       console.log('retry count exceeded:', url);
-      error_callback(url, 'retry count exceeded');
+      error_callback('retry count exceeded');
     } else { setTimeout(get_description,
                         config.item_generation_frequency, url, callback); }
-  }
-  function jquery_error_callback(jqXHR, textStatus, errorThrown) {
-    if(/timed?out/i.test(textStatus)) { retry(); }
-    else {
-      console.error("Error in: " + url);
-      console.error(JSON.stringify([jqXHR, textStatus, errorThrown]));
-      error_callback(textStatus);
-    }
   }
 
   var document = jsdom.jsdom(), window = document.createWindow();
@@ -190,8 +188,8 @@ function get_description(url, callback) {
 
   function open_graph_body($) {
     var body = '';
-    $.each(['image', 'video', 'audio'], function(tag_idx, tag) {
-      $.each(['property', 'name'], function(attr_idx, attr) {
+    ['image', 'video', 'audio'].forEach(function(tag) {
+      ['property', 'name'].forEach(function(attr) {
         $('meta[' + attr + '="og:' + tag + '"]').each(function(idx, elm) {
           var opt = { src: $(elm).attr('content') }, i = $(elm).next();
 
@@ -215,7 +213,7 @@ function get_description(url, callback) {
   }
   function run_selectors($, selectors) {
     var body = '';
-    $.each(selectors, function(k, selector) {
+    selectors.forEach(function(selector) {
       if(!body) { $(selector).each(function(idx, elm) { body += $('<div />').append(elm).html(); }); }
     });
     return body;
@@ -285,41 +283,39 @@ function get_description(url, callback) {
         return;
       }
 
-      try {
-        jsdom.env(
-          { 'html': html || '<html><body></body></html>',
-            src: [config.jquery_src, config.readability_src],
-            features: DEFAULT_FEATURE },
-          function(err, window) {
-            if(err) {
-              error_callback(err);
-              return;
-            }
+      jsdom.env(
+        { 'html': html || '<html><body></body></html>',
+          features: DEFAULT_FEATURE },
+        function(err, window) {
+          if(err) {
+            error_callback(err);
+            return;
+          }
 
-            var document = window.document;
+          var document = window.document;
+          eval(config.jquery_src);
 
-            var $ = window.jQuery;
+          var $ = window.jQuery;
 
-            $('a').each(
-              function(idx,elm) {
-                $(elm).attr('href', URL.resolve(target_url, $(elm).attr('href')));
-              });
-            $('img').each(
-              function(idx,elm) {
-                $(elm).attr('src', URL.resolve(target_url, $(elm).attr('src')));
-              });
+          $('a').each(
+            function(idx,elm) {
+              $(elm).attr('href', URL.resolve(target_url, $(elm).attr('href')));
+            });
+          $('img').each(
+            function(idx,elm) {
+              $(elm).attr('src', URL.resolve(target_url, $(elm).attr('src')));
+            });
 
-            switch(typeof cb) {
-              case 'function':
-              cb($, window); break;
-              case 'object':
-              callback(url, $('meta[property="og:title"]').attr('content') ||
-                       $('title').text(), run_selectors($, cb));
-              break;
-              default: throw 'unknown callback type';
-            }
-          });
-      } catch(html_parse_error) { error_callback(html_parse_error); }
+          switch(typeof cb) {
+            case 'function':
+            cb($, window); break;
+            case 'object':
+            callback(url, $('meta[property="og:title"]').attr('content') ||
+                     $('title').text(), run_selectors($, cb));
+            break;
+            default: throw 'unknown callback type';
+          }
+        });
     }, u);
   }
 
@@ -341,9 +337,9 @@ function get_description(url, callback) {
         function(buf) {
           var html = '';
           var data = buf.toString();
-          $.each(data.match(/document\.write\('(.+)'\)/g), function(k, v) {
-                   html += v.match(/document\.write\('(.+)'\)/)[1];
-                 });
+          data.match(/document\.write\('(.+)'\)/g).forEach(function(v) {
+            html += v.match(/document\.write\('(.+)'\)/)[1];
+          });
           eval("html = '" + html + "'");
           fetch_data(
             function(info_buf) {
