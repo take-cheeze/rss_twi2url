@@ -40,15 +40,10 @@ module.exports = {
   ],
 
   exclude_filter: [
-    'twitlonger.com/',
-    'theinterviews.jp/',
-    '/www.pixiv.net/member_illust.php',
-    'live.nicovideo.jp/watch/',
     'twitcmap.jp/',
     'mb4sq.jp/',
-    'animita.tv/',
     'dw.sipo.jp/',
-    'dmm.co.jp/digital/videoa/',
+    'dmm.co.jp/',
     'caribbeancom.com/',
     'tenhou.net/',
     'b.hatena.ne.jp/',
@@ -59,11 +54,7 @@ module.exports = {
     'facebook.com/login.php',
     'nikkei.com/',
     'melonbooks.co.jp/',
-    'nicovideo.jp/watch/',
-    '\\.tumblr.com/',
     'booklog.jp/',
-    'youtube.com/',
-    'youtu.be/',
     's.twipple.jp/',
     'friendfeed.com/',
     'qa-now.com/',
@@ -71,15 +62,7 @@ module.exports = {
     'bgm.tv/',
     'sarupli.com/',
     'pocket.co/',
-    'nico.ms/',
-
-    '^https?://twitter.com/.+/status/\\d+$',
-    /*
-    'blog',
-    'ameblo.jp/',
-    'pic', 'photo',
-    'github.com/',
-     */
+    'sade-maso.com/',
 
     'news',
     'foursquare.com/',
@@ -92,7 +75,6 @@ module.exports = {
     'bunsekikun.com/',
     'imakoko-iphone.appspot.com/',
     'twitter.sengokudroid.com/',
-    'seiga.nicovideo.jp/seiga/',
     'headlines.yahoo.co.jp/',
     'uranaitter.com/',
     '/ux.nu/',
