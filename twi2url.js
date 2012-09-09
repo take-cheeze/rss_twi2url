@@ -276,11 +276,15 @@ function create_executer(i) {
 }
 
 function get_description(url, cb) {
-  executer[current_executer++].send({type: 'get_description', data: url});
-  executer_cb[url] = cb;
+  try {
+    executer[current_executer++].send({type: 'get_description', data: url});
+    executer_cb[url] = cb;
 
-  if(current_executer >= config.executer) {
-    current_executer = 0;
+    if(current_executer >= config.executer) {
+      current_executer = 0;
+    }
+  } catch(e) {
+    console.error(e);
   }
 }
 
