@@ -5,10 +5,10 @@ module.exports = {
   port: process.env.PORT || 8090,
   author: "Takeshi Watanabe",
 
-  feed_item_max: 300,
+  feed_item_max: 500,
   photo_feed_item_max: 750,
   retry_max: 1,
-  executer: 1,
+  executer: 2,
   url_expander_number: 5,
   first_fetching_page_number: 2,
 
@@ -18,6 +18,7 @@ module.exports = {
   search_type: 'recent',
 
   fetch_frequency: 1000 * 60 * 20,
+  executer_restart_frequency: 1000 * 60 * 5,
   item_generation_frequency: 1000 * 1.1,
   backup_frequency: 1000 * 60,
   timeout: 1000 * 10,
