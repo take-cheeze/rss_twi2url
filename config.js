@@ -16,6 +16,8 @@ module.exports = {
   search_max: 100,
   search_type: 'recent',
 
+  executer_max: 4,
+
   fetch_frequency: 1000 * 60 * 20,
   executer_restart_frequency: 1000 * 60 * 5,
   item_generation_frequency: 1000 * 1.1,

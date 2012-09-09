@@ -42,6 +42,7 @@ config.feed_url = 'http://' + config.hostname
 if(!config.executer) {
   config.executer = require('os').cpus().length;
   if(config.executer !== 1) { config.executer--; }
+  config.executer = Math.min(config.executer_max, config.executer);
 }
 
 var url_expander_queue = [];
