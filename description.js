@@ -58,7 +58,7 @@ function match_docs_filter(mime) {
     'image/svg', 'application/vnd.ms-xpsdocument', 'application/pdf']
   .forEach(
     function(v) {
-      if((new RegExp('^.+\\.' + v + '$', 'i')).test(mime)) {
+      if((new RegExp(v, 'i')).test(mime)) {
         result = true;
         return false;
       }
@@ -70,7 +70,7 @@ function match_docs_filter(mime) {
 function match_image_filter(mime) {
   var result = false;
   ['image/png', 'image/jpeg', 'image/gif'].forEach(function(v) {
-    if((new RegExp('^.+\\.' + v + '$', 'i')).test(mime)) {
+    if((new RegExp(v, 'i')).test(mime)) {
       result = true;
       return false;
     }
