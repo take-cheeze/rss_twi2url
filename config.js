@@ -43,7 +43,6 @@ module.exports = {
     'twitcmap.jp/',
     'mb4sq.jp/',
     'dw.sipo.jp/',
-    'dmm.co.jp/',
     'caribbeancom.com/',
     'tenhou.net/',
     'b.hatena.ne.jp/',
