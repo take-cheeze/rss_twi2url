@@ -63,6 +63,7 @@ module.exports = {
     'pocket.co/',
     'sade-maso.com/',
 
+    '^https?://twitter.com/.+/status/\\d+$',
     'news',
     'foursquare.com/',
     '4sq.com/',
