@@ -85,6 +85,11 @@ var photo_filter = {
       'http://image.movapic.com/pic/m_$1.jpeg'));
   },
 
+  '^https?://layercloud.net/items/detail_top/\\d+$': function(url) {
+    var id = url.match(/^https?:\/\/layercloud.net\/items\/detail_top\/(\d+)$/)[1];
+    return image_tag('http://layercloud.net/img/items/(' + id + '.jpg');
+  },
+
   '^https?://gyazo.com/\\w+$': function(url) { return image_tag(url + '.png'); }
 };
 

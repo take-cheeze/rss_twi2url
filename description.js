@@ -423,15 +423,6 @@ function get_description(url, callback) {
                'width="480" height="360" frameborder="0" />');
     },
 
-    '^https?://layercloud.net/items/detail_top/\\d+/?$': function() {
-      var id = url.match(/^http:\/\/layercloud.net\/items\/detail_top\/(\d+)\/?$/)[1];
-      run_jquery(function($) {
-        callback(
-          url, $('.ItemDescription').html(),
-          image_tag('http://layercloud.net/img/items/' + id + '.jpg'));
-      });
-    },
-
     '^https?://www.drawlr.com/d/\\w+/view/?$': function() {
       fetch_data(function(buf) {
         callback(url, buf.toString().match(/var embed_code = '(.+)';/)[1]);
