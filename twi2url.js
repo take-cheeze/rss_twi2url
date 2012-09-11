@@ -309,8 +309,6 @@ function generate_item() {
       title = v.text;
     }
 
-    url = remove_utm_param(url);
-
     if(!title) {
       console.error('Invalid title:', url);
       title = v.text;
