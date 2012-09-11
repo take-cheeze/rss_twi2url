@@ -17,6 +17,7 @@ function expand_url(url, cb, timeout) {
            switch(res.statusCode) {
              case 301: case 307: // short url
              expand_url(result, cb, timeout);
+             break;
 
              default:
              cb(result);
