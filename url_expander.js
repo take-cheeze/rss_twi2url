@@ -14,15 +14,7 @@ function expand_url(url, cb, timeout) {
                          res.headers.location &&
                          (res.headers.location.indexOf('http') > -1))
                       ? res.headers.location : url;
-           switch(res.statusCode) {
-             case 301: case 307: // short url
-             expand_url(result, cb, timeout);
-             break;
-
-             default:
-             cb(result);
-             break;
-           }
+           cb(result);
          });
        });
   req.on('error', function(e) { cb(url); });
