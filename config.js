@@ -66,6 +66,7 @@ module.exports = {
     'sade-maso.com/',
 
     '^https?://twitter.com/.+/status/\\d+$',
+    '^https?://twitter.com/.+/statuses/\\d+$',
     'news',
     'foursquare.com/',
     '4sq.com/',
