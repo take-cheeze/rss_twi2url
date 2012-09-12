@@ -585,7 +585,7 @@ function start() {
     if(rss_twi2url.queued_urls.length === 0) { return; }
 
     $.each(rss_twi2url.generating_items, function(k, v) {
-      rss_twi2url.queued_urls.unshift(v);
+      rss_twi2url.queued_urls.push(v);
     });
     rss_twi2url.generating_items = {};
 
