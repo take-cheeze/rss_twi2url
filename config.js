@@ -64,6 +64,7 @@ module.exports = {
     'sarupli.com/',
     'pocket.co/',
     'sade-maso.com/',
+    'himasoku.com/',
 
     '^https?://twitter.com/.+/status/\\d+$',
     '^https?://twitter.com/.+/statuses/\\d+$',
