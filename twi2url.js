@@ -105,7 +105,11 @@ function is_queued(url) {
 }
 
 function in_photo_stack(url) {
-  return (rss_twi2url.photos.indexOf(url) !== -1);
+  var result = false;
+  rss_twi2url.photos.forEach(function(v) {
+    if(v.url === url) { result = true; }
+  });
+  return result;
 }
 
 function remove_utm_param(url) {
