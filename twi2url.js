@@ -672,7 +672,8 @@ app.get('/callback', function(req, res) {
 });
 
 function print_current_state(req) {
-  console.log('Request:', req.headers);
+  console.log('Request:');
+  console.log(req.headers);
 
   console.log('queued_urls.length:', rss_twi2url.queued_urls.length);
   console.log('last_urls.length:', rss_twi2url.last_urls.length);
