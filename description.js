@@ -56,25 +56,16 @@ function match_docs_filter(mime) {
     'application/vnd.apple.pages', 'application/x-font-ttf', 'image/x-photoshop',
     'application/postscript', 'image/tiff', 'application/dxf',
     'image/svg', 'application/vnd.ms-xpsdocument', 'application/pdf']
-  .forEach(
-    function(v) {
-      if((new RegExp(v, 'i')).test(mime)) {
-        result = true;
-        return false;
-      }
-      return undefined;
-    });
+  .forEach(function(v) {
+    if((new RegExp(v, 'i')).test(mime)) { result = true; }
+  });
   return result;
 }
 
 function match_image_filter(mime) {
   var result = false;
   ['image/png', 'image/jpeg', 'image/gif'].forEach(function(v) {
-    if((new RegExp(v, 'i')).test(mime)) {
-      result = true;
-      return false;
-    }
-    return undefined;
+    if((new RegExp(v, 'i')).test(mime)) { result = true; }
   });
   return result;
 }

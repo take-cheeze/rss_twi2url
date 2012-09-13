@@ -19,6 +19,6 @@ function expand_url(url, cb, timeout) {
        });
   req.on('error', function(e) { cb(url); });
   req.end();
-};
+}
 
 module.exports = expand_url;

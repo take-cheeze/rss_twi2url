@@ -62,10 +62,7 @@ function count_map_element(map) {
 function match_exclude_filter(str) {
   var result = false;
   config.exclude_filter.forEach(function(v) {
-    if((new RegExp(v)).test(str)) {
-      result = true;
-      return false;
-    } else { return undefined; }
+    if((new RegExp(v)).test(str)) { result = true; }
   });
   return result;
 }
@@ -104,25 +101,11 @@ if(fs.existsSync(JSON_FILE + '.gz')) {
 var expand_count = 0, expand_cache = {};
 
 function is_queued(url) {
-  var result = false;
-  rss_twi2url.queued_urls.forEach(function(v) {
-    if(v.url === url) {
-      result = true;
-      return false;
-    } else { return undefined; }
-  });
-  return result;
+  return (rss_twi2url.queued_urls.indexOf(url) !== -1);
 }
 
 function in_photo_stack(url) {
-  var result = false;
-  rss_twi2url.photos.forEach(function(v) {
-    if(v.url === url) {
-      result = true;
-      return false;
-    } else { return undefined; }
-  });
-  return result;
+  return (rss_twi2url.photos.indexOf(url) !== -1);
 }
 
 function remove_utm_param(url) {
@@ -146,10 +129,7 @@ function remove_utm_param(url) {
 function expantion_exclude(url) {
   var ret = false;
   config.url_expantion_exclude.forEach(function(v) {
-    if((new RegExp(v)).test(url)) {
-      ret = true;
-      return false;
-    } else { return undefined; }
+    if((new RegExp(v)).test(url)) { ret = true; }
   });
   return ret;
 }
@@ -222,10 +202,7 @@ process.on('exit', function() {
 function in_last_urls(url) {
   var result = false;
   rss_twi2url.last_urls.forEach(function(v) {
-    if(v === url) {
-      result = true;
-      return false;
-    } else { return undefined; }
+    if(v === url) { result = true; }
   });
   return result;
 }
@@ -694,26 +671,30 @@ app.get('/callback', function(req, res) {
     });
 });
 
+function print_current_state(req) {
+  console.log('Request:', req.headers);
+
+  console.log('queued_urls.length:', rss_twi2url.queued_urls.length);
+  console.log('last_urls.length:', rss_twi2url.last_urls.length);
+  console.log('url_expander_queue.length:', url_expander_queue.length);
+  console.log('generating_items.length:', count_map_element(rss_twi2url.generating_items));
+  console.log('photos.length:', rss_twi2url.photos.length);
+
+  console.log('generating_items:');
+  console.log(rss_twi2url.generating_items);
+}
+
 app.get('/', function(req, res) {
   if(!is_signed_in() || authorize_url) {
     res.redirect(authorize_url);
     return;
   }
 
+  print_current_state();
+
   var ary = (rss_twi2url.last_urls.length > config.feed_item_max)
           ? rss_twi2url.last_urls.slice(rss_twi2url.last_urls.length - config.feed_item_max)
           : rss_twi2url.last_urls;
-
-  console.log('Request:', req.headers);
-  console.log(
-    'RSS requested:'
-  , 'queued_urls.length:', rss_twi2url.queued_urls.length, ','
-  , 'last_urls.length:', rss_twi2url.last_urls.length, ','
-  , 'url_expander_queue.length:', url_expander_queue.length, ','
-  , 'generating_items.length:', count_map_element(rss_twi2url.generating_items), ','
-  );
-  console.log('generating_items:');
-  console.log(rss_twi2url.generating_items);
 
   generate_feed(ary, function(data) {
     res.set('content-type', 'application/rss+xml');
@@ -727,15 +708,11 @@ app.get('/photo.rss', function(req, res) {
     return;
   }
 
+  print_current_state(req);
+
   var photos = (rss_twi2url.photos.length > config.photo_feed_item_max)
              ? rss_twi2url.photos.slice(rss_twi2url.photos.length - config.photo_feed_item_max)
              : rss_twi2url.photos;
-
-  console.log('Request:', req.headers);
-  console.log(
-    'RSS requested:'
-  , 'photos.length:', rss_twi2url.photos.length, ','
-  );
 
   var feed = new RSS(
     { title: config.title + ' : photos',
