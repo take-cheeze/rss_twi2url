@@ -691,7 +691,7 @@ app.get('/', function(req, res) {
     return;
   }
 
-  print_current_state();
+  print_current_state(req);
 
   var ary = (rss_twi2url.last_urls.length > config.feed_item_max)
           ? rss_twi2url.last_urls.slice(rss_twi2url.last_urls.length - config.feed_item_max)
