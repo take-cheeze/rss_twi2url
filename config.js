@@ -65,6 +65,7 @@ module.exports = {
     'pocket.co/',
     'sade-maso.com/',
     'himasoku.com/',
+    'big.or.jp/~seraph/zero/discomm.cgi',
 
     '^https?://twitter.com/.+/status/\\d+$',
     '^https?://twitter.com/.+/statuses/\\d+$',
