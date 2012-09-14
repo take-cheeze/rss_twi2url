@@ -30,6 +30,13 @@ var photo_filter = {
         image_tag('http://yfrog.com/' + id + ':medium'))).html();
   },
 
+  '^https?://twitter\\.yfrog\\.com/(\\w+)/?': function(url) {
+    var id = url.match(/^https?:\/\/twitter\\.yfrog\.com\/(\w+)\/?/)[1];
+    return $('<div />').append(
+      $('<a />').attr('href', 'http://twitter.yfrog.com/z/' + id).append(
+        image_tag('http://yfrog.com/' + id + ':medium'))).html();
+  },
+
   '^https?://instagr.am/p/[\\-\\w_]+/?$': function(url) {
     var id = url.match(/^https?:\/\/instagr.am\/p\/([\-\w_]+)\/?$/)[1];
     return image_tag('http://instagr.am/p/' + id + '/media/?size=l');
