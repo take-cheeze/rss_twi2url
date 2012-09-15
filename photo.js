@@ -31,7 +31,7 @@ var photo_filter = {
   },
 
   '^https?://twitter\\.yfrog\\.com/(\\w+)/?': function(url) {
-    var id = url.match(/^https?:\/\/twitter\\.yfrog\.com\/(\w+)\/?/)[1];
+    var id = url.match(/^https?:\/\/twitter\.yfrog\.com\/(\w+)\/?/)[1];
     return $('<div />').append(
       $('<a />').attr('href', 'http://twitter.yfrog.com/z/' + id).append(
         image_tag('http://yfrog.com/' + id + ':medium'))).html();
