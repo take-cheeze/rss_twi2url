@@ -5,7 +5,7 @@ module.exports = {
   port: process.env.PORT || 8090,
   author: "Takeshi Watanabe",
 
-  feed_item_max: 500,
+  feed_item_max: 200,
   photo_feed_item_max: 750,
   retry_max: 1,
   url_expander_number: 5,
@@ -31,6 +31,13 @@ module.exports = {
     'RSS twi2url ( https://github.com/take-cheeze/rss_twi2url )',
     'by take-cheeze( takechi101010@gmail.com )'
   ].join(),
+
+  blog_filter: [
+    'blog', 'diary', 'd.hatena.ne.jp/', 'ameblo.jp/'
+  ],
+  media_filter: [
+    'youtube.com/', 'www.nicovideo.jp/watch/', 'via.me/', 'pixiv.net/illust'
+  ],
 
   url_expantion_exclude: [
     'twitpic.com/',
