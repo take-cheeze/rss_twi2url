@@ -33,10 +33,11 @@ module.exports = {
   ].join(),
 
   blog_filter: [
-    'blog', 'diary', 'd.hatena.ne.jp/', 'ameblo.jp/'
+    'blog', 'diary', 'd.hatena.ne.jp/', 'ameblo.jp/', '\\.wordpress\\.'
   ],
   media_filter: [
-    'youtube.com/', 'www.nicovideo.jp/watch/', 'via.me/', 'pixiv.net/illust'
+    'youtube.com/', 'www.nicovideo.jp/watch/', 'via.me/', 'pixiv.net/member_illust',
+    'flickr.com/'
   ],
 
   url_expantion_exclude: [

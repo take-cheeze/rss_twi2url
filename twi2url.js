@@ -702,10 +702,12 @@ function print_current_state(req) {
   console.log(req.headers);
 
   console.log('queued_urls.length:', rss_twi2url.queued_urls.length);
-  console.log('last_urls.length:', rss_twi2url.last_urls.length);
   console.log('url_expander_queue.length:', url_expander_queue.length);
   console.log('generating_items.length:', count_map_element(rss_twi2url.generating_items));
   console.log('photos.length:', rss_twi2url.photos.length);
+  console.log('last_urls.length:', rss_twi2url.last_urls.length);
+  console.log('media_urls.length:', rss_twi2url.media_urls.length);
+  console.log('blog_urls.length:', rss_twi2url.blog_urls.length);
 
   console.log('generating_items:');
   console.log(rss_twi2url.generating_items);
