@@ -33,11 +33,12 @@ module.exports = {
   ].join(),
 
   blog_filter: [
-    'blog', 'diary', 'd.hatena.ne.jp/', 'ameblo.jp/', '\\.wordpress\\.'
+    'blog', 'diary', 'd.hatena.ne.jp/', 'ameblo.jp/', '\\.wordpress\\.',
+    'theinterviews.jp/', 'yaplog.jp/'
   ],
   media_filter: [
     'youtube.com/', 'www.nicovideo.jp/watch/', 'via.me/', 'pixiv.net/member_illust',
-    'flickr.com/'
+    'flickr.com/', 'slideshare.net/', 'facebook.com/photo', 'live.nicovideo.jp/watch/'
   ],
 
   url_expantion_exclude: [
@@ -50,6 +51,7 @@ module.exports = {
   ],
 
   exclude_filter: [
+    'twitcasting.tv/',
     'twitcmap.jp/',
     'mb4sq.jp/',
     'dw.sipo.jp/',

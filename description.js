@@ -383,9 +383,14 @@ function get_description(url, callback) {
     '^https?://www.nicovideo.jp/watch/\\w+': function() {
       run_jquery(function($) {
         callback(url, $('title').text(), $('body').html());
-      },
-                 'http://ext.nicovideo.jp/thumb/'
-        + url.match(/^http:\/\/www.nicovideo.jp\/watch\/(\w+)/)[1]); },
+      }, 'http://ext.nicovideo.jp/thumb/'
+       + url.match(/^https?:\/\/www.nicovideo.jp\/watch\/(\w+)/)[1]); },
+
+    '^https?://live.nicovideo.jp/watch/\\w+': function() {
+      run_jquery(function($) {
+        callback(url, $('title').text(), $('body').html());
+      }, 'http://live.nicovideo.jp/embed/'
+       + url.match(/^https?:\/\/live.nicovideo.jp\/watch\/(\w+)/)[1]); },
 
     '^https?://kokuru.com/\\w+/?$': function() {
       run_jquery(function($) {
