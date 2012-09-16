@@ -38,7 +38,8 @@ module.exports = {
   ],
   media_filter: [
     'youtube.com/', 'www.nicovideo.jp/watch/', 'via.me/', 'pixiv.net/member_illust',
-    'flickr.com/', 'slideshare.net/', 'facebook.com/photo', 'live.nicovideo.jp/watch/'
+    'flickr.com/', 'slideshare.net/', 'facebook.com/photo', 'live.nicovideo.jp/watch/',
+    'f.hatena.ne.jp/'
   ],
 
   url_expantion_exclude: [
@@ -51,6 +52,19 @@ module.exports = {
   ],
 
   exclude_filter: [
+    '^https?://twitter.com/.+/status/\\d+$',
+    '^https?://twitter.com/.+/statuses/\\d+$',
+    'tumblr.com/',
+    'news',
+    'foursquare.com/',
+    '4sq.com/',
+    'shindanmaker.com/',
+    'wikipedia.org',
+    'stickam.jp/',
+    'ustream.tv/',
+
+    'www.asahi.com/',
+    'snsanalytics.com/',
     'twitcasting.tv/',
     'twitcmap.jp/',
     'mb4sq.jp/',
@@ -76,17 +90,6 @@ module.exports = {
     'sade-maso.com/',
     'himasoku.com/',
     'big.or.jp/~seraph/zero/discomm.cgi',
-
-    '^https?://twitter.com/.+/status/\\d+$',
-    '^https?://twitter.com/.+/statuses/\\d+$',
-    'tumblr.com/',
-    'news',
-    'foursquare.com/',
-    '4sq.com/',
-    'shindanmaker.com/',
-    'wikipedia.org',
-    'stickam.jp/',
-    'ustream.tv/',
 
     'bunsekikun.com/',
     'imakoko-iphone.appspot.com/',
