@@ -225,8 +225,8 @@ process.on('exit', function() {
 function in_last_urls(url) {
   return(
     (rss_twi2url.last_urls.indexOf(url) !== -1)
-  && (rss_twi2url.media_urls.indexOf(url) !== -1)
-  && (rss_twi2url.blog_urls.indexOf(url) !== -1)
+        || (rss_twi2url.media_urls.indexOf(url) !== -1)
+        || (rss_twi2url.blog_urls.indexOf(url) !== -1)
   );
 }
 
@@ -326,9 +326,9 @@ function generate_item() {
       }));
 
     if(!in_last_urls(v.url)) {
-      if(match_blog_filter(v.url)) { rss_twi2url.blog_urls.push(v.url); }
-      else if(match_media_filter(v.url)) { rss_twi2url.media_urls.push(v.url); }
-      else { rss_twi2url.last_urls.push(v.url); }
+      rss_twi2url[match_blog_filter(v.url)? 'blog_urls':
+                  match_media_filter(v.url)? 'media_urls':
+                  'last_urls'].push(v.url);
     }
 
     delete rss_twi2url.generating_items[v.url];
