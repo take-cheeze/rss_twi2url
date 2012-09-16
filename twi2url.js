@@ -342,12 +342,12 @@ function generate_item() {
   return;
 }
 
-function generate_feed(items, cb) {
+function generate_feed(items, cb, name) {
   var feed = new RSS(
-    { title: config.title,
+    { title: config.title || (name? ' : ' + name : ''),
       'description': config.description,
       feed_url: config.feed_url,
-      site_url: config.feed_url,
+      site_url: config.feed_url + (name? name + '.rss' : ''),
       author: config.author });
 
   if(items.length === 0) { cb(feed.xml()); }
@@ -713,7 +713,7 @@ function print_current_state(req) {
   console.log(rss_twi2url.generating_items);
 }
 
-function get_feed(req, res, ary) {
+function get_feed(req, res, ary, name) {
   if(!is_signed_in() || authorize_url) {
     res.redirect(authorize_url);
     return;
@@ -728,7 +728,7 @@ function get_feed(req, res, ary) {
   generate_feed(ary, function(data) {
     res.set('content-type', 'application/rss+xml');
     res.send(data);
-  });
+  }, name);
 }
 
 app.get('/', function(req, res) {
@@ -736,11 +736,11 @@ app.get('/', function(req, res) {
 });
 
 app.get('/media.rss', function(req, res) {
-  get_feed(req, res, rss_twi2url.media_urls);
+  get_feed(req, res, rss_twi2url.media_urls, 'media');
 });
 
 app.get('/blog.rss', function(req, res) {
-  get_feed(req, res, rss_twi2url.blog_urls);
+  get_feed(req, res, rss_twi2url.blog_urls, 'blog');
 });
 
 app.get('/photo.rss', function(req, res) {
