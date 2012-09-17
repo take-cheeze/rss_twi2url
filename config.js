@@ -39,7 +39,7 @@ module.exports = {
   media_filter: [
     'youtube.com/', 'www.nicovideo.jp/watch/', 'via.me/', 'pixiv.net/member_illust',
     'flickr.com/', 'slideshare.net/', 'facebook.com/photo', 'live.nicovideo.jp/watch/',
-    'f.hatena.ne.jp/', 'speakerdeck.com/'
+    'f.hatena.ne.jp/', 'speakerdeck.com/', 'nico.ms/'
   ],
 
   url_expantion_exclude: [

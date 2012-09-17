@@ -392,6 +392,18 @@ function get_description(url, callback) {
       }, 'http://live.nicovideo.jp/embed/'
        + url.match(/^https?:\/\/live.nicovideo.jp\/watch\/(\w+)/)[1]); },
 
+    '^https?://live.nicovideo.jp/gate/\\w+': function() {
+      run_jquery(function($) {
+        callback(url, $('title').text(), $('body').html());
+      }, 'http://live.nicovideo.jp/embed/'
+       + url.match(/^https?:\/\/live.nicovideo.jp\/gate\/(\w+)/)[1]); },
+
+    '^https?://nico.ms/lv\\d+': function() {
+      run_jquery(function($) {
+        callback(url, $('title').text(), $('body').html());
+      }, 'http://live.nicovideo.jp/embed/'
+       + url.match(/^https?:\/\/nico.ms\/(lv\d+)/)[1]); },
+
     '^https?://kokuru.com/\\w+/?$': function() {
       run_jquery(function($) {
         callback(url, $('h1').text(), image_tag($('#kokuhaku_image_top').attr('src')));
