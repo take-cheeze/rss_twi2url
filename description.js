@@ -419,7 +419,12 @@ function get_description(url, callback) {
                ' poster="http://twitcasting.tv/' + id + '/thumbstream/liveshot" />');
     },
 
-    'pixiv.net/': function() { run_jquery(open_graph_body); },
+    'pixiv.net/': function() {
+      run_jquery(function($) {
+        callback(url, $('meta[property="og:title"]').text(), open_graph_body($));
+      });
+    },
+
     '://ameblo.jp/.+/entry-': function() {
       run_jquery(function($) {
         callback(url, $('meta[property="og:title"]').text() ||
