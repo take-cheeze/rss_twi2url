@@ -572,7 +572,9 @@ function start() {
   setInterval(function() {
     expand_url();
 
-    if(count_map_element(rss_twi2url.generating_items) < config.executer) {
+    while((rss_twi2url.queued_urls.length > 0)
+        && (count_map_element(rss_twi2url.generating_items) < config.executer))
+    {
       generate_item();
     }
   }, config.check_frequency);
