@@ -712,6 +712,12 @@ function print_current_state(req) {
   console.log('media_urls.length:', rss_twi2url.media_urls.length);
   console.log('blog_urls.length:', rss_twi2url.blog_urls.length);
 
+  var fetched_tweet = 0;
+  $.each(rss_twi2url.since, function(k,v) {
+    fetched_tweet += v.count;
+  });
+  console.log('fetched tweet:', fetched_tweet);
+
   console.log('generating_items:');
   console.log(rss_twi2url.generating_items);
 }
