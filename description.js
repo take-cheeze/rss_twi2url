@@ -355,7 +355,7 @@ function get_description(url, callback) {
       oembed('http://www.slideshare.net/api/oembed/2?' +
              $.param({ 'url': url, format: 'json'})); },
 
-   '?://twitter.com/.+/status/\\d+': function() {
+   '://twitter.com/.+/status/\\d+': function() {
       if(/\/photo/.test(url)) {
         run_jquery(function($) {
           callback(url, $('.tweet-text').text() || '', $('.main-tweet').html());
