@@ -311,18 +311,18 @@ function get_description(url, callback) {
   }
 
   var GALLERY_FILTER = {
-    '^https?://www.twitlonger.com/show/\\w+/?$': function() {
+    '://www.twitlonger.com/show/\\w+/?$': function() {
       run_jquery(function($) { callback(url, $('title').text(), $($('p').get(1)).html()); }); },
 
-    '^https?://www.tweetdeck.com/twitter/\\w+/~\\w+': function() {
+    '://www.tweetdeck.com/twitter/\\w+/~\\w+': function() {
       run_jquery(function($) { callback(url, $('title').text(), $('#tweet').html()); }); },
 
-    '^https?://theinterviews.jp/[\\w\\-]+/\\d+': function() {
+    '://theinterviews.jp/[\\w\\-]+/\\d+': function() {
       run_jquery(function($) {
         callback(url, $('meta[property="og:title"]').attr('content'),
                  $('.note').html()); }); },
 
-    '^https?://gist.github.com/\\w+/?': function() {
+    '://gist.github.com/\\w+/?': function() {
       var id = url.match(/^https?:\/\/gist.github.com\/(\w+)\/?/)[1];
       fetch_data(
         function(buf) {
@@ -340,22 +340,22 @@ function get_description(url, callback) {
         }, 'http://gist.github.com/' + id + '.js');
     },
 
-    '^https?://ideone.com/\\w+/?$': function() {
+    '://ideone.com/\\w+/?$': function() {
       run_jquery(function($) { callback(url, 'ideone.com', $('#source').html()); }); },
 
-    '^https?://www.youtube.com/watch\\?.*v=[\\w\\-]+': function() {
+    '://www.youtube.com/watch\\?.*v=[\\w\\-]+': function() {
       oembed('http://www.youtube.com/oembed?' +
              $.param({ 'url': url, format: 'json'}));
     },
 
-    '^https?://vimeo.com/\\d+$': function() {
+    '://vimeo.com/\\d+$': function() {
       oembed('http://vimeo.com/api/oembed.json?' +
              $.param({ 'url': url, autoplay: true, iframe: true})); },
-    '^https?://www.slideshare.net/[^/]+/[^/]+': function() {
+    '://www.slideshare.net/[^/]+/[^/]+': function() {
       oembed('http://www.slideshare.net/api/oembed/2?' +
              $.param({ 'url': url, format: 'json'})); },
 
-    '^https?://twitter.com/.+/status/\\d+': function() {
+   '?://twitter.com/.+/status/\\d+': function() {
       if(/\/photo/.test(url)) {
         run_jquery(function($) {
           callback(url, $('.tweet-text').text() || '', $('.main-tweet').html());
@@ -368,53 +368,50 @@ function get_description(url, callback) {
       }
     },
 
-    '^https?://.+\\.deviantart.com/art/.+$': function() {
+    '://.+\\.deviantart.com/art/.+$': function() {
       oembed('http://backend.deviantart.com/oembed?' + $.param({ 'url': url })); },
-    '^https?://www.flickr.com/photos/[@\\w\\-]+/\\d+/?': function() {
+    '://www.flickr.com/photos/[@\\w\\-]+/\\d+/?': function() {
       oembed('http://www.flickr.com/services/oembed?' + $.param({ 'url': url, format: 'json' })); },
-    '^https?://www.docodemo.jp/twil/view/': function() {
+    '://www.docodemo.jp/twil/view/': function() {
       oembed('http://www.docodemo.jp/twil/oembed.json?' + $.param({ 'url': url })); },
-    '^https?://\\w+.tuna.be/\\d+.html$': function() {
+    '://\\w+.tuna.be/\\d+.html$': function() {
       run_jquery(function($) {
         callback(url, $('title').text(),
                  $('.blog-message').html() || $('.photo').html());
       }); },
 
-    '^https?://www.nicovideo.jp/watch/\\w+': function() {
+    '://www.nicovideo.jp/watch/\\w+': function() {
       run_jquery(function($) {
         callback(url, $('title').text(), $('body').html());
-      }, 'http://ext.nicovideo.jp/thumb/'
-       + url.match(/^https?:\/\/www.nicovideo.jp\/watch\/(\w+)/)[1]); },
+      }, 'http://ext.nicovideo.jp/thumb/' + url.match(/\/watch\/(\w+)/)[1]); },
 
-    '^https?://live.nicovideo.jp/watch/\\w+': function() {
+    '://live.nicovideo.jp/watch/\\w+': function() {
       run_jquery(function($) {
         callback(url, $('title').text(), $('body').html());
-      }, 'http://live.nicovideo.jp/embed/'
-       + url.match(/^https?:\/\/live.nicovideo.jp\/watch\/(\w+)/)[1]); },
+      }, 'http://live.nicovideo.jp/embed/' + url.match(/\/watch\/(\w+)/)[1]); },
 
-    '^https?://live.nicovideo.jp/gate/\\w+': function() {
+    '://live.nicovideo.jp/gate/\\w+': function() {
       run_jquery(function($) {
         callback(url, $('title').text(), $('body').html());
-      }, 'http://live.nicovideo.jp/embed/'
-       + url.match(/^https?:\/\/live.nicovideo.jp\/gate\/(\w+)/)[1]); },
+      }, 'http://live.nicovideo.jp/embed/' + url.match(/\/gate\/(\w+)/)[1]); },
 
-    '^https?://nico.ms/lv\\d+': function() {
+    '://nico.ms/lv\\d+': function() {
       run_jquery(function($) {
         callback(url, $('title').text(), $('body').html());
       }, 'http://live.nicovideo.jp/embed/'
-       + url.match(/^https?:\/\/nico.ms\/(lv\d+)/)[1]); },
+       + url.match(/:\/\/nico.ms\/(lv\d+)/)[1]); },
 
-    '^https?://kokuru.com/\\w+/?$': function() {
+    '://kokuru.com/\\w+/?$': function() {
       run_jquery(function($) {
         callback(url, $('h1').text(), image_tag($('#kokuhaku_image_top').attr('src')));
       }); },
 
-    '^https?://twitvideo.jp/\\w+/?$': function() {
+    '://twitvideo.jp/\\w+/?$': function() {
       run_jquery(function($) {
         callback(url, $('.sf_comment').text(), unescapeHTML($('#vtSource').attr('value')));
       }); },
 
-    '^https?://twitcasting.tv/\\w+/?$': function() {
+    '://twitcasting.tv/\\w+/?$': function() {
       var id = url.match(/^http:\/\/twitcasting.tv\/(\w+)\/?$/)[1];
       callback(url,
                '<video src="http://twitcasting.tv/' + id + '/metastream.m3u8/?video=1"' +
@@ -422,7 +419,15 @@ function get_description(url, callback) {
                ' poster="http://twitcasting.tv/' + id + '/thumbstream/liveshot" />');
     },
 
-    '^https?://www.twitvid.com/\\w+/?$': function() {
+    'pixiv.net/': function() { run_jquery(open_graph_body); },
+    '://ameblo.jp/.+/entry-': function() {
+      run_jquery(function($) {
+        callback(url, $('meta[property="og:title"]').text() ||
+                 $('title').text(), $('.subContents').html());
+      });
+    },
+
+    '://www.twitvid.com/\\w+/?$': function() {
       var id = url.match(/^http:\/\/www.twitvid.com\/(\w+)\/?$/)[1];
       callback(url,
                '<iframe title="Twitvid video player" class="twitvid-player" type="text/html" ' +
@@ -431,11 +436,11 @@ function get_description(url, callback) {
                'width="480" height="360" frameborder="0" />');
     },
 
-    '^https?://www.drawlr.com/d/\\w+/view/?$': function() {
+    '://www.drawlr.com/d/\\w+/view/?$': function() {
       fetch_data(function(buf) {
         callback(url, buf.toString().match(/var embed_code = '(.+)';/)[1]);
       });
-    },
+    }
   };
 
   request.head(url, function(e, res, body) {
