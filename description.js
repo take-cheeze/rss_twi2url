@@ -409,13 +409,13 @@ function get_description(url, callback) {
 
     'pixiv.net/': function() {
       run_jquery(function($) {
-        callback($('meta[property="og:title"]').text(), open_graph_body($));
+        callback($('meta[property="og:title"]').attr('content'), open_graph_body($));
       });
     },
 
     '://ameblo.jp/.+/entry-': function() {
       run_jquery(function($) {
-        callback($('meta[property="og:title"]').text() ||
+        callback($('meta[property="og:title"]').attr('content') ||
                  $('title').text(), $('.subContents').html());
       });
     },
