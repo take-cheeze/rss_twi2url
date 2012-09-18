@@ -5,7 +5,7 @@ module.exports = {
   port: process.env.PORT || 8090,
   author: "Takeshi Watanabe",
 
-  feed_item_max: 200,
+  feed_item_max: 400,
   photo_feed_item_max: 750,
   retry_max: 1,
   url_expander_number: 5,
