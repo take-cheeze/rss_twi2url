@@ -473,6 +473,9 @@ function fetch_page(url, qs, name, cb, next_since_id) {
     data.forEach(function(tweet) {
       var user_name = tweet.from_user_name || tweet.user.name;
       var screen_name = tweet.from_user || tweet.user.screen_name;
+
+      if(screen_name === rss_twi2url.screen_name) { return; }
+
       var author_str = user_name + ' ( @' + screen_name + ' ) / ' + name;
       tweet.entities.urls.forEach(function(v) {
         url_expander_queue.push(
