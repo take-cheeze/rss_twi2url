@@ -74,7 +74,7 @@ function get_description(url, callback) {
   function error_callback(err) {
     console.error('Error:', JSON.stringify(err), ':', url);
     console.trace();
-    callback(url, err);
+    callback(err);
   }
 
   var retry_cb = false;
@@ -154,7 +154,7 @@ function get_description(url, callback) {
 
   function oembed_default_callback(data) {
     callback(
-      url, data.title || '',
+      data.title || '',
       (data.description? data.description + '<br/>' : '') +
         (data.image? image_tag(data.image, data.width, data.height) + '<br/>' :
          data.thumbnail? image_tag(data.thumbnail, data.thumbnail_width, data.thumbnail_height) + '<br/>':
@@ -225,13 +225,9 @@ function get_description(url, callback) {
       var cont_type = res.headers['content-type'];
 
       if(!/html/i.test(cont_type)) {
-        if(/image\/\w+/.test(cont_type)) {
-          callback(url, image_tag(url));
-        } else if(/text\/plain/.test(cont_type)) {
-          callback(url, $('<div />').append(
+        if(/text\/plain/.test(cont_type)) {
+          callback($('<div />').append(
             $('<pre></pre>').text(data.toString('utf8'))).html());
-        } else if(/application\/pdf/.test(cont_type)) {
-          google_docs();
         } else {
           error_callback('unknown content type: ' + cont_type);
         }
@@ -284,6 +280,11 @@ function get_description(url, callback) {
           }
 
           var document = window.document;
+          var script_tags = document.getElementsByTagName('script');
+          var i;
+          for(i = 0; i < script_tags.length; ++i) {
+            script_tags[i].parentNode.removeChild(script_tags[i]);
+          }
           eval(config.jquery_src);
 
           var $ = window.jQuery;
@@ -301,7 +302,7 @@ function get_description(url, callback) {
             case 'function':
             cb($, window); break;
             case 'object':
-            callback(url, $('meta[property="og:title"]').attr('content') ||
+            callback($('meta[property="og:title"]').attr('content') ||
                      $('title').text(), run_selectors($, cb));
             break;
             default: throw 'unknown callback type';
@@ -312,14 +313,14 @@ function get_description(url, callback) {
 
   var GALLERY_FILTER = {
     '://www.twitlonger.com/show/\\w+/?$': function() {
-      run_jquery(function($) { callback(url, $('title').text(), $($('p').get(1)).html()); }); },
+      run_jquery(function($) { callback($('title').text(), $($('p').get(1)).html()); }); },
 
     '://www.tweetdeck.com/twitter/\\w+/~\\w+': function() {
-      run_jquery(function($) { callback(url, $('title').text(), $('#tweet').html()); }); },
+      run_jquery(function($) { callback($('title').text(), $('#tweet').html()); }); },
 
     '://theinterviews.jp/[\\w\\-]+/\\d+': function() {
       run_jquery(function($) {
-        callback(url, $('meta[property="og:title"]').attr('content'),
+        callback($('meta[property="og:title"]').attr('content'),
                  $('.note').html()); }); },
 
     '://gist.github.com/\\w+/?': function() {
@@ -335,13 +336,13 @@ function get_description(url, callback) {
           fetch_data(
             function(info_buf) {
               var info = JSON.parse(info_buf.toString());
-              callback(url, 'Gist: ' + info.id + ': ' + info.description || '', html);
+              callback('Gist: ' + info.id + ': ' + info.description || '', html);
             }, 'https://api.github.com/gists/' + id);
         }, 'http://gist.github.com/' + id + '.js');
     },
 
     '://ideone.com/\\w+/?$': function() {
-      run_jquery(function($) { callback(url, 'ideone.com', $('#source').html()); }); },
+      run_jquery(function($) { callback('ideone.com', $('#source').html()); }); },
 
     '://www.youtube.com/watch\\?.*v=[\\w\\-]+': function() {
       oembed('http://www.youtube.com/oembed?' +
@@ -358,7 +359,7 @@ function get_description(url, callback) {
    '://twitter.com/.+/status/\\d+': function() {
       if(/\/photo/.test(url)) {
         run_jquery(function($) {
-          callback(url, $('.tweet-text').text() || '', $('.main-tweet').html());
+          callback($('.tweet-text').text() || '', $('.main-tweet').html());
         }, url.replace('/twitter.com/', '/mobile.twitter.com/'));
       } else {
         oembed('http://api.twitter.com/1/statuses/oembed.json?' +
@@ -376,74 +377,52 @@ function get_description(url, callback) {
       oembed('http://www.docodemo.jp/twil/oembed.json?' + $.param({ 'url': url })); },
     '://\\w+.tuna.be/\\d+.html$': function() {
       run_jquery(function($) {
-        callback(url, $('title').text(),
-                 $('.blog-message').html() || $('.photo').html());
+        callback(
+          $('title').text(), $('.blog-message').html() || $('.photo').html());
       }); },
 
     '://www.nicovideo.jp/watch/\\w+': function() {
       run_jquery(function($) {
-        callback(url, $('title').text(), $('body').html());
+        callback($('title').text(), $('body').html());
       }, 'http://ext.nicovideo.jp/thumb/' + url.match(/\/watch\/(\w+)/)[1]); },
 
     '://live.nicovideo.jp/watch/\\w+': function() {
       run_jquery(function($) {
-        callback(url, $('title').text(), $('body').html());
+        callback($('title').text(), $('body').html());
       }, 'http://live.nicovideo.jp/embed/' + url.match(/\/watch\/(\w+)/)[1]); },
 
     '://live.nicovideo.jp/gate/\\w+': function() {
       run_jquery(function($) {
-        callback(url, $('title').text(), $('body').html());
+        callback($('title').text(), $('body').html());
       }, 'http://live.nicovideo.jp/embed/' + url.match(/\/gate\/(\w+)/)[1]); },
 
     '://nico.ms/lv\\d+': function() {
       run_jquery(function($) {
-        callback(url, $('title').text(), $('body').html());
+        callback($('title').text(), $('body').html());
       }, 'http://live.nicovideo.jp/embed/'
        + url.match(/:\/\/nico.ms\/(lv\d+)/)[1]); },
 
     '://kokuru.com/\\w+/?$': function() {
       run_jquery(function($) {
-        callback(url, $('h1').text(), image_tag($('#kokuhaku_image_top').attr('src')));
+        callback($('h1').text(), image_tag($('#kokuhaku_image_top').attr('src')));
       }); },
-
-    '://twitvideo.jp/\\w+/?$': function() {
-      run_jquery(function($) {
-        callback(url, $('.sf_comment').text(), unescapeHTML($('#vtSource').attr('value')));
-      }); },
-
-    '://twitcasting.tv/\\w+/?$': function() {
-      var id = url.match(/^http:\/\/twitcasting.tv\/(\w+)\/?$/)[1];
-      callback(url,
-               '<video src="http://twitcasting.tv/' + id + '/metastream.m3u8/?video=1"' +
-               ' autoplay="true" controls="true"' +
-               ' poster="http://twitcasting.tv/' + id + '/thumbstream/liveshot" />');
-    },
 
     'pixiv.net/': function() {
       run_jquery(function($) {
-        callback(url, $('meta[property="og:title"]').text(), open_graph_body($));
+        callback($('meta[property="og:title"]').text(), open_graph_body($));
       });
     },
 
     '://ameblo.jp/.+/entry-': function() {
       run_jquery(function($) {
-        callback(url, $('meta[property="og:title"]').text() ||
+        callback($('meta[property="og:title"]').text() ||
                  $('title').text(), $('.subContents').html());
       });
     },
 
-    '://www.twitvid.com/\\w+/?$': function() {
-      var id = url.match(/^http:\/\/www.twitvid.com\/(\w+)\/?$/)[1];
-      callback(url,
-               '<iframe title="Twitvid video player" class="twitvid-player" type="text/html" ' +
-               'src="http://www.twitvid.com/embed.php?' +
-               $.param({guid: id, autoplay: 1}) + '" ' +
-               'width="480" height="360" frameborder="0" />');
-    },
-
     '://www.drawlr.com/d/\\w+/view/?$': function() {
       fetch_data(function(buf) {
-        callback(url, buf.toString().match(/var embed_code = '(.+)';/)[1]);
+        callback(buf.toString().match(/var embed_code = '(.+)';/)[1]);
       });
     }
   };
@@ -452,7 +431,7 @@ function get_description(url, callback) {
     e = e || (res.statusCode !== 200);
     var mime = res? res.headers['content-type'] : '';
 
-    if(!e && match_image_filter(mime)) { callback(url, image_tag(url)); }
+    if(!e && match_image_filter(mime)) { callback(image_tag(url)); }
     else if(!e && match_docs_filter(mime)) { google_docs(); }
     else {
       var match_gallery_filter = false;
@@ -468,7 +447,7 @@ function get_description(url, callback) {
 
       // mobilizer
       run_jquery(function($, window) {
-        callback(url, $('#rdb-article-title').html(), $('#rdb-article-content').html());
+        callback($('#rdb-article-title').html(), $('#rdb-article-content').html());
       }, 'http://www.readability.com/m?url=' + encodeURIComponent(url));
     }
   });
@@ -483,7 +462,7 @@ process.on('message', function(m) {
     document = jsdom.jsdom();
     window = document.createWindow();
 
-    get_description(m.data, function(a0, a1, a2) {
+    get_description(m.data, function(a1, a2) {
       var desc = a2 || a1;
 
       htmlcompressor((typeof desc === 'string')? desc : '', function(err, stdout, stderr) {
@@ -498,7 +477,7 @@ process.on('message', function(m) {
         if(a2) { a2 = cleaned.html(); }
         else { a1 = cleaned.html(); }
 
-        process.send({type: 'got_description', data: [m.data, a0, a1, a2]});
+        process.send({type: 'got_description', data: [m.data, m.data, a1, a2]});
       });
     });
     break;
