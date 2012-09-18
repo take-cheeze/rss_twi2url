@@ -63,6 +63,9 @@ module.exports = {
     'stickam.jp/',
     'ustream.tv/',
 
+    '\\.lifehacker\\.',
+    '\\.gizmode\\.',
+    'tweetmeme.com/',
     '2ch.net/',
     'jiji.com/',
     'www.asahi.com/',
