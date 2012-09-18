@@ -17,7 +17,7 @@ function image_tag(v, width, height) {
 
 var photo_filter = {
   '://photozou.jp/photo/\\w+/(\\d+)/(\\d+)$': function(url) {
-    var id = url.match(/^http:\/\/photozou.jp\/photo\/\w+\/(\d+)\/(\d+)/)[2];
+    var id = url.match(/:\/\/photozou.jp\/photo\/\w+\/(\d+)\/(\d+)/)[2];
     return $('<div />').append(
       $('<a />').attr('href', url.replace('show', 'photo_only')).append(
         image_tag('http://photozou.jp/p/img/' + id))).html();
@@ -43,7 +43,7 @@ var photo_filter = {
   },
 
   '://imgur.com/\\w+$': function(url) {
-    var id = url.match(/https?:\/\/imgur.com\/(\w+)$/)[1];
+    var id = url.match(/:\/\/imgur.com\/(\w+)$/)[1];
     return image_tag('http://i.imgur.com/' + id + '.jpg');
   },
 
@@ -63,7 +63,7 @@ var photo_filter = {
   },
 
   '://img.ly/\\w+$': function(url) {
-    var id = url.match(/https?:\/\/img.ly\/(\w+)$/)[1];
+    var id = url.match(/:\/\/img.ly\/(\w+)$/)[1];
     return $('<div />').append(
       $('<a />').attr('href', 'http://img.ly/images/' + id + '/full').append(
         image_tag('http://img.ly/show/full/' + id))).html();
@@ -82,7 +82,7 @@ var photo_filter = {
   },
 
   '://p.twipple.jp/\\w+/?$': function(url) {
-    var id = url.match(/^http:\/\/p.twipple.jp\/(\w+)\/?$/)[1];
+    var id = url.match(/:\/\/p.twipple.jp\/(\w+)\/?$/)[1];
     return image_tag('http://p.twpl.jp/show/orig/' + id);
   },
 
