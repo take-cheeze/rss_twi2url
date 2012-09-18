@@ -466,6 +466,9 @@ function fetch_page(url, qs, name, cb, next_since_id) {
     url_expander_queue = url_expander_queue.concat(data);
     data = data.results || data;
 
+    rss_twi2url.since[name].count = rss_twi2url.since[name].count || 0;
+    rss_twi2url.since[name].count += data.length;
+
     data.forEach(function(tweet) {
       var user_name = tweet.from_user_name || tweet.user.name;
       var screen_name = tweet.from_user || tweet.user.screen_name;
@@ -483,8 +486,9 @@ function fetch_page(url, qs, name, cb, next_since_id) {
       ((!qs.since_id) && (qs.page >= config.first_fetching_page_number)) ||
         (data.length === 0) || (data[data.length - 1].id_str === qs.since_id)
     ) {
-      console.log('next since id of', name, ':', next_since_id);
-      rss_twi2url.since[name] = next_since_id;
+      console.log('next since id of', name, '(',
+                  rss_twi2url.since[name].count, '):', next_since_id);
+      rss_twi2url.since[name].id = next_since_id;
       if(typeof cb === 'function') { cb(); }
     } else {
       qs.page++;
@@ -497,10 +501,9 @@ function fetch_page(url, qs, name, cb, next_since_id) {
 function fetch() {
   if(!twitter_api_left) { return; }
 
-  var setting = rss_twi2url;
   function fetch_lists() {
     get_json(
-      'https://api.twitter.com/1/lists/all.json', { user_id: setting.user_id },
+      'https://api.twitter.com/1/lists/all.json', { user_id: rss_twi2url.user_id },
       function(data) {
         function list_fetch() {
           var list_info = data;
@@ -514,7 +517,7 @@ function fetch() {
             'https://api.twitter.com/1/lists/statuses.json',
             { include_entities: true, include_rts: true,
               list_id: v.id_str, per_page: config.tweet_max,
-              page: 1, since_id: setting.since[v.full_name]
+              page: 1, since_id: rss_twi2url.since[v.full_name].id
             }, v.full_name,
             list_fetch);
         }
@@ -537,7 +540,7 @@ function fetch() {
             'http://search.twitter.com/search.json',
             { include_entities: true, rpp: config.search_max,
               q: v.query, result_type: config.search_type,
-              page: 1, since_id: setting.since[v.name]
+              page: 1, since_id: rss_twi2url.since[v.name].id
             }, v.name,
             search_fetch);
         }
@@ -551,7 +554,7 @@ function fetch() {
         'https://api.twitter.com/1/statuses/home_timeline.json',
         { count: config.tweet_max, exclude_replies: false,
           include_entities: true, include_rts: true,
-          page: 1, since_id: setting.since.home_timeline
+          page: 1, since_id: rss_twi2url.since.home_timeline.id
         }, 'home_timeline',
         fetch_lists);
     });
