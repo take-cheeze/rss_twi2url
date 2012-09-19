@@ -63,8 +63,11 @@ module.exports = {
     'stickam.jp/',
     'ustream.tv/',
 
+    'pixiv.net/memeber_illust.php',
+    'youtube.com/watch',
+    'tr.twipple.jp/',
     '\\.lifehacker\\.',
-    '\\.gizmode\\.',
+    '\\.gizmodo\\.',
     'tweetmeme.com/',
     '2ch.net/',
     'jiji.com/',
