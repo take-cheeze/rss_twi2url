@@ -67,7 +67,7 @@ module.exports = {
     '0taku.livedoor.biz/',
     '4gamer.net/',
     'google.com/calendar/',
-    'pixiv.net/memeber_illust.php',
+    'pixiv.net/member_illust.php',
     'youtube.com/watch',
     'tr.twipple.jp/',
     '\\.lifehacker\\.',
