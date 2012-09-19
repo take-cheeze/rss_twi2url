@@ -97,7 +97,7 @@ var photo_filter = {
     return image_tag('http://layercloud.net/img/items/(' + id + '.jpg');
   },
 
-  '://seiga.nicovide.jp/seiga/im\\d+': function(url) {
+  '://seiga.nicovideo.jp/seiga/im\\d+': function(url) {
     var id = url.match(/\/seiga\/im(\d+)/)[1];
     return image_tag('http://lohas.nicoseiga.jp/thumb/' + id + 'i.jpg');
   },
