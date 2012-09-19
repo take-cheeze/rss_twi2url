@@ -416,7 +416,7 @@ function get_description(url, callback) {
     '://ameblo.jp/.+/entry-': function() {
       run_jquery(function($) {
         callback($('meta[property="og:title"]').attr('content') ||
-                 $('title').text(), $('.subContents').html());
+                 $('title').text(), $('.subContents').html() || $('article').html());
       });
     },
 
