@@ -63,6 +63,10 @@ module.exports = {
     'stickam.jp/',
     'ustream.tv/',
 
+    'animita.tv/',
+    '0taku.livedoor.biz/',
+    '4gamer.net/',
+    'google.com/calendar/',
     'pixiv.net/memeber_illust.php',
     'youtube.com/watch',
     'tr.twipple.jp/',
