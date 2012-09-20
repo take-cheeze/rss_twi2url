@@ -34,12 +34,15 @@ module.exports = {
 
   blog_filter: [
     'blog', 'diary', 'd.hatena.ne.jp/', 'ameblo.jp/', '\\.wordpress\\.',
-    'theinterviews.jp/', 'yaplog.jp/'
+    'theinterviews.jp/', 'yaplog.jp/', 'article', 'nazolab.net/', '/archives/',
+    '/post/', 'gmane.org/', '/entry/'
   ],
+
   media_filter: [
     'youtube.com/', 'www.nicovideo.jp/watch/', 'via.me/', 'pixiv.net/member_illust',
-    'flickr.com/', 'slideshare.net/', 'facebook.com/photo', 'live.nicovideo.jp/watch/',
-    'f.hatena.ne.jp/', 'speakerdeck.com/', 'nico.ms/'
+    'flickr.com/', 'slideshare.net/', '/photo', 'live.nicovideo.jp/watch/',
+    'f.hatena.ne.jp/', 'speakerdeck.com/', 'nico.ms/', 'gallery', 'path.com/',
+    'my365.in/', 'doc.google.co'
   ],
 
   url_expantion_exclude: [
@@ -48,7 +51,7 @@ module.exports = {
     'p.twipple.jp/',
     'ideone.com/',
     'instagr.am/p/',
-    'lockerz.com/',
+    'lockerz.com/'
   ],
 
   exclude_filter: [
@@ -63,6 +66,8 @@ module.exports = {
     'stickam.jp/',
     'ustream.tv/',
 
+    'atnd.org/',
+    '\\.nikkeibp\\.',
     'nico.ms/lv\\d+#',
     'blood-genome.com/',
     'ura-akiba.jp/',
@@ -108,6 +113,8 @@ module.exports = {
     'sade-maso.com/',
     'himasoku.com/',
     'big.or.jp/~seraph/zero/discomm.cgi',
+    'i.jiji.jp/',
+    'kasi-time.com/',
 
     'bunsekikun.com/',
     'imakoko-iphone.appspot.com/',
