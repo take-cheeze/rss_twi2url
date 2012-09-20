@@ -63,6 +63,8 @@ module.exports = {
     'stickam.jp/',
     'ustream.tv/',
 
+    're-tweet.net/',
+    'soundcloud.com/',
     'animita.tv/',
     '0taku.livedoor.biz/',
     '4gamer.net/',
