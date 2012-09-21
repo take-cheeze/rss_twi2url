@@ -99,7 +99,7 @@ var photo_filter = {
 
   '://seiga.nicovideo.jp/seiga/im\\d+': function(url) {
     var id = url.match(/\/seiga\/im(\d+)/)[1];
-    return image_tag('http://lohas.nicoseiga.jp/thumb/' + id + 'i.jpg');
+    return image_tag('http://lohas.nicoseiga.jp/thumb/' + id + 'i');
   },
 
   '://gyazo.com/\\w+$': function(url) { return image_tag(url + '.png'); }
