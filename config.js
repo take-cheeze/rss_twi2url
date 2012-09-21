@@ -42,7 +42,7 @@ module.exports = {
     'youtube.com/', 'www.nicovideo.jp/watch/', 'via.me/', 'pixiv.net/member_illust',
     'flickr.com/', 'slideshare.net/', '/photo', 'live.nicovideo.jp/watch/',
     'f.hatena.ne.jp/', 'speakerdeck.com/', 'nico.ms/', 'gallery', 'path.com/',
-    'my365.in/', 'doc.google.co'
+    'my365.in/', 'doc.google.co', 'deviantart.com/'
   ],
 
   url_expantion_exclude: [
@@ -115,6 +115,7 @@ module.exports = {
     'big.or.jp/~seraph/zero/discomm.cgi',
     'i.jiji.jp/',
     'kasi-time.com/',
+    'whotwi.com/',
 
     'bunsekikun.com/',
     'imakoko-iphone.appspot.com/',
