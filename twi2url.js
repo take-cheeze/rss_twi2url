@@ -155,6 +155,54 @@ function expantion_exclude(url) {
   return ret;
 }
 
+var url_expander_cb = {}, url_expander_process;
+
+function create_url_expander() {
+  var ret = fork(__dirname + '/url_expander.js');
+  ret.on('exit', function(code, signal) {
+    console.log('exit of url expander');
+    if(code) { console.log('code:', code); }
+    if(signal) { console.log('signal:', signal); }
+
+    console.log('restarting url expander');
+    url_expander_process = create_url_expander();
+  });
+
+  ret.on('message', function(m) {
+    if(!m.type) { throw 'no message type'; }
+    if(!m.data) { throw 'no data'; }
+
+    switch(m.type) {
+      case 'expanded':
+      if(url_expander_cb.hasOwnProperty(m.data.original)) {
+        url_expander_cb[m.data.original](m.data.result);
+        delete url_expander_cb[m.data.original];
+      }
+      break;
+
+      case 'log': console.log(m.data.join(' ')); break;
+      case 'error': console.error(m.data.join(' ')); break;
+
+      default:
+      throw 'unknown message type';
+    }
+  });
+
+  setTimeout(function() {
+    ret.send({ type: 'config', data: config });
+    setTimeout(expand_url, CHILD_PROCESS_WAIT);
+  }, CHILD_PROCESS_WAIT);
+
+  return ret;
+}
+
+url_expander_process = create_url_expander();
+
+function url_expander(url, cb) {
+  url_expander_process.send({type: 'expand_url', data: url});
+  url_expander_cb[url] = cb;
+}
+
 var expand_cache = {}, expanding_urls = {};
 
 function expand_url() {
@@ -205,7 +253,7 @@ function expand_url() {
     return;
   }
 
-  require('./url_expander')(tweet.url, function(result) {
+  url_expander(tweet.url, function(result) {
     expand_cache[tweet.url] = result;
     send_url(result);
   }, config.timeout);
@@ -378,7 +426,7 @@ function get_json(url, q, callback) {
 
   request.get(
     { 'url': url + ((count_map_element(q) > 0)? '?' + querystring.stringify(q) : ''),
-      oauth: opt, encoding: null, pool: false,
+      oauth: opt, encoding: null,
       timeout: config.timeout, qs: q,
       headers: { 'accept-encoding': 'gzip,deflate',
                  'user-agent': config.user_agent } },
@@ -515,6 +563,10 @@ function fetch_page(url, qs, name, cb, next_since_id) {
 
 function fetch() {
   if(!twitter_api_left) { return; }
+
+  $.each(expanding_urls, function(k,v) {
+    rss_twi2url.url_expander_queue.push(k);
+  });
   expanding_urls = {};
 
   function fetch_lists() {
@@ -801,8 +853,3 @@ app.get('/photo.rss', function(req, res) {
 });
 
 app.listen(config.port);
-
-process.on('uncaughtException', function (err) {
-  console.log('Caught exception: ' + err);
-  console.log(expanding_urls);
-});
