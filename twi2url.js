@@ -479,7 +479,7 @@ function fetch_page(url, qs, name, cb, next_since_id) {
 
       var author_str = user_name + ' ( @' + screen_name + ' ) / ' + name;
       tweet.entities.urls.forEach(function(v) {
-        if(!(v.url && v.expand_url)) { return; }
+        if(!(v.url && v.expanded_url)) { return; }
         tweet.text = tweet.text.replace(v.url, v.expanded_url);
       });
       tweet.entities.urls.forEach(function(v) {
