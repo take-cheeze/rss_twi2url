@@ -169,10 +169,15 @@ function expand_url() {
   }
 
   function send_url(result) {
-    tweet.url = remove_utm_param(result);
-    if(!/\/t\.co\//.test(result) && !match_exclude_filter(result)
-                                 && !is_queued(result)
-                                 && !in_photo_stack(result)
+    var cleand_url = remove_utm_param(result);
+
+    tweet.text.replace(tweet.url, cleand_url);
+    tweet.url = cleand_url;
+
+    if(!/\/t\.co\//.test(result)
+     && !match_exclude_filter(result)
+     && !is_queued(result)
+     && !in_photo_stack(result)
       )
     {
       if(photo_module.is_photo(result)) { rss_twi2url.photos.push(tweet); }
