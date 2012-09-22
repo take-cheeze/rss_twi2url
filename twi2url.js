@@ -3,7 +3,6 @@
 var
     BufferStream = require('bufferstream')
   , fs = require('fs')
-  , $ = require('jquery')
   , URL = require('url')
   , zlib = require('zlib')
   , querystring = require('querystring')
@@ -53,9 +52,16 @@ if(fs.existsSync(QUEUE_FILE + '.gz')) {
   });
 }
 
+function object_for_each(obj, cb) {
+  var k;
+  for(k in obj) {
+    if(obj.hasOwnProperty(k) && (cb(k, obj[k]) === false)) { return; }
+  }
+}
+
 function count_map_element(map) {
   var ret = 0;
-  $.each(map, function(k, v) { ret++; });
+  object_for_each(map, function() { ret++; });
   return ret;
 }
 
@@ -95,7 +101,7 @@ if(fs.existsSync(JSON_FILE + '.gz')) {
 
     if(rss_twi2url.generating_items) {
       console.log(rss_twi2url.generating_items);
-      $.each(rss_twi2url.generating_items, function(k, v) {
+      object_for_each(rss_twi2url.generating_items, function(k, v) {
         rss_twi2url.queued_urls.unshift(v);
       });
     }
@@ -133,7 +139,7 @@ function remove_utm_param(url) {
   try {
     var url_obj = URL.parse(url, true);
     var removing_param = [];
-    $.each(url_obj.query, function(k, v) {
+    object_for_each(url_obj.query, function(k) {
       if(/utm_/i.test(k)) { removing_param.push(k); }
     });
     removing_param.forEach(function(param) {
@@ -566,7 +572,7 @@ function fetch() {
 
   if(!twitter_api_left) { return; }
 
-  $.each(expanding_urls, function(k,v) {
+  object_for_each(expanding_urls, function(k) {
     rss_twi2url.url_expander_queue.push(k);
   });
   expanding_urls = {};
@@ -659,7 +665,7 @@ function start() {
   setInterval(function() {
     if(rss_twi2url.queued_urls.length === 0) { return; }
 
-    $.each(rss_twi2url.generating_items, function(k, v) {
+    object_for_each(rss_twi2url.generating_items, function(k, v) {
       rss_twi2url.queued_urls.push(v);
     });
     rss_twi2url.generating_items = {};
@@ -785,7 +791,7 @@ function print_current_state(req) {
   console.log(expanding_urls);
 
   var fetched_tweet = 0;
-  $.each(rss_twi2url.since, function(k,v) {
+  object_for_each(rss_twi2url.since, function(k, v) {
     fetched_tweet += v.count;
   });
   console.log('fetched tweet:', fetched_tweet);
