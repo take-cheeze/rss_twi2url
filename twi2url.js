@@ -514,6 +514,7 @@ function fetch_page(url, qs, name, cb, next_since_id) {
 
 function fetch() {
   if(!twitter_api_left) { return; }
+  expand_count = 0;
 
   function fetch_lists() {
     get_json(
@@ -796,3 +797,7 @@ app.get('/photo.rss', function(req, res) {
 });
 
 app.listen(config.port);
+
+process.on('uncaughtException', function (err) {
+   console.log('Caught exception: ' + err);
+});
