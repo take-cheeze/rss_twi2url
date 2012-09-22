@@ -562,6 +562,8 @@ function fetch_page(url, qs, name, cb, next_since_id) {
 }
 
 function fetch() {
+  url_expander_process.kill();
+
   if(!twitter_api_left) { return; }
 
   $.each(expanding_urls, function(k,v) {
