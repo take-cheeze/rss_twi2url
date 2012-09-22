@@ -309,9 +309,10 @@ function generate_item() {
       title = v.text;
     }
 
+    var cleaned_tweet = v.text.replace(url, '');
     if(!title) {
       console.error('Invalid title:', url);
-      title = v.text;
+      title = cleaned_tweet;
     }
     if(!desc) {
       console.error('Invalid description:', url);
@@ -321,7 +322,7 @@ function generate_item() {
       {
         title: title, 'url': url, author: v.author, date: v.date,
         description: 'URL: ' + url + '<br />' +
-          'Tweet: ' + v.text +
+          'Tweet: ' + cleaned_tweet +
           (desc? '<br /><br />' + desc : '')
       }));
 
@@ -477,6 +478,10 @@ function fetch_page(url, qs, name, cb, next_since_id) {
       if(screen_name === rss_twi2url.screen_name) { return; }
 
       var author_str = user_name + ' ( @' + screen_name + ' ) / ' + name;
+      tweet.entities.urls.forEach(function(v) {
+        if(!(v.url && v.expand_url)) { return; }
+        tweet.text = tweet.text.replace(v.url, v.expanded_url);
+      });
       tweet.entities.urls.forEach(function(v) {
         url_expander_queue.push(
           { 'url': v.expanded_url || v.url, author: author_str,
@@ -776,9 +781,9 @@ app.get('/photo.rss', function(req, res) {
 
   photos.forEach(function(v) {
     feed.item({
-      title: v.text, description: photo_module.photo_tag(v.url),
-      url: v.url, author: v.author, date: v.date
-    });
+      title: v.text.replace(v.url, ''),
+      description: photo_module.photo_tag(v.url),
+      url: v.url, author: v.author, date: v.date });
   });
 
   res.set('content-type', 'application/rss+xml');
