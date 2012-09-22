@@ -1,6 +1,6 @@
 var request = require('request');
 
-var MAX_REDIRECTS = 5;
+var MAX_REDIRECTS = 3;
 
 function expand_url(url, cb, timeout) {
   request.head(

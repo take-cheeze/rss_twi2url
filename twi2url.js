@@ -117,8 +117,6 @@ if(fs.existsSync(JSON_FILE + '.gz')) {
   });
 }
 
-var expand_count = 0, expand_cache = {};
-
 function is_queued(url) {
   return (rss_twi2url.queued_urls.indexOf(url) !== -1);
 }
@@ -157,8 +155,10 @@ function expantion_exclude(url) {
   return ret;
 }
 
+var expand_cache = {}, expanding_urls = {};
+
 function expand_url() {
-  if(expand_count >= config.url_expander_number) {
+  if(count_map_element(expanding_urls) >= config.url_expander_number) {
     return;
   }
 
@@ -169,6 +169,8 @@ function expand_url() {
   }
 
   function send_url(result) {
+    delete expanding_urls[tweet.url];
+
     var cleand_url = remove_utm_param(result);
 
     tweet.text.replace(tweet.url, cleand_url);
@@ -184,11 +186,10 @@ function expand_url() {
       else { rss_twi2url.queued_urls.push(tweet); }
     }
 
-    expand_count--;
     expand_url();
   }
 
-  expand_count++;
+  expanding_urls[tweet.url] = true;
 
   if(expand_cache.hasOwnProperty(tweet.url)) {
     send_url(expand_cache[tweet.url]);
@@ -514,7 +515,7 @@ function fetch_page(url, qs, name, cb, next_since_id) {
 
 function fetch() {
   if(!twitter_api_left) { return; }
-  expand_count = 0;
+  expanding_urls = {};
 
   function fetch_lists() {
     get_json(
@@ -726,6 +727,9 @@ function print_current_state(req) {
   console.log('media_urls.length:', rss_twi2url.media_urls.length);
   console.log('blog_urls.length:', rss_twi2url.blog_urls.length);
 
+  console.log('expanding_urls:');
+  console.log(expanding_urls);
+
   var fetched_tweet = 0;
   $.each(rss_twi2url.since, function(k,v) {
     fetched_tweet += v.count;
@@ -799,5 +803,6 @@ app.get('/photo.rss', function(req, res) {
 app.listen(config.port);
 
 process.on('uncaughtException', function (err) {
-   console.log('Caught exception: ' + err);
+  console.log('Caught exception: ' + err);
+  console.log(expanding_urls);
 });
