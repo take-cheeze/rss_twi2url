@@ -80,6 +80,7 @@ module.exports = {
     'google.com/calendar/',
     'pixiv.net/member_illust.php',
     'youtube.com/watch',
+    'youtu.be/',
     'tr.twipple.jp/',
     '\\.lifehacker\\.',
     '\\.gizmodo\\.',
