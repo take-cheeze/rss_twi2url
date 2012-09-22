@@ -378,7 +378,7 @@ function get_json(url, q, callback) {
 
   request.get(
     { 'url': url + ((count_map_element(q) > 0)? '?' + querystring.stringify(q) : ''),
-      oauth: opt, encoding: null,
+      oauth: opt, encoding: null, pool: false,
       timeout: config.timeout, qs: q,
       headers: { 'accept-encoding': 'gzip,deflate',
                  'user-agent': config.user_agent } },
