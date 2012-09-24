@@ -39,7 +39,7 @@ var photo_filter = {
 
   '://instagr.am/p/[\\-\\w_]+/?$': function(url) {
     var id = url.match(/:\/\/instagr.am\/p\/([\-\w_]+)\/?$/)[1];
-    return image_tag('http://instagr.am/p/' + id + '/media/?size=l');
+    return image_tag('http://instagr.am/p/' + id + '/media/?size=l', 612, 612);
   },
 
   '://imgur.com/\\w+$': function(url) {
