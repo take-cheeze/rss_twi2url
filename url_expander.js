@@ -9,7 +9,7 @@ console.error = function() {
 
 var request = require('request');
 
-var MAX_REDIRECTS = 3, config = null;
+var MAX_REDIRECTS = 5, config = null;
 
 function expand_url(u, cb) {
   request.head(
