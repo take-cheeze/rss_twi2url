@@ -573,7 +573,7 @@ function fetch() {
   if(!twitter_api_left) { return; }
 
   object_for_each(expanding_urls, function(k) {
-    rss_twi2url.url_expander_queue.push(k);
+    url_expander_queue.push(k);
   });
   expanding_urls = {};
 
