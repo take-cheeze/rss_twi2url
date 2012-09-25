@@ -751,7 +751,7 @@ app.use(express.compress({
 
 app.get('/callback', function(req, res) {
   if(is_signed_in() && !authorize_url) {
-    res.set('content-type', 'text/plain').send('Already signed in.');
+    res.set('Content-Type', 'text/plain').send('Already signed in.');
     return;
   }
 
@@ -767,7 +767,7 @@ app.get('/callback', function(req, res) {
       opt.token_secret = result.oauth_token_secret;
       delete opt.verifier;
 
-      res.set('content-type', 'text/plain').send('Twitter OAuth Success!');
+      res.set('Content-Type', 'text/plain').send('Twitter OAuth Success!');
 
       console.log('Twitter OAuth result.');
       console.log(result);
@@ -813,7 +813,7 @@ function get_feed(req, res, ary, name) {
       : ary;
 
   generate_feed(ary, function(data) {
-    res.set('content-type', 'application/rss+xml');
+    res.set('Content-Type', 'application/rss+xml');
     res.send(data);
   }, name);
 }
@@ -856,7 +856,7 @@ app.get('/photo.rss', function(req, res) {
       url: v.url, author: v.author, date: v.date });
   });
 
-  res.set('content-type', 'application/rss+xml');
+  res.set('Content-Type', 'application/rss+xml');
   res.send(feed.xml());
 });
 
