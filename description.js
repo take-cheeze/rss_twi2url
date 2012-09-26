@@ -473,6 +473,17 @@ process.on('message', function(m) {
 
         var cleaned = $('<div />').html(stdout.toString());
         cleaned.find('*').removeData();
+        cleaned.find('br').filter(function() {
+          var prev = this.previousSibling, next = this.nextSibling;
+          return prev && prev.nodeType === 3 && next && next.tagName === 'BR';
+        }).each(function(k,v) {
+          v = v.nextSibling;
+          while(v && v.nextSibling.tagName === 'BR') {
+            var prev = v;
+            v = v.nextSibling;
+            prev.parentNode.removeChild(prev);
+          }
+        });
 
         if(a2) { a2 = cleaned.html(); }
         else { a1 = cleaned.html(); }
