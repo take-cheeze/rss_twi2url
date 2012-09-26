@@ -94,7 +94,7 @@ var photo_filter = {
 
   '://layercloud.net/items/detail_top/\\d+$': function(url) {
     var id = url.match(/:\/\/layercloud.net\/items\/detail_top\/(\d+)$/)[1];
-    return image_tag('http://layercloud.net/img/items/(' + id + '.jpg');
+    return image_tag('http://layercloud.net/img/items/' + id + '.jpg');
   },
 
   '://seiga.nicovideo.jp/seiga/im\\d+': function(url) {
