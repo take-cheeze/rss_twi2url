@@ -477,8 +477,8 @@ process.on('message', function(m) {
           var prev = this.previousSibling, next = this.nextSibling;
           return prev && prev.nodeType === 3 && next && next.tagName === 'BR';
         }).each(function(k,v) {
-          v = v.nextSibling;
-          while(v && v.nextSibling.tagName === 'BR') {
+          v = v.nextSibling.nextSibling;
+          while(v && v.tagName === 'BR') {
             var prev = v;
             v = v.nextSibling;
             prev.parentNode.removeChild(prev);
