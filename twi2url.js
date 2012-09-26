@@ -608,6 +608,7 @@ function fetch() {
           var search_info = data;
           var v = search_info.pop();
           if(!v) {
+            url_expander_process.kill();
             return;
           }
 
