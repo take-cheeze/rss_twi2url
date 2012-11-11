@@ -405,7 +405,7 @@ function generate_item() {
 
 function generate_feed(items, cb, name) {
   var feed = new RSS(
-    { title: config.title || (name? ' : ' + name : ''),
+    { title: config.title + (name? ' : ' + name : ''),
       'description': config.description,
       feed_url: config.feed_url,
       site_url: config.feed_url + (name? name + '.rss' : ''),
@@ -844,7 +844,7 @@ app.get('/photo.rss', function(req, res) {
              : rss_twi2url.photos;
 
   var feed = new RSS(
-    { title: config.title + ' : photos',
+    { title: config.title + ' : photo',
       'description': config.description,
       feed_url: config.feed_url + 'photo.rss',
       site_url: config.feed_url,
