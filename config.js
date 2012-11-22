@@ -62,6 +62,7 @@ module.exports = {
     'foursquare.com/',
     '4sq.com/',
     'shindanmaker.com/',
+    'oredrama.com/',
     'wikipedia.org',
     'stickam.jp/',
     'ustream.tv/',
