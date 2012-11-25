@@ -853,7 +853,7 @@ app.get('/photo.rss', function(req, res) {
   photos.forEach(function(v) {
     feed.item({
       title: v.text.replace(v.url, ''),
-      description: photo_module.photo_tag(v.url),
+      description: v.text + '<br />' + photo_module.photo_tag(v.url),
       url: v.url, author: v.author, date: v.date });
   });
 
