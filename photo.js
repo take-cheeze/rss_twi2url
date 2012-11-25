@@ -76,7 +76,7 @@ var photo_filter = {
     var id = url.match(/:\/\/twitpic.com\/(\w+)(\/full)?\/?/)[1];
     return $('<div />').append(
       $('<a />').attr('href', 'http://twitpic.com/' + id + '/full').append(
-        image_tag('http://twitpic.com/show/large/' + id))).html();
+        image_tag('http://twitpic.com/show/full/' + id))).html();
   },
 
   '://p.twipple.jp/\\w+/?$': function(url) {
