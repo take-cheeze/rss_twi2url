@@ -68,6 +68,8 @@ module.exports = {
     'stickam.jp/',
     'ustream.tv/',
 
+    'gree\\.jp/',
+
     'atnd.org/',
     '\\.nikkeibp\\.',
     'nico.ms/lv\\d+#',
