@@ -43,7 +43,7 @@ module.exports = {
     'via.me/', 'pixiv.net/member_illust',
     'flickr.com/', 'slideshare.net/', '/photo', 'live.nicovideo.jp/watch/',
     'f.hatena.ne.jp/', 'speakerdeck.com/', 'nico.ms/', 'gallery', 'path.com/',
-    'my365.in/', 'doc.google.co', 'deviantart.com/'
+    'my365.in/', 'doc.google.co', 'deviantart.com/', 'picture'
   ],
 
   url_expantion_exclude: [
