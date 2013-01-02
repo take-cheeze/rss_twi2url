@@ -59,6 +59,7 @@ module.exports = {
     '^https?://twitter.com/.+/status/\\d+$',
     '^https?://twitter.com/.+/statuses/\\d+$',
     'tumblr.com/',
+    'riamitsu.com/omikuji',
     'news',
     'foursquare.com/',
     '4sq.com/',
