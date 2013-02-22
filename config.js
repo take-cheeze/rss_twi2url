@@ -1,7 +1,7 @@
 module.exports = {
   title: "twi2url",
   description: "twitter 2 url",
-  hostname: process.env.HOST || "ubuntu.local",
+  hostname: process.env.HOST || "watanabe-imac.local",
   port: process.env.PORT || 8090,
   author: "Takeshi Watanabe",
 
@@ -9,7 +9,6 @@ module.exports = {
   photo_feed_item_max: 750,
   retry_max: 1,
   url_expander_number: 5,
-  first_fetching_page_number: 2,
 
   long_url_length: 30,
   tweet_max: 200,
@@ -18,7 +17,7 @@ module.exports = {
 
   executer_max: 4,
 
-  fetch_frequency: 1000 * 60 * 20,
+  fetch_frequency: 1000 * 60 * 15, // fetch per each window(=15 minutes)
   executer_restart_frequency: 1000 * 60 * 5,
   item_generation_frequency: 1000 * 1.1,
   backup_frequency: 1000 * 60,

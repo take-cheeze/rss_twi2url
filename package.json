@@ -4,8 +4,8 @@
   "private": true,
   "author": "Takeshi Watanabe",
   "engines": {
-    "node": ">= 0.8.14",
-    "npm": ">= 1.1.65"
+    "node": ">= 0.8.19",
+    "npm": ">= 1.2.10"
   },
   "dependencies": {
     "bufferstream": ">= 0.5.1",
@@ -13,7 +13,7 @@
     "iconv": ">= 1.1.3",
     "jquery": ">= 1.6.3",
     "jsdom": ">= 0.2.13",
-    "leveldb": "= 0.5.5",
+    "levelup": "= 0.5.4",
     "querystring": ">= 0.1.0",
     "request": ">= 2.9.153",
     "rss": ">= 0.0.3"

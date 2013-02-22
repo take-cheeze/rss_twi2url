@@ -13,8 +13,9 @@ var
 ;
 
 var CHILD_PROCESS_WAIT = 30;
+var API_PREFIX = "https://api.twitter.com/1.1/";
 
-var db = null;
+
 var consumer = {};
 
 try { consumer = require('./consumer'); }
@@ -33,6 +34,10 @@ var twitter_api_left = true;
 var DB_FILE = process.cwd() + '/rss_twi2url.db';
 var JSON_FILE = process.cwd() + '/rss_twi2url.json';
 var QUEUE_FILE = process.cwd() + '/rss_twi2url_queue.json';
+
+// prepare database
+var levelup = require('levelup');
+var db = levelup(DB_FILE);
 
 var config = require('./config');
 var is_on_heroku = /\.herokuapp\.com/.test(config.hostname);
@@ -384,7 +389,9 @@ function generate_item() {
         description: 'URL: ' + url + '<br />' +
           'Tweet: ' + cleaned_tweet +
           (desc? '<br /><br />' + desc : '')
-      }));
+      }), function(err) {
+            if(err) console.error("DB error: " + err);
+          });
 
     if(!in_last_urls(v.url)) {
       rss_twi2url[match_blog_filter(v.url)? 'blog_urls':
@@ -437,6 +444,10 @@ function get_json(url, q, callback) {
       headers: { 'accept-encoding': 'gzip,deflate',
                  'user-agent': config.user_agent } },
     function(err, res, data) {
+      console.log(url + " API: " + res.headers['x-rate-limit-remaining']
+                 + ' / ' + res.headers['x-rate-limit-limit']
+                 + ' (' + Math.ceil(res.headers['x-rate-limit-reset'] - Date.now() / 1000) + 'sec)');
+
       function uncompress_callback(err, buffer) {
         if(err) {
           console.error('uncompress error:', err);
@@ -499,27 +510,6 @@ function get_json(url, q, callback) {
     });
 }
 
-function check_left_api(callback) {
-  if(!twitter_api_left) { return; }
-
-  get_json(
-    'https://api.twitter.com/1/account/rate_limit_status.json', {},
-    function(data) {
-      console.log('api left:', data.remaining_hits);
-
-      twitter_api_left = data.remaining_hits;
-      if(data.remaining_hits > 0) {
-        callback();
-      } else {
-        var wait_time = data.reset_time_in_seconds - Math.floor((new Date()).getTime() / 1000);
-        twitter_api_left = false;
-        setTimeout(function() { twitter_api_left = true; }, wait_time * 1000);
-        console.log('API not left. Will have reset in:',
-                    new Date(data.reset_time).toLocaleString());
-      }
-    });
-}
-
 function fetch_page(url, qs, name, cb, next_since_id) {
   rss_twi2url.since[name] = rss_twi2url.since[name] || { count: 0, since_id: false };
   qs.since_id = rss_twi2url.since[name].id;
@@ -527,7 +517,7 @@ function fetch_page(url, qs, name, cb, next_since_id) {
 
   get_json(url, qs, function(data) {
     url_expander_queue = url_expander_queue.concat(data);
-    data = data.results || data;
+    data = data.statuses || data.results || data;
 
     rss_twi2url.since[name].count += data.length;
 
@@ -551,16 +541,16 @@ function fetch_page(url, qs, name, cb, next_since_id) {
 
     if(!next_since_id) { next_since_id = data.length > 0? data[0].id_str : qs.since_id; }
 
-    if(
-      ((!qs.since_id) && (qs.page >= config.first_fetching_page_number)) ||
-        (data.length === 0) || (data[data.length - 1].id_str === qs.since_id)
-    ) {
+    var last_data = data.length > 0? data[data.length - 1] : null;
+    console.log(data.length);
+    if((!qs.since_id) || (data.length < (qs.count / 10))) {
       console.log('next since id of', name, '(',
                   rss_twi2url.since[name].count, '):', next_since_id);
       rss_twi2url.since[name].id = next_since_id;
       if(typeof cb === 'function') { cb(); }
     } else {
-      qs.page++;
+      console.log(last_data.id_str < data[0].id_str);
+      qs.max_id = last_data.id_str;
       setTimeout(fetch_page, config.item_generation_frequency,
                  url, qs, name, cb, next_since_id);
     }
@@ -579,7 +569,7 @@ function fetch() {
 
   function fetch_lists() {
     get_json(
-      'https://api.twitter.com/1/lists/all.json', { user_id: rss_twi2url.user_id },
+      API_PREFIX + 'lists/list.json', { user_id: rss_twi2url.user_id },
       function(data) {
         function list_fetch() {
           var list_info = data;
@@ -590,9 +580,9 @@ function fetch() {
           }
 
           fetch_page(
-            'https://api.twitter.com/1/lists/statuses.json',
+            API_PREFIX + 'lists/statuses.json',
             { include_entities: true, include_rts: true,
-              list_id: v.id_str, per_page: config.tweet_max, page: 1
+              list_id: v.id_str, count: config.tweet_max
             }, v.full_name,
             list_fetch);
         }
@@ -602,7 +592,7 @@ function fetch() {
 
   function fetch_searches() {
     get_json(
-      'https://api.twitter.com/1/saved_searches.json', {},
+      API_PREFIX + 'saved_searches/list.json', {},
       function(data) {
         function search_fetch() {
           var search_info = data;
@@ -613,9 +603,9 @@ function fetch() {
           }
 
           fetch_page(
-            'http://search.twitter.com/search.json',
-            { include_entities: true, rpp: config.search_max,
-              q: v.query, result_type: config.search_type, page: 1
+            API_PREFIX + 'search/tweets.json',
+            { include_entities: true, count: config.search_max,
+              q: v.query, result_type: config.search_type
             }, v.name,
             search_fetch);
         }
@@ -623,15 +613,12 @@ function fetch() {
       });
   }
 
-  check_left_api(
-    function() {
-      fetch_page(
-        'https://api.twitter.com/1/statuses/home_timeline.json',
-        { count: config.tweet_max, exclude_replies: false,
-          include_entities: true, include_rts: true, page: 1
-        }, 'home_timeline',
-        fetch_lists);
-    });
+  fetch_page(
+    API_PREFIX + 'statuses/home_timeline.json',
+    { count: config.tweet_max, exclude_replies: false,
+      include_entities: true, include_rts: true
+    }, 'home_timeline',
+    fetch_lists);
 }
 
 function start() {
@@ -731,12 +718,6 @@ request.get({uri: 'http://code.jquery.com/jquery-latest.min.js'}, function(e, r,
   config.jquery_src = jquery;
 
   signin();
-});
-
-// prepare database
-db = new (require('leveldb').DB)();
-db.open(DB_FILE, { create_if_missing: true }, function(err) {
-  if(err) { throw err; }
 });
 
 // run web server

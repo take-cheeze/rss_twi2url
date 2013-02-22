@@ -272,40 +272,40 @@ function get_description(url, callback) {
 
       jsdom.env(
         { 'html': html || '<html><body></body></html>',
-          features: DEFAULT_FEATURE },
-        function(err, window) {
-          if(err) {
-            error_callback(err);
-            return;
-          }
+          features: DEFAULT_FEATURE, src: [config.jquery_src],
+          done: function(err, window) {
+            if(err) {
+              error_callback(err);
+              return;
+            }
 
-          var document = window.document;
-          var script_tags = document.getElementsByTagName('script');
-          var i;
-          for(i = 0; i < script_tags.length; ++i) {
-            script_tags[i].parentNode.removeChild(script_tags[i]);
-          }
-          eval(config.jquery_src);
+            var document = window.document;
+            var script_tags = document.getElementsByTagName('script');
+            var i;
+            for(i = 0; i < script_tags.length; ++i) {
+              script_tags[i].parentNode.removeChild(script_tags[i]);
+            }
 
-          var $ = window.jQuery;
+            var $ = window.jQuery;
 
-          $('a').each(
-            function(idx,elm) {
-              $(elm).attr('href', URL.resolve(target_url, $(elm).attr('href')));
-            });
-          $('img').each(
-            function(idx,elm) {
-              $(elm).attr('src', URL.resolve(target_url, $(elm).attr('src')));
-            });
+            $('a').each(
+              function(idx,elm) {
+                $(elm).attr('href', URL.resolve(target_url, $(elm).attr('href')));
+              });
+            $('img').each(
+              function(idx,elm) {
+                $(elm).attr('src', URL.resolve(target_url, $(elm).attr('src')));
+              });
 
-          switch(typeof cb) {
-            case 'function':
-            cb($, window); break;
-            case 'object':
-            callback($('meta[property="og:title"]').attr('content') ||
-                     $('title').text(), run_selectors($, cb));
-            break;
-            default: throw 'unknown callback type';
+            switch(typeof cb) {
+              case 'function':
+              cb($, window); break;
+              case 'object':
+              callback($('meta[property="og:title"]').attr('content') ||
+                       $('title').text(), run_selectors($, cb));
+              break;
+              default: throw 'unknown callback type';
+            }
           }
         });
     }, u);
